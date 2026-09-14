@@ -1,0 +1,19 @@
+{
+  "name": "@ark-go-starter/api",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "build": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ark-go-starter/types": "workspace:*",
+    "axios": "^1.7.0"
+  },
+  "devDependencies": {
+    "@ark-go-starter/tsconfig": "workspace:*",
+    "typescript": "^5.5.0"
+  }
+}
