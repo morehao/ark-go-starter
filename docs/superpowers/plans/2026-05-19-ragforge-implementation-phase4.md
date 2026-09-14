@@ -79,9 +79,9 @@ package svckb
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/morehao/goark/apps/ragforge/dao"
-	"github.com/morehao/goark/apps/ragforge/internal/dto/dtokb"
-	"github.com/morehao/goark/apps/ragforge/model"
+	"github.com/morehao/ark-go-starter/apps/ragforge/dao"
+	"github.com/morehao/ark-go-starter/apps/ragforge/internal/dto/dtokb"
+	"github.com/morehao/ark-go-starter/apps/ragforge/model"
 	"github.com/morehao/golib/genericdao"
 	"github.com/morehao/golib/glog"
 	"github.com/morehao/golib/gutil"
@@ -191,9 +191,9 @@ package ctrkb
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/morehao/goark/apps/ragforge/internal/dto/dtokb"
-	"github.com/morehao/goark/apps/ragforge/internal/service/svckb"
-	"github.com/morehao/goark/pkg/gincontext"
+	"github.com/morehao/ark-go-starter/apps/ragforge/internal/dto/dtokb"
+	"github.com/morehao/ark-go-starter/apps/ragforge/internal/service/svckb"
+	"github.com/morehao/ark-go-starter/pkg/gincontext"
 )
 
 type KBCtr interface {
@@ -292,7 +292,7 @@ package router
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/morehao/goark/apps/ragforge/internal/controller/ctrkb"
+	"github.com/morehao/ark-go-starter/apps/ragforge/internal/controller/ctrkb"
 )
 
 func kbRouter(group *gin.RouterGroup) {
@@ -313,7 +313,7 @@ Update `apps/ragforge/internal/router/router.go`:
 package router
 
 import (
-	"github.com/morehao/goark/pkg/ginserver"
+	"github.com/morehao/ark-go-starter/pkg/ginserver"
 )
 
 func RegisterRouter(groups *ginserver.RouterGroups, appName string) {

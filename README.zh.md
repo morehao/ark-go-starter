@@ -1,7 +1,7 @@
 [English](./README.md) | [简体中文](./README.zh.md)
 
 # 项目简介
-`go-ark-template` 是一个前后端一体的 Go Web 全栈工程实践项目：后端基于 [Gin](https://github.com/gin-gonic/gin) + GORM（Go workspace 多模块），前端基于 React + Vite + Ant Design（pnpm monorepo），提供分层清晰、可维护、可扩展的多应用服务结构。
+`ark-go-starter` 是一个前后端一体的 Go Web 全栈工程实践项目：后端基于 [Gin](https://github.com/gin-gonic/gin) + GORM（Go workspace 多模块），前端基于 React + Vite + Ant Design（pnpm monorepo），提供分层清晰、可维护、可扩展的多应用服务结构。
 # 项目特点
 
 - 清晰的项目结构：参考了[project-layout](https://github.com/golang-standards/project-layout)，遵循分层架构思想，前后端分离（`backend/` + `frontend/`），目录组织合理，便于团队协作与长期维护。
@@ -51,7 +51,7 @@
 ```bash
 go install github.com/morehao/gocli@latest
 ```
-确保项目应用目录下有代码生成配置文件，示例：`goark/apps/demo/config/code_gen.yaml`。代码生成命令如下：
+确保项目应用目录下有代码生成配置文件，示例：`ark-go-starter/apps/demo/config/code_gen.yaml`。代码生成命令如下：
 ```bash
 # 基于表生成整个功能模块
 make codegen APP=demo COMMAND=module

@@ -132,8 +132,8 @@ package dao
 import (
     "context"
 
-    "github.com/morehao/goark/apps/iam/model"
-    "github.com/morehao/goark/pkg/dbclient"
+    "github.com/morehao/ark-go-starter/apps/iam/model"
+    "github.com/morehao/ark-go-starter/pkg/dbclient"
     "github.com/morehao/golib/biz/genericdao"
     "gorm.io/gorm"
 )
@@ -232,8 +232,8 @@ func (l SSOBindEntityList) ToMap() map[uint]SSOBindEntity {
 package dao
 
 import (
-    "github.com/morehao/goark/apps/iam/model"
-    "github.com/morehao/goark/pkg/dbclient"
+    "github.com/morehao/ark-go-starter/apps/iam/model"
+    "github.com/morehao/ark-go-starter/pkg/dbclient"
     "github.com/morehao/golib/biz/genericdao"
     "gorm.io/gorm"
 )
@@ -298,7 +298,7 @@ package strategy
 
 import (
     "github.com/gin-gonic/gin"
-    "github.com/morehao/goark/apps/iam/model"
+    "github.com/morehao/ark-go-starter/apps/iam/model"
 )
 
 type RegisterStrategyType string
@@ -402,10 +402,10 @@ import (
     "time"
 
     "github.com/gin-gonic/gin"
-    "github.com/morehao/goark/apps/iam/dao"
-    "github.com/morehao/goark/apps/iam/model"
-    "github.com/morehao/goark/pkg/code"
-    "github.com/morehao/goark/pkg/dbclient"
+    "github.com/morehao/ark-go-starter/apps/iam/dao"
+    "github.com/morehao/ark-go-starter/apps/iam/model"
+    "github.com/morehao/ark-go-starter/pkg/code"
+    "github.com/morehao/ark-go-starter/pkg/dbclient"
     "github.com/morehao/golib/gcrypto"
     "github.com/morehao/golib/glog"
     "gorm.io/gorm"
@@ -670,9 +670,9 @@ package strategy
 
 import (
     "github.com/gin-gonic/gin"
-    "github.com/morehao/goark/apps/iam/dao"
-    "github.com/morehao/goark/apps/iam/model"
-    "github.com/morehao/goark/pkg/code"
+    "github.com/morehao/ark-go-starter/apps/iam/dao"
+    "github.com/morehao/ark-go-starter/apps/iam/model"
+    "github.com/morehao/ark-go-starter/pkg/code"
     "github.com/morehao/golib/glog"
 )
 
@@ -750,9 +750,9 @@ package strategy
 
 import (
     "github.com/gin-gonic/gin"
-    "github.com/morehao/goark/apps/iam/dao"
-    "github.com/morehao/goark/apps/iam/model"
-    "github.com/morehao/goark/pkg/code"
+    "github.com/morehao/ark-go-starter/apps/iam/dao"
+    "github.com/morehao/ark-go-starter/apps/iam/model"
+    "github.com/morehao/ark-go-starter/pkg/code"
     "github.com/morehao/golib/glog"
     "strings"
 )
@@ -831,9 +831,9 @@ package strategy
 
 import (
     "github.com/gin-gonic/gin"
-    "github.com/morehao/goark/apps/iam/dao"
-    "github.com/morehao/goark/apps/iam/model"
-    "github.com/morehao/goark/pkg/code"
+    "github.com/morehao/ark-go-starter/apps/iam/dao"
+    "github.com/morehao/ark-go-starter/apps/iam/model"
+    "github.com/morehao/ark-go-starter/pkg/code"
     "github.com/morehao/golib/glog"
     "strings"
     "time"
@@ -932,9 +932,9 @@ package strategy
 
 import (
     "github.com/gin-gonic/gin"
-    "github.com/morehao/goark/apps/iam/dao"
-    "github.com/morehao/goark/apps/iam/model"
-    "github.com/morehao/goark/pkg/code"
+    "github.com/morehao/ark-go-starter/apps/iam/dao"
+    "github.com/morehao/ark-go-starter/apps/iam/model"
+    "github.com/morehao/ark-go-starter/pkg/code"
     "github.com/morehao/golib/glog"
 )
 
@@ -1025,11 +1025,11 @@ package svcuser
 
 import (
     "github.com/gin-gonic/gin"
-    "github.com/morehao/goark/apps/iam/internal/dto/dtouser"
-    "github.com/morehao/goark/apps/iam/internal/service/svcuser/strategy"
-    "github.com/morehao/goark/apps/iam/model"
-    "github.com/morehao/goark/pkg/code"
-    "github.com/morehao/goark/pkg/dbclient"
+    "github.com/morehao/ark-go-starter/apps/iam/internal/dto/dtouser"
+    "github.com/morehao/ark-go-starter/apps/iam/internal/service/svcuser/strategy"
+    "github.com/morehao/ark-go-starter/apps/iam/model"
+    "github.com/morehao/ark-go-starter/pkg/code"
+    "github.com/morehao/ark-go-starter/pkg/dbclient"
     "github.com/morehao/golib/glog"
     "gorm.io/gorm"
 )

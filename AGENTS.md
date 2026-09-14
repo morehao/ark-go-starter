@@ -1,15 +1,15 @@
-# AGENTS.md - go-ark-template 代码库开发指南
+# AGENTS.md - ark-go-starter 代码库开发指南
 
 本文档为在此代码库中工作的 AI 代理提供开发规范和命令参考。
 
 ## 项目概述
 
-`go-ark-template` 是一个前后端一体的全栈工程实践项目：后端基于 Gin + GORM（Go workspace 多模块，`backend/`），前端基于 React + Vite + Ant Design（pnpm monorepo，`frontend/`）。后端以 `backend/go.work` 作为 workspace 管理应用模块 `apps/demo` 与公共层 `pkg`。
+`ark-go-starter` 是一个前后端一体的全栈工程实践项目：后端基于 Gin + GORM（Go workspace 多模块，`backend/`），前端基于 React + Vite + Ant Design（pnpm monorepo，`frontend/`）。后端以 `backend/go.work` 作为 workspace 管理应用模块 `apps/demo` 与公共层 `pkg`。
 
 ## 项目结构
 
 ```
-go-ark-template/
+ark-go-starter/
 ├── backend/                 # Go 后端项目（go.work 多模块）
 │   ├── apps/
 │   │   ├── demo/            # Demo 示例应用（Gin 演示），:8099
@@ -163,7 +163,7 @@ var StatusTextMap = map[string]string{
 
 1. 标准库 (`fmt`, `strings`, `time`...)
 2. 第三方库 (`github.com/gin-gonic/gin`, `github.com/stretchr/testify`...)
-3. 项目内部包 (`github.com/morehao/go-ark-template/apps/demo/...`, `github.com/morehao/go-ark-template/pkg/...`)
+3. 项目内部包 (`github.com/morehao/ark-go-starter/apps/demo/...`, `github.com/morehao/ark-go-starter/pkg/...`)
 4. 关联库 (`github.com/morehao/golib/...`)
 
 ```go
@@ -173,8 +173,8 @@ import (
     "github.com/gin-gonic/gin"
     "github.com/stretchr/testify"
 
-    "github.com/morehao/go-ark-template/apps/demo/internal/dto/dtouser"
-    "github.com/morehao/go-ark-template/pkg/code"
+    "github.com/morehao/ark-go-starter/apps/demo/internal/dto/dtouser"
+    "github.com/morehao/ark-go-starter/pkg/code"
     "github.com/morehao/golib/glog"
 )
 ```
@@ -200,7 +200,7 @@ func NewUserSvc() UserSvc {
 
 ### 错误处理
 
-- 使用统一的错误码包 `github.com/morehao/go-ark-template/pkg/code`
+- 使用统一的错误码包 `github.com/morehao/ark-go-starter/pkg/code`
 - 业务错误通过 `code.GetError(code.XXXError)` 返回
 - 错误日志使用 `glog.Errorf(ctx, "[module.Method] msg, err:%v", err)`
 

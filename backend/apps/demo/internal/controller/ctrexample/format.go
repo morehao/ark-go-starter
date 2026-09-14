@@ -2,7 +2,7 @@ package ctrexample
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/morehao/go-ark-template/demo/internal/service/svcexample"
+	"github.com/morehao/ark-go-starter/demo/internal/service/svcexample"
 	"github.com/morehao/golib/biz/gcontext/gincontext"
 )
 

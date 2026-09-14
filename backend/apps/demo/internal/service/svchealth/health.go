@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/morehao/go-ark-template/demo/internal/dto/dtohealth"
-	"github.com/morehao/go-ark-template/pkg/dbclient"
+	"github.com/morehao/ark-go-starter/demo/internal/dto/dtohealth"
+	"github.com/morehao/ark-go-starter/pkg/dbclient"
 	"github.com/morehao/golib/glog"
 	"gorm.io/gorm"
 )

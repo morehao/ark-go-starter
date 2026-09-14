@@ -1,6 +1,6 @@
 # TestSetup
 
-测试工具包，基于 `golib/biz/testkit` 封装，为 GoArk 项目提供统一的测试环境初始化能力。
+测试工具包，基于 `golib/biz/testkit` 封装，为 ark-go-starter 项目提供统一的测试环境初始化能力。
 
 ## 快速开始
 
@@ -10,7 +10,7 @@ package myservice_test
 import (
     "os"
     "testing"
-    "github.com/morehao/go-ark-template/pkg/testsetup"
+    "github.com/morehao/ark-go-starter/pkg/testsetup"
 )
 
 func TestMain(m *testing.M) {
@@ -110,7 +110,7 @@ import (
     "fmt"
     "os"
 
-    "github.com/morehao/go-ark-template/apps/myapp/config"
+    "github.com/morehao/ark-go-starter/apps/myapp/config"
     "github.com/morehao/golib/biz/testkit"
 )
 

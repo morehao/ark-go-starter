@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/morehao/go-ark-template/pkg/dbclient"
+	"github.com/morehao/ark-go-starter/pkg/dbclient"
 	"github.com/morehao/golib/glog"
 )
 

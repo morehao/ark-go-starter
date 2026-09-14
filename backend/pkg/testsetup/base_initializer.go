@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/morehao/go-ark-template/pkg/dbclient"
+	"github.com/morehao/ark-go-starter/pkg/dbclient"
 	"github.com/morehao/golib/dbaccess/dbes"
 	"github.com/morehao/golib/dbaccess/dbgorm"
 	"github.com/morehao/golib/dbaccess/dbredis"

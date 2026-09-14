@@ -1,6 +1,6 @@
 # golib 变动汇总
 
-本文件记录 `morehao/golib` 重构后的破坏性变更，供其他依赖 golib 的项目（goark 及其后续应用）升级参考。
+本文件记录 `morehao/golib` 重构后的破坏性变更，供其他依赖 golib 的项目（ark-go-starter 及其后续应用）升级参考。
 
 ## 一、包路径迁移
 
@@ -187,9 +187,9 @@ func Register(name string, factory DialectorFactory)  // DialectorFactory: Name 
 import _ "github.com/morehao/golib/dbaccess/dbgorm/driver/mysql"
 ```
 
-## 四、本仓库升级记录（goark）
+## 四、本仓库升级记录（ark-go-starter）
 
-goark 本次迁移涉及的文件分类：
+ark-go-starter 本次迁移涉及的文件分类：
 
 - **路径迁移**：`biz/genericdao` → `dbaccess/gormdao`、`biz/gconstant` → `golib/gconstant`。
 - **类型改名**：`dbgorm.GormConfig` → `dbgorm.Config`；`ginserver.Version{Name}` → `ginserver.VersionGroup{Version}`。

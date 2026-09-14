@@ -1,7 +1,7 @@
 package dtouser
 
 import (
-	"github.com/morehao/go-ark-template/demo/object/objuser"
+	"github.com/morehao/ark-go-starter/demo/object/objuser"
 	"github.com/morehao/golib/biz/gobject"
 )
 

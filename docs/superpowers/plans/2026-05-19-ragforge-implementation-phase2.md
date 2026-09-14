@@ -402,8 +402,8 @@ git commit -m "feat(ragforge): add model entities and shared objects"
 package dao
 
 import (
-	"github.com/morehao/goark/apps/ragforge/model"
-	"github.com/morehao/goark/pkg/dbclient"
+	"github.com/morehao/ark-go-starter/apps/ragforge/model"
+	"github.com/morehao/ark-go-starter/pkg/dbclient"
 	"github.com/morehao/golib/genericdao"
 	"gorm.io/gorm"
 )
@@ -444,8 +444,8 @@ func NewKnowledgeBaseDao() *KnowledgeBaseDao {
 package dao
 
 import (
-	"github.com/morehao/goark/apps/ragforge/model"
-	"github.com/morehao/goark/pkg/dbclient"
+	"github.com/morehao/ark-go-starter/apps/ragforge/model"
+	"github.com/morehao/ark-go-starter/pkg/dbclient"
 	"github.com/morehao/golib/genericdao"
 	"gorm.io/gorm"
 )
@@ -494,8 +494,8 @@ func NewKnowledgeDao() *KnowledgeDao {
 package dao
 
 import (
-	"github.com/morehao/goark/apps/ragforge/model"
-	"github.com/morehao/goark/pkg/dbclient"
+	"github.com/morehao/ark-go-starter/apps/ragforge/model"
+	"github.com/morehao/ark-go-starter/pkg/dbclient"
 	"github.com/morehao/golib/genericdao"
 	"gorm.io/gorm"
 )
@@ -541,8 +541,8 @@ func NewChunkDao() *ChunkDao {
 package dao
 
 import (
-	"github.com/morehao/goark/apps/ragforge/model"
-	"github.com/morehao/goark/pkg/dbclient"
+	"github.com/morehao/ark-go-starter/apps/ragforge/model"
+	"github.com/morehao/ark-go-starter/pkg/dbclient"
 	"github.com/morehao/golib/genericdao"
 	"gorm.io/gorm"
 )
@@ -591,8 +591,8 @@ func NewFAQDao() *FAQDao {
 package dao
 
 import (
-	"github.com/morehao/goark/apps/ragforge/model"
-	"github.com/morehao/goark/pkg/dbclient"
+	"github.com/morehao/ark-go-starter/apps/ragforge/model"
+	"github.com/morehao/ark-go-starter/pkg/dbclient"
 	"github.com/morehao/golib/genericdao"
 	"gorm.io/gorm"
 )
@@ -637,8 +637,8 @@ func NewSessionDao() *SessionDao {
 package dao
 
 import (
-	"github.com/morehao/goark/apps/ragforge/model"
-	"github.com/morehao/goark/pkg/dbclient"
+	"github.com/morehao/ark-go-starter/apps/ragforge/model"
+	"github.com/morehao/ark-go-starter/pkg/dbclient"
 	"github.com/morehao/golib/genericdao"
 	"gorm.io/gorm"
 )
@@ -680,8 +680,8 @@ func NewMessageDao() *MessageDao {
 package dao
 
 import (
-	"github.com/morehao/goark/apps/ragforge/model"
-	"github.com/morehao/goark/pkg/dbclient"
+	"github.com/morehao/ark-go-starter/apps/ragforge/model"
+	"github.com/morehao/ark-go-starter/pkg/dbclient"
 	"github.com/morehao/golib/genericdao"
 	"gorm.io/gorm"
 )
@@ -727,8 +727,8 @@ func NewModelDao() *ModelDao {
 package dao
 
 import (
-	"github.com/morehao/goark/apps/ragforge/model"
-	"github.com/morehao/goark/pkg/dbclient"
+	"github.com/morehao/ark-go-starter/apps/ragforge/model"
+	"github.com/morehao/ark-go-starter/pkg/dbclient"
 	"github.com/morehao/golib/genericdao"
 	"gorm.io/gorm"
 )
@@ -770,8 +770,8 @@ func NewVectorStoreDao() *VectorStoreDao {
 package dao
 
 import (
-	"github.com/morehao/goark/apps/ragforge/model"
-	"github.com/morehao/goark/pkg/dbclient"
+	"github.com/morehao/ark-go-starter/apps/ragforge/model"
+	"github.com/morehao/ark-go-starter/pkg/dbclient"
 	"github.com/morehao/golib/genericdao"
 	"gorm.io/gorm"
 )

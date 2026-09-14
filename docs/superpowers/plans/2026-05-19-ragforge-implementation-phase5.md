@@ -102,9 +102,9 @@ package svcknowledge
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/morehao/goark/apps/ragforge/dao"
-	"github.com/morehao/goark/apps/ragforge/internal/dto/dtoknowledge"
-	"github.com/morehao/goark/apps/ragforge/model"
+	"github.com/morehao/ark-go-starter/apps/ragforge/dao"
+	"github.com/morehao/ark-go-starter/apps/ragforge/internal/dto/dtoknowledge"
+	"github.com/morehao/ark-go-starter/apps/ragforge/model"
 	"github.com/morehao/golib/genericdao"
 	"github.com/morehao/golib/glog"
 	"github.com/morehao/golib/gutil"
@@ -274,9 +274,9 @@ package ctrknowledge
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/morehao/goark/apps/ragforge/internal/dto/dtoknowledge"
-	"github.com/morehao/goark/apps/ragforge/internal/service/svcknowledge"
-	"github.com/morehao/goark/pkg/gincontext"
+	"github.com/morehao/ark-go-starter/apps/ragforge/internal/dto/dtoknowledge"
+	"github.com/morehao/ark-go-starter/apps/ragforge/internal/service/svcknowledge"
+	"github.com/morehao/ark-go-starter/pkg/gincontext"
 )
 
 type KnowledgeCtr interface {
@@ -419,7 +419,7 @@ package router
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/morehao/goark/apps/ragforge/internal/controller/ctrknowledge"
+	"github.com/morehao/ark-go-starter/apps/ragforge/internal/controller/ctrknowledge"
 )
 
 func knowledgeRouter(group *gin.RouterGroup) {
@@ -474,11 +474,11 @@ package svcchunk
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/morehao/goark/apps/ragforge/dao"
-	"github.com/morehao/goark/apps/ragforge/internal/dto/dtochunk"
-	"github.com/morehao/goark/apps/ragforge/internal/engine"
-	"github.com/morehao/goark/apps/ragforge/model"
-	"github.com/morehao/goark/pkg/dbclient"
+	"github.com/morehao/ark-go-starter/apps/ragforge/dao"
+	"github.com/morehao/ark-go-starter/apps/ragforge/internal/dto/dtochunk"
+	"github.com/morehao/ark-go-starter/apps/ragforge/internal/engine"
+	"github.com/morehao/ark-go-starter/apps/ragforge/model"
+	"github.com/morehao/ark-go-starter/pkg/dbclient"
 	"github.com/morehao/golib/genericdao"
 	"github.com/morehao/golib/glog"
 	"github.com/pgvector/pgvector-go"
@@ -643,7 +643,7 @@ Each follows the same CRUD pattern as the KB module.
 package router
 
 import (
-	"github.com/morehao/goark/pkg/ginserver"
+	"github.com/morehao/ark-go-starter/pkg/ginserver"
 )
 
 func RegisterRouter(groups *ginserver.RouterGroups, appName string) {
@@ -671,7 +671,7 @@ package middleware
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/morehao/goark/pkg/token"
+	"github.com/morehao/ark-go-starter/pkg/token"
 )
 
 func Auth() gin.HandlerFunc {

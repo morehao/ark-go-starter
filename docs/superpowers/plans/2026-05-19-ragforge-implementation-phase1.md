@@ -5,7 +5,7 @@
 
 **Goal:** Create `apps/ragforge` project skeleton with go.mod, cmd, config, app.go
 
-**Architecture:** Standard GoArk layered architecture
+**Architecture:** Standard ark-go-starter layered architecture
 
 **Reference:** Source WeKnora at `/Users/morehao/Documents/study/go/go-ai/WeKnora/`
 
@@ -30,7 +30,7 @@ mkdir -p apps/ragforge/cmd apps/ragforge/config apps/ragforge/internal/router ap
 - [ ] **Step 2: Create go.mod**
 
 ```bash
-cd apps/ragforge && go mod init github.com/morehao/goark/apps/ragforge
+cd apps/ragforge && go mod init github.com/morehao/ark-go-starter/apps/ragforge
 ```
 
 Then edit go.mod to add:
@@ -124,9 +124,9 @@ package ragforge
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/morehao/goark/apps/ragforge/config"
-	"github.com/morehao/goark/apps/ragforge/internal/router"
-	"github.com/morehao/goark/pkg/ginserver"
+	"github.com/morehao/ark-go-starter/apps/ragforge/config"
+	"github.com/morehao/ark-go-starter/apps/ragforge/internal/router"
+	"github.com/morehao/ark-go-starter/pkg/ginserver"
 )
 
 const AppName = "ragforge"
@@ -151,8 +151,8 @@ import (
 	"fmt"
 
 	"github.com/gin-gonic/gin"
-	ragforge "github.com/morehao/goark/apps/ragforge"
-	"github.com/morehao/goark/apps/ragforge/config"
+	ragforge "github.com/morehao/ark-go-starter/apps/ragforge"
+	"github.com/morehao/ark-go-starter/apps/ragforge/config"
 	"github.com/morehao/golib/glog"
 )
 
@@ -179,8 +179,8 @@ package main
 import (
 	"flag"
 
-	"github.com/morehao/goark/apps/ragforge/config"
-	"github.com/morehao/goark/pkg/dbclient"
+	"github.com/morehao/ark-go-starter/apps/ragforge/config"
+	"github.com/morehao/ark-go-starter/pkg/dbclient"
 	"github.com/morehao/golib/glog"
 )
 
@@ -200,7 +200,7 @@ func serverInit() {
 package router
 
 import (
-	"github.com/morehao/goark/pkg/ginserver"
+	"github.com/morehao/ark-go-starter/pkg/ginserver"
 )
 
 func RegisterRouter(groups *ginserver.RouterGroups, appName string) {
