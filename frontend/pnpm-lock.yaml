@@ -16,6 +16,9 @@ importers:
       '@ark-go-starter/types':
         specifier: workspace:*
         version: link:../../packages/types
+      '@ark-go-starter/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       antd:
         specifier: ^5.21.0
         version: 5.29.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -68,6 +71,25 @@ importers:
       '@ark-go-starter/tsconfig':
         specifier: workspace:*
         version: link:../tsconfig
+      typescript:
+        specifier: ^5.5.0
+        version: 5.5.2
+
+  packages/ui:
+    dependencies:
+      antd:
+        specifier: ^5.21.0
+        version: 5.29.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react:
+        specifier: ^18.3.1
+        version: 18.3.1
+    devDependencies:
+      '@ark-go-starter/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      '@types/react':
+        specifier: ^18.3.0
+        version: 18.3.31
       typescript:
         specifier: ^5.5.0
         version: 5.5.2

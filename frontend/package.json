@@ -7,7 +7,7 @@
     "dev": "pnpm --filter @ark-go-starter/demo-web dev",
     "dev:demo": "pnpm --filter @ark-go-starter/demo-web dev",
     "build": "pnpm -r --filter './packages/*' --filter './apps/*' build",
-    "typecheck": "pnpm -r --filter '@ark-go-starter/types' --filter '@ark-go-starter/api' --filter '@ark-go-starter/demo-web' exec tsc --noEmit -p tsconfig.json"
+    "typecheck": "pnpm -r --filter '@ark-go-starter/types' --filter '@ark-go-starter/api' --filter '@ark-go-starter/ui' --filter '@ark-go-starter/demo-web' exec tsc --noEmit -p tsconfig.json"
   },
   "packageManager": "pnpm@11.21.0"
 }

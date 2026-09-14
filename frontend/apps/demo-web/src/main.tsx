@@ -1,13 +1,12 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { ConfigProvider } from 'antd'
-import zhCN from 'antd/locale/zh_CN'
+import { AppShell } from '@ark-go-starter/ui'
 import App from './App'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <ConfigProvider locale={zhCN}>
+    <AppShell>
       <App />
-    </ConfigProvider>
+    </AppShell>
   </React.StrictMode>,
 )
