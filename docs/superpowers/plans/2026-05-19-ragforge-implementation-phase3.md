@@ -94,7 +94,7 @@ func (f *EngineFactory) GetEmbedding() EmbeddingProvider {
 package llm
 
 import (
-	"github.com/morehao/goark/apps/ragforge/internal/engine"
+	"github.com/morehao/ark-go-starter/apps/ragforge/internal/engine"
 )
 
 type LLMType string
@@ -120,7 +120,7 @@ package llm
 import (
 	"context"
 
-	"github.com/morehao/goark/apps/ragforge/internal/engine"
+	"github.com/morehao/ark-go-starter/apps/ragforge/internal/engine"
 	openai "github.com/sashabaranov/go-openai"
 )
 
@@ -203,7 +203,7 @@ func (p *OpenAIProvider) ChatCompletionStream(ctx context.Context, req *engine.C
 package embedding
 
 import (
-	"github.com/morehao/goark/apps/ragforge/internal/engine"
+	"github.com/morehao/ark-go-starter/apps/ragforge/internal/engine"
 )
 
 type EmbeddingType string
@@ -229,7 +229,7 @@ package embedding
 import (
 	"context"
 
-	"github.com/morehao/goark/apps/ragforge/internal/engine"
+	"github.com/morehao/ark-go-starter/apps/ragforge/internal/engine"
 	openai "github.com/sashabaranov/go-openai"
 )
 

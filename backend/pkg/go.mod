@@ -1,4 +1,4 @@
-module github.com/morehao/go-ark-template/pkg
+module github.com/morehao/ark-go-starter/pkg
 
 go 1.26.1
 

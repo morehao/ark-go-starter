@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/morehao/go-ark-template/demo"
-	"github.com/morehao/go-ark-template/demo/config"
-	"github.com/morehao/go-ark-template/pkg/dbclient"
+	"github.com/morehao/ark-go-starter/demo"
+	"github.com/morehao/ark-go-starter/demo/config"
+	"github.com/morehao/ark-go-starter/pkg/dbclient"
 	"github.com/morehao/golib/glog"
 	_ "github.com/morehao/golib/glog/driver/zap"
 	"github.com/morehao/golib/gtrace/otel"

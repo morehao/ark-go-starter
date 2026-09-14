@@ -1,7 +1,7 @@
 package router
 
 import (
-	"github.com/morehao/go-ark-template/demo/internal/controller/ctrhealth"
+	"github.com/morehao/ark-go-starter/demo/internal/controller/ctrhealth"
 	"github.com/morehao/golib/biz/gserver/ginserver"
 )
 

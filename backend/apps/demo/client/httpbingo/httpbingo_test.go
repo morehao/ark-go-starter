@@ -5,8 +5,8 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/morehao/go-ark-template/demo/config"
-	"github.com/morehao/go-ark-template/pkg/testsetup"
+	"github.com/morehao/ark-go-starter/demo/config"
+	"github.com/morehao/ark-go-starter/pkg/testsetup"
 	"github.com/morehao/golib/gutil"
 	"github.com/stretchr/testify/assert"
 )

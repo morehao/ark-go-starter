@@ -2,7 +2,7 @@ package svcexample
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/morehao/go-ark-template/demo/internal/dto/dtoexample"
+	"github.com/morehao/ark-go-starter/demo/internal/dto/dtoexample"
 )
 
 type FormatSvc interface {

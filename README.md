@@ -2,7 +2,7 @@
 
 # Project Overview
 
-`go-ark-template` is a full-stack Go Web engineering practice project. The backend is based on [Gin](https://github.com/gin-gonic/gin) + GORM (Go workspace multi-module), and the frontend is based on React + Vite + Ant Design (pnpm monorepo). It provides a layered, maintainable, and scalable structure with frontend (React) and backend (Go) separated.
+`ark-go-starter` is a full-stack Go Web engineering practice project. The backend is based on [Gin](https://github.com/gin-gonic/gin) + GORM (Go workspace multi-module), and the frontend is based on React + Vite + Ant Design (pnpm monorepo). It provides a layered, maintainable, and scalable structure with frontend (React) and backend (Go) separated.
 
 ---
 
@@ -62,7 +62,7 @@ Install the CLI tool:
 go install github.com/morehao/gocli@latest
 ```
 
-Ensure a `code_gen.yaml` config file exists under the application directory, e.g., `goark/apps/demo/config/code_gen.yaml`.
+Ensure a `code_gen.yaml` config file exists under the application directory, e.g., `ark-go-starter/apps/demo/config/code_gen.yaml`.
 
 Run code generation commands:
 

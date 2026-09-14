@@ -287,7 +287,7 @@ import (
     "context"
     "time"
 
-    "github.com/morehao/goark/apps/iam/model"
+    "github.com/morehao/ark-go-starter/apps/iam/model"
     "github.com/morehao/golib/gdb"
     "gorm.io/gorm"
 )
@@ -389,7 +389,7 @@ import (
     "context"
     "time"
 
-    "github.com/morehao/goark/apps/iam/model"
+    "github.com/morehao/ark-go-starter/apps/iam/model"
     "github.com/morehao/golib/gdb"
     "gorm.io/gorm"
 )
@@ -465,7 +465,7 @@ import (
     "context"
     "time"
 
-    "github.com/morehao/goark/apps/iam/model"
+    "github.com/morehao/ark-go-starter/apps/iam/model"
     "github.com/morehao/golib/gdb"
     "gorm.io/gorm"
 )
@@ -695,8 +695,8 @@ import (
     "encoding/hex"
     "time"
 
-    "github.com/morehao/goark/apps/iam/dao"
-    "github.com/morehao/goark/apps/iam/model"
+    "github.com/morehao/ark-go-starter/apps/iam/dao"
+    "github.com/morehao/ark-go-starter/apps/iam/model"
     "github.com/morehao/golib/gdb"
     "github.com/morehao/golib/glog"
 )
@@ -837,10 +837,10 @@ import (
     "errors"
     "time"
 
-    "github.com/morehao/goark/apps/iam/dao"
-    "github.com/morehao/goark/apps/iam/internal/dto/dtooidc"
-    "github.com/morehao/goark/apps/iam/model"
-    "github.com/morehao/goark/pkg/code"
+    "github.com/morehao/ark-go-starter/apps/iam/dao"
+    "github.com/morehao/ark-go-starter/apps/iam/internal/dto/dtooidc"
+    "github.com/morehao/ark-go-starter/apps/iam/model"
+    "github.com/morehao/ark-go-starter/pkg/code"
     "github.com/morehao/golib/glog"
 )
 
@@ -970,10 +970,10 @@ import (
     "fmt"
     "time"
 
-    "github.com/morehao/goark/apps/iam/dao"
-    "github.com/morehao/goark/apps/iam/internal/dto/dtooidc"
-    "github.com/morehao/goark/apps/iam/model"
-    "github.com/morehao/goark/pkg/code"
+    "github.com/morehao/ark-go-starter/apps/iam/dao"
+    "github.com/morehao/ark-go-starter/apps/iam/internal/dto/dtooidc"
+    "github.com/morehao/ark-go-starter/apps/iam/model"
+    "github.com/morehao/ark-go-starter/pkg/code"
     "github.com/morehao/golib/biz/gobject"
     "github.com/morehao/golib/gauth/jwtauth"
     "github.com/morehao/golib/gcrypto"
@@ -1270,9 +1270,9 @@ package svcoidc
 import (
     "context"
 
-    "github.com/morehao/goark/apps/iam/dao"
-    "github.com/morehao/goark/apps/iam/internal/dto/dtooidc"
-    "github.com/morehao/goark/pkg/code"
+    "github.com/morehao/ark-go-starter/apps/iam/dao"
+    "github.com/morehao/ark-go-starter/apps/iam/internal/dto/dtooidc"
+    "github.com/morehao/ark-go-starter/pkg/code"
     "github.com/morehao/golib/glog"
 )
 
@@ -1335,8 +1335,8 @@ package svcoidc
 import (
     "context"
 
-    "github.com/morehao/goark/apps/iam/dao"
-    "github.com/morehao/goark/pkg/code"
+    "github.com/morehao/ark-go-starter/apps/iam/dao"
+    "github.com/morehao/ark-go-starter/pkg/code"
     "github.com/morehao/golib/glog"
 )
 
@@ -1411,8 +1411,8 @@ package ctroidc
 
 import (
     "github.com/gin-gonic/gin"
-    "github.com/morehao/goark/apps/iam/internal/dto/dtooidc"
-    "github.com/morehao/goark/apps/iam/internal/service/svcoidc"
+    "github.com/morehao/ark-go-starter/apps/iam/internal/dto/dtooidc"
+    "github.com/morehao/ark-go-starter/apps/iam/internal/service/svcoidc"
     "github.com/morehao/golib/biz/gcontext/gincontext"
 )
 
@@ -1491,8 +1491,8 @@ package ctroidc
 
 import (
     "github.com/gin-gonic/gin"
-    "github.com/morehao/goark/apps/iam/internal/dto/dtooidc"
-    "github.com/morehao/goark/internal/service/svcoidc"
+    "github.com/morehao/ark-go-starter/apps/iam/internal/dto/dtooidc"
+    "github.com/morehao/ark-go-starter/internal/service/svcoidc"
     "github.com/morehao/golib/biz/gcontext/gincontext"
 )
 
@@ -1562,7 +1562,7 @@ package ctroidc
 
 import (
     "github.com/gin-gonic/gin"
-    "github.com/morehao/goark/apps/iam/internal/service/svcoidc"
+    "github.com/morehao/ark-go-starter/apps/iam/internal/service/svcoidc"
     "github.com/morehao/golib/biz/gcontext/gincontext"
 )
 
@@ -1618,8 +1618,8 @@ package ctroidc
 
 import (
     "github.com/gin-gonic/gin"
-    "github.com/morehao/goark/apps/iam/internal/dto/dtooidc"
-    "github.com/morehao/goark/apps/iam/internal/service/svcoidc"
+    "github.com/morehao/ark-go-starter/apps/iam/internal/dto/dtooidc"
+    "github.com/morehao/ark-go-starter/apps/iam/internal/service/svcoidc"
     "github.com/morehao/golib/biz/gcontext/gincontext"
 )
 
@@ -1683,7 +1683,7 @@ package router
 
 import (
     "github.com/gin-gonic/gin"
-    "github.com/morehao/goark/apps/iam/internal/controller/ctroidc"
+    "github.com/morehao/ark-go-starter/apps/iam/internal/controller/ctroidc"
 )
 
 func oidcRouter(routerGroup *gin.RouterGroup) {

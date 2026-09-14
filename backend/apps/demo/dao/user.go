@@ -1,8 +1,8 @@
 package dao
 
 import (
-	"github.com/morehao/go-ark-template/demo/model"
-	"github.com/morehao/go-ark-template/pkg/dbclient"
+	"github.com/morehao/ark-go-starter/demo/model"
+	"github.com/morehao/ark-go-starter/pkg/dbclient"
 	"github.com/morehao/golib/dbaccess/gormdao"
 	"gorm.io/gorm"
 )

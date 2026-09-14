@@ -249,7 +249,7 @@ dev-frontend:
 # 停止前端开发服务（本地测试用）
 stop-frontend:
 	@echo "🛑 正在停止前端服务..."
-	@pkill -f "vite.*goark" 2>/dev/null && echo "✅ 已停止" || echo "⚠️  没有运行中的前端服务"
+	@pkill -f "vite.*ark-go-starter" 2>/dev/null && echo "✅ 已停止" || echo "⚠️  没有运行中的前端服务"
 
 # ============================================================
 # 其他工具

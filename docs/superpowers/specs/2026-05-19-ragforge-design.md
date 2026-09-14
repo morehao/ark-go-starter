@@ -2,7 +2,7 @@
 
 ## 概述
 
-将 WeKnora 的核心 RAG 后端服务迁移到 GoArk 项目中，建立一个新的 `ragforge` 应用，遵循 GoArk 的代码规范和架构模式。
+将 WeKnora 的核心 RAG 后端服务迁移到 ark-go-starter 项目中，建立一个新的 `ragforge` 应用，遵循 ark-go-starter 的代码规范和架构模式。
 
 ## 迁移范围
 
@@ -24,7 +24,7 @@
 ```
 apps/ragforge/
 ├── app.go                     # AppName + Routers()
-├── go.mod                     # Go module (github.com/morehao/goark/apps/ragforge)
+├── go.mod                     # Go module (github.com/morehao/ark-go-starter/apps/ragforge)
 ├── cmd/
 │   ├── main.go               # 入口 main()
 │   └── init.go               # serverInit() 初始化配置/日志/DB/引擎
@@ -119,7 +119,7 @@ apps/ragforge/
 
 ### 表命名规范
 - 前缀 `rg_` 标识 ragforge 应用的表
-- 遵守 GoArk 的下划线命名约定
+- 遵守 ark-go-starter 的下划线命名约定
 
 ### 核心表
 
@@ -158,7 +158,7 @@ apps/ragforge/
 
 ## API 设计
 
-遵循 GoArk 的 4 层路径模式: `/v1/ragforge/{module}/{operation}`
+遵循 ark-go-starter 的 4 层路径模式: `/v1/ragforge/{module}/{operation}`
 
 ### 知识库
 | Method | Path | 说明 |
@@ -277,7 +277,7 @@ internal/engine/
 - `github.com/gin-gonic/gin` - Web 框架
 - `gorm.io/gorm` + `gorm.io/driver/postgres` - ORM + PostgreSQL
 - `github.com/morehao/golib` - 内部工具库
-- `github.com/morehao/goark/pkg` - 共享包（code, dbclient, gincontext 等）
+- `github.com/morehao/ark-go-starter/pkg` - 共享包（code, dbclient, gincontext 等）
 - `github.com/sashabaranov/go-openai` - OpenAI API 客户端
 - `github.com/pgvector/pgvector-go` - pgvector Go 绑定
 - `github.com/stretchr/testify` - 测试

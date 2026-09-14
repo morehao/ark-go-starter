@@ -713,8 +713,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/morehao/goark/apps/iam/dao"
-	"github.com/morehao/goark/apps/iam/model"
+	"github.com/morehao/ark-go-starter/apps/iam/dao"
+	"github.com/morehao/ark-go-starter/apps/iam/model"
 	"github.com/morehao/golib/biz/gcontext/gincontext"
 )
 

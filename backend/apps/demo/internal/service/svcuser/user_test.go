@@ -3,8 +3,8 @@ package svcuser
 import (
 	"testing"
 
-	"github.com/morehao/go-ark-template/demo/internal/dto/dtouser"
-	"github.com/morehao/go-ark-template/pkg/testsetup"
+	"github.com/morehao/ark-go-starter/demo/internal/dto/dtouser"
+	"github.com/morehao/ark-go-starter/pkg/testsetup"
 	"github.com/morehao/golib/gutil"
 	"github.com/stretchr/testify/assert"
 )
