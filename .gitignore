@@ -12,8 +12,8 @@
 **/output/
 
 # 前端
-frontend/
 **/node_modules/
+**/dist/
 .pnpm-store
 pnpm-debug.log*
 
