@@ -114,6 +114,8 @@ github.com/mitchellh/go-wordwrap v0.0.0-20150314170334-ad45545899c7/go.mod h1:ZX
 github.com/morehao/golib v1.32.5 h1:3Q/3xO6hiLStPytD8aZIKssOiw7K7N8A5yPX90ACjdA=
 github.com/morehao/golib v1.32.5/go.mod h1:0BYKKj6taAPqfA7rmgh7pyQT6W3+DpUgkuzTeRA8QvE=
 github.com/morehao/golib v1.32.13/go.mod h1:c22I5dz8SDtLL/HZC/pJJN+dWgHLMpQWNGn0KjvnNWU=
+github.com/morehao/golib v1.32.16 h1:lC/Va11fsU8tiBACe2q0WWz+LedgDXP+BI1I/+kOiO8=
+github.com/morehao/golib v1.32.16/go.mod h1:c22I5dz8SDtLL/HZC/pJJN+dWgHLMpQWNGn0KjvnNWU=
 github.com/oapi-codegen/runtime v1.6.0/go.mod h1:GwV7hC2hviaMzj+ITfHVRESK5J2W/GefVwIND/bMGvU=
 github.com/oklog/ulid/v2 v2.1.1/go.mod h1:rcEKHmBBKfef9DhnvX7y1HZBYxjXb0cP5ExxNsTT1QQ=
 github.com/pelletier/go-toml/v2 v2.2.4/go.mod h1:2gIqNv+qfxSVS7cM2xJQKtLSTLUE9V8t9Stt+h56mCY=
