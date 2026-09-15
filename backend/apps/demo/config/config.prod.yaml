@@ -73,3 +73,13 @@ redis_config:
 es_configs:
   - service: demo
     addr: http://127.0.0.1:9200
+
+file_storage:
+  driver: local
+  bucket: demo
+  storage:
+    base_dir: /app/storage
+    # 必须指向 ginupload 注册的对象直传路由（/v1/demo/objects），
+    # local driver 按 base_url/{bucket}/{key} 拼预签名 URL
+    base_url: http://127.0.0.1:8099/v1/demo/objects
+    sign_secret: demo-sign-secret
