@@ -34,7 +34,7 @@ PORT              = 8099
 .PHONY: all build build-env clean run lint test swag codegen \
         docker-build docker-run check-image \
         list-apps deps tidy update-dep \
-        dev-frontend stop-frontend help
+        dev-all dev-frontend stop-frontend help
 
 # ============================================================
 # 通用入口：清理、依赖、构建并运行
@@ -241,6 +241,24 @@ check-image:
 # 前端开发
 # ============================================================
 
+# 同时启动后端与前端开发服务（后端后台运行、前端前台日志；Ctrl+C 一并停止）
+# 用法：make dev-all [APP=demo]
+dev-all:
+	@app="$(APP)"; app=$${app:-demo}; \
+	if [ ! -d "./backend/apps/$$app" ]; then \
+		echo "❌ 应用程序 '$$app' 不存在于 ./backend/apps 目录下"; \
+		echo "   可用的应用程序：$$(ls ./backend/apps 2>/dev/null | tr '\n' ' ')"; \
+		exit 1; \
+	fi; \
+	echo "🚀 正在启动后端 [$$app] 与前端（默认 http://localhost:3000，被占用时以 Vite 输出为准）..."; \
+	( cd backend && go work sync >/dev/null 2>&1 ); \
+	( cd backend/apps/$$app/cmd && go run . ) & \
+	backend_pid=$$!; \
+	trap 'echo ""; echo "🛑 正在停止后端 [$$app]..."; kill $$backend_pid 2>/dev/null; wait $$backend_pid 2>/dev/null; echo "✅ 已停止"; exit 0' INT TERM; \
+	( cd frontend && pnpm dev ); \
+	kill $$backend_pid 2>/dev/null; wait $$backend_pid 2>/dev/null; \
+	echo "✅ 前后端开发服务已全部停止"
+
 # 启动前端开发服务（开发调试用）
 dev-frontend:
 	@echo "🚀 正在启动前端开发服务..."
@@ -300,6 +318,7 @@ help:
 	@echo "    make docker-run   APP=<名称> [PORT=N]  运行容器（镜像不存在时自动构建）"
 	@echo ""
 	@echo "  前端"
+	@echo "    make dev-all       [APP=<名称>]        同时启动前后端（Ctrl+C 一并停止）"
 	@echo "    make dev-frontend                      启动前端开发服务"
 	@echo "    make stop-frontend                     停止前端开发服务（本地测试）"
 	@echo ""

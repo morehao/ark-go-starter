@@ -45,6 +45,9 @@ make deps
 # 清理构建产物
 make clean
 
+# 同时启动前后端开发服务（后端后台运行、前端前台日志，Ctrl+C 一并停止）
+make dev-all APP=demo
+
 # 启动前端开发服务
 make dev-frontend
 
