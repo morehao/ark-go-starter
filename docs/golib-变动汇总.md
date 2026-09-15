@@ -204,3 +204,47 @@ ark-go-starter 本次迁移涉及的文件分类：
 - `pkg/code/ragforge.go` 与 `apikey.go` 错误码在 `101101-101108` 段重叠导致的 code 包 init panic，已把 ragforge 段整体平移至 `101300-101352`。
 - `httpbingo` 测试依赖全局 `config.Conf` 未初始化，已在测试内 `config.LoadConfig` 修复。
 - 清理了一批 pre-existing 的 golangci-lint 问题（unused 死代码、errcheck、staticcheck、grpc.Dial 弃用等）。
+
+## 五、v1.32.13 → v1.32.16 升级记录
+
+升级目标：`github.com/morehao/golib` v1.32.13 → **v1.32.16**（当时最新）。`gocli` 仍为 v1.32.6（已是最新），golib 自身 `go.mod` 未变，**未引入新的传递依赖**。
+
+### 5.1 破坏性 / 契约变更
+
+#### storage / filestore
+
+- `storage.Config`：删除 `MaxRetries`、`Timeout`、`ExtraOptions`（全仓零消费方），新增 `Retry RetryConfig`（`MaxAttempts`，语义是"尝试次数"而非"重试次数"）与 `MultipartTTL`（local driver 分片会话存活时间，0=默认 24h，负值=关闭回收）。
+- `storage.Storage` 方法改名：`CreateMultipartUpload`→`CreateMultipart`、`AbortMultipartUpload`→`AbortMultipart`、`CompleteMultipartUpload`→`CompleteMultipart`。
+- `storage.CompletedPart` → `storage.PartInfo`（`PartNumber` 由 `int` 改为 `int32`，`ETag` 不再带引号）。
+- `storage.PathBuilder` 不再负责对外 URL：`PublicURL` / `ParsePublicURL` 删除，新增 `URI()`；`WithBucket`、`WithIfNotExistsS3Opt`、`URLStyle` 一并删除。
+- 新增能力：`Caps` / `Limits` / `ProviderProfile`、`OpError` + `KindOf` / `IsRetryable`、预签名 token（`EncodePresignToken` / `DecodePresignToken`）、`ListParts`、`ValidateParts` / `ValidatePartCount`、`DeleteObjectsChunked`、`MultipartCleaner`（`CleanupExpiredMultipart`）。
+- `filestore.RecordUpload` / `RecordUploadRequest` 删除，统一走 `UploadAndRecord`；新增 `WithMaxUploadBytes`（默认 5GiB）、`ListParts`、`HandlePresignedUploadPart`、`PathBuilder`。
+
+#### ginupload（HTTP 契约）
+
+- `POST /files` 现在**必须**带 `content_hash`；当其形如 SHA256 时服务端会用实测哈希校验，不一致返回 `filestore: content hash mismatch`。
+- 对象 key 完全由服务端生成，客户端不能再通过 `storage_path` 指定落点。
+- 分片预签名响应新增 `method` 与 `headers`：客户端必须按 `Method + URL + Headers` 原样发起请求，漏发被签名覆盖的头会得到 `SignatureDoesNotMatch`。
+- `CompleteMultipartUpload` 会校验合并后 size 与声明一致（`filestore: size mismatch`）。
+- 新增 `GET /files/:id/parts`、`GET /files/multipart/:fileID/parts`；上传体积上限由 `filestore.WithMaxUploadBytes` 控制。
+
+#### 其它包
+
+- `gincontext`：新增 `SetAppError` / `GetAppError` / `FailWithStatus`；`Fail` 现在把应用错误码/消息写入 context，access log 的 `app.error.code` 不再恒为 0。
+- `glog`：`GetLoggerConfig()` 未初始化时回退默认配置（不再返回 nil）；`AppendExtraKeys(nil, ...)` 不再 panic。
+- `gconstant`：新增 `KeyHttpRequestBodyTruncated` / `KeyHttpResponseBodyTruncated`。
+- `dbgorm`：新增 `dbgorm/driver/sqlite` dialector 子包。
+- `dbgorm` / `dbredis` / `dbes` / `gormdao` / `ginserver` / `gobject` / `testkit` / `gtrace` / `ghttp` / `gutil` / `gerror`：**无 API 变更**。
+
+### 5.2 本仓库适配点
+
+- **Go 代码零改动**：`pkg` 与 `apps/demo` 均无需修改即可编译通过（`go build` / `go vet` 干净）。仅 `go.mod` + `go.sum` + `go.work.sum` 同步版本。
+- **`base_url` 必须补 `/objects` 段**（`config.yaml`、`config.prod.yaml`）：ginupload 的对象直传路由是 `/v1/{app}/objects/:bucket/*key`，而 local driver 按 `base_url + "/" + bucket + "/" + key` 拼预签名 URL。原先的 `http://127.0.0.1:8099/v1/demo` 签出的是 404 地址，分片预签名 PUT 必然失败；正确值为 `http://127.0.0.1:8099/v1/demo/objects`。
+- **`config.prod.yaml` 补齐 `file_storage`**：`Routers()` 无条件调用 `initFileStore()`，缺该段时 `storage.New("")` 报 `Driver is required` 并 panic。Dockerfile 用 `config.prod.yaml` 作为 `/app/config.yaml`，故 `make docker-run APP=demo` 此前启动即崩（pre-existing，与本次升级无关）。
+
+### 5.3 环境侧遗留（需人工确认，非代码问题）
+
+- 本地 MySQL `demo` 库的 `core_file` / `core_file_upload` 的 `id` 列仍是旧版 `bigint unsigned AUTO_INCREMENT`，而模型为 `varchar(36)`（`gormdao.StringID`，UUID v7）。**GORM AutoMigrate 不会修改已存在的主键列类型**，因此上传报 `Error 1265: Data truncated for column 'id'`。处理方式：重命名旧表让 AutoMigrate 重建（本次已把两张表重命名为 `core_file_bak_20260915` / `core_file_upload_bak_20260915`），或在新建库上直接启动。
+  - 全新建库验证：AutoMigrate 会正确建出 `id varchar(36)`，完整链路（直传、去重、详情、serve、预签名 GET、分片预签名 PUT + list parts + complete）实测通过。
+  - 另有不属于本应用的遗留表 `demo.core_file_verify`（同样 `bigint` 主键），未处理。
+- 本地 Elasticsearch（127.0.0.1:9200）未启动，`pkg/dbclient` 的 `TestDbcheckVerify/Elasticsearch` 与 `/v1/demo/health` 的 ES 项会失败，属既有环境依赖。
