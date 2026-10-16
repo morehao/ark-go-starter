@@ -15,6 +15,7 @@
 | [../frontend/DESIGN.md](../../frontend/DESIGN.md) | 前端设计语言：色彩/排版/间距/圆角/组件规格/Do's and Don'ts（视觉规范事实源） | 改样式、配色、布局前 |
 | [api-conventions.md](./api-conventions.md) | 路由路径规范、路由注册、Swagger 注解 | 新增或修改接口时 |
 | [testing.md](./testing.md) | 测试文件组织、测试环境初始化、断言写法 | 编写测试时 |
+| [golib.md](./golib.md) | golib 公共组件库能力说明：项目内封装层、golib 组件速查（已用/可用）、驱动注册、内置表与升级约定 | 写新功能、引入通用组件前（能力复用） |
 | [toolchain.md](./toolchain.md) | 依赖、API 文档、代码生成、存储、链路追踪、日志等工具选型 | 引入或替换组件时 |
 
 ## 阅读顺序建议
@@ -23,7 +24,8 @@
 2. 写后端代码 → [backend-conventions.md](./backend-conventions.md)；
 3. 写前端代码 → [frontend-conventions.md](./frontend-conventions.md)，改样式再读 [`frontend/DESIGN.md`](../../frontend/DESIGN.md)；
 4. 动接口 → [api-conventions.md](./api-conventions.md)；
-5. 补测试 → [testing.md](./testing.md)。
+5. 需要通用能力（日志 / HTTP / 锁 / 限流 / 任务 / Excel 等）→ [golib.md](./golib.md)；
+6. 补测试 → [testing.md](./testing.md)。
 
 ## 维护约定
 

@@ -4,8 +4,8 @@
 
 ## 约定
 
-- 测试文件放在同包或 `testutil` 包中
-- 使用 `testutil.Initialize()` 初始化测试环境
+- 测试文件放在同包或 `_test` 包中
+- 使用 `pkg/testsetup` 初始化测试环境：`TestMain` 中调 `testsetup.Initialize(testsetup.AppNameDemo)` / `testsetup.Close(testsetup.AppNameDemo)`；需要带身份的 ctx 用 `testsetup.NewContext(...)`。详见 [pkg/testsetup/README.md](../../backend/pkg/testsetup/README.md)
 - 使用标准库 `testing` 包和 `testify/assert`
 
 ```go

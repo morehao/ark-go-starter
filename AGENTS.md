@@ -14,6 +14,7 @@
 | 前端设计语言 | [frontend/DESIGN.md](./frontend/DESIGN.md) | 改样式 / 配色 / 布局前必读（视觉规范事实源） |
 | API 路由与 Swagger | [docs/agents/api-conventions.md](./docs/agents/api-conventions.md) | **新增或修改接口前必读** |
 | 测试规范 | [docs/agents/testing.md](./docs/agents/testing.md) | 编写测试时 |
+| golib 能力说明 | [docs/agents/golib.md](./docs/agents/golib.md) | **写新功能 / 引入通用组件前必读（能力复用）** |
 | 常用工具与选型 | [docs/agents/toolchain.md](./docs/agents/toolchain.md) | 引入或替换组件时 |
 
 ## 项目概述
@@ -70,7 +71,7 @@ ark-go-starter/
 6. **Controller 返回**：统一走 `gincontext`，绑定失败 `gincontext.Fail(ctx, err)`，成功 `gincontext.Success(ctx, res)`。详见 [backend-conventions.md](./docs/agents/backend-conventions.md#controller-返回模式)。
 7. **路由**：`/{版本}/{app}/{资源复数}`，RESTful + HTTP 方法，如 `GET /v1/demo/users`；路径参数 `:xxxID`；**层级不超过 4 层**。详见 [api-conventions.md](./docs/agents/api-conventions.md)。
 8. **Swagger**：新增接口需补 `@Tags/@Summary/@Param/@Success/@Router` 注解，并执行 `make swag APP=demo`。详见 [api-conventions.md](./docs/agents/api-conventions.md#swagger-文档)。
-9. **测试**：同包或 `testutil` 包，用 `testutil.Initialize()` 初始化环境，标准库 `testing` + `testify/assert`。详见 [testing.md](./docs/agents/testing.md)。
+9. **测试**：同包或 `_test` 包，用 `testsetup.Initialize(testsetup.AppNameDemo)` 初始化环境（基于 `pkg/testsetup`，详见 [pkg/testsetup/README.md](./backend/pkg/testsetup/README.md)），标准库 `testing` + `testify/assert`。详见 [testing.md](./docs/agents/testing.md)。
 10. **工具链**：数据库 GORM + PostgreSQL（**唯一目标库**；DDL 见 `backend/scripts/sql/table_init.sql`，model tag 禁写其它方言类型）。缓存 Redis，日志 golib/glog，链路 OpenTelemetry。详见 [toolchain.md](./docs/agents/toolchain.md) 与 [模型字段类型规范](./docs/agents/backend-conventions.md#模型字段类型规范postgresql)。
 11. **前端**：`main.tsx` 必须用 `AppShell` 包裹，管理页用 `PageContainer`；颜色/圆角/间距一律取 `@ark-go-starter/ui` 的 `tokens` 或 antd token，**禁止裸色值**；卡片无阴影、Table 必须 `tableLayout="fixed"` + 显式列宽。详见 [frontend-conventions.md](./docs/agents/frontend-conventions.md)；设计值事实源是 [frontend/DESIGN.md](./frontend/DESIGN.md)（改 `theme.ts` tokens 与它必须同步）。
 12. **注释**：`internal/dto/` 下结构体字段必须有行内中文注释；DDL 字段必须有行尾 `--` 注释 + `COMMENT ON COLUMN`（两份保持一致）。详见 [backend-conventions.md](./docs/agents/backend-conventions.md#注释规范)。
