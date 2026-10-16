@@ -207,7 +207,7 @@ log:
     level: warn
 
 db_configs:
-  - url: "mysql://root:password@127.0.0.1:3306/mydb?charset=utf8mb4&parseTime=True&loc=Local"
+  - url: "postgres://postgres:password@127.0.0.1:5432/mydb?sslmode=disable&TimeZone=Asia/Shanghai"
 
 redis_config:
   service: myapp
