@@ -280,7 +280,7 @@ const docTemplatedemo = `{
                 "es": {
                     "type": "string"
                 },
-                "mysql": {
+                "postgres": {
                     "type": "string"
                 },
                 "redis": {

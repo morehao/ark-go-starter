@@ -13,7 +13,7 @@ const (
 	dbConnTimeout = 5 * time.Second
 )
 
-// TestDbcheckVerify 验证 dbclient 对 MySQL/Redis/ES/PG 的调用及调用日志是否生效。
+// TestDbcheckVerify 验证 dbclient 对 PostgreSQL/Redis/ES 的调用及调用日志是否生效。
 //
 // 依赖 testsetup.Initialize 初始化 dbclient 与 glog（读取 apps/demo/config/config.yaml，
 // gorm/redis/es 日志级别为 debug 且输出到 console）。
@@ -22,7 +22,7 @@ const (
 //
 //	go test ./pkg/dbclient/ -v -run TestDbcheckVerify
 //
-// 注意：本地需就绪 MySQL(3306)/Redis(6379)/ES(9200)。
+// 注意：本地需就绪 PostgreSQL(5432)/Redis(6379)/ES(9200)。
 func TestDbcheckVerify(t *testing.T) {
 	testsetup.Initialize(testsetup.AppNameDemo)
 	defer testsetup.Close(testsetup.AppNameDemo)
@@ -30,7 +30,7 @@ func TestDbcheckVerify(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), dbConnTimeout)
 	defer cancel()
 
-	t.Run("MySQL", func(t *testing.T) {
+	t.Run("Postgres", func(t *testing.T) {
 		db := dbclient.DemoDB(ctx)
 		if db == nil {
 			t.Fatal("DemoDB is nil")
@@ -39,7 +39,7 @@ func TestDbcheckVerify(t *testing.T) {
 		if err := db.Raw("SELECT 1").Scan(&val).Error; err != nil {
 			t.Fatalf("select 1 failed: %v", err)
 		}
-		t.Logf("mysql select 1 => %d", val)
+		t.Logf("postgres select 1 => %d", val)
 	})
 
 	t.Run("Redis", func(t *testing.T) {
