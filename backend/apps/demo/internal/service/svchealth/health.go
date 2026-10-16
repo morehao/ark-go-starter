@@ -26,16 +26,16 @@ func NewHealthSvc() HealthSvc {
 
 func (svc *healthSvc) Check(ctx *gin.Context) *dtohealth.DbCheckResp {
 	resp := &dtohealth.DbCheckResp{
-		MySQL: "ok",
-		Redis: "ok",
-		ES:    "ok",
+		Postgres: "ok",
+		Redis:    "ok",
+		ES:       "ok",
 	}
 	checkCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 
 	if err := pingDB(checkCtx, dbclient.DemoDB(checkCtx)); err != nil {
-		glog.Errorf(ctx, "[svchealth.Check] mysql ping fail, err:%v", err)
-		resp.MySQL = err.Error()
+		glog.Errorf(ctx, "[svchealth.Check] db ping fail, err:%v", err)
+		resp.Postgres = err.Error()
 	}
 	if err := pingRedis(checkCtx); err != nil {
 		glog.Errorf(ctx, "[svchealth.Check] redis ping fail, err:%v", err)
@@ -45,8 +45,8 @@ func (svc *healthSvc) Check(ctx *gin.Context) *dtohealth.DbCheckResp {
 		glog.Errorf(ctx, "[svchealth.Check] es ping fail, err:%v", err)
 		resp.ES = err.Error()
 	}
-	glog.Infof(ctx, "[svchealth.Check] result, mysql:%s, redis:%s, es:%s",
-		resp.MySQL, resp.Redis, resp.ES)
+	glog.Infof(ctx, "[svchealth.Check] result, postgres:%s, redis:%s, es:%s",
+		resp.Postgres, resp.Redis, resp.ES)
 	return resp
 }
 

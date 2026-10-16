@@ -5,6 +5,7 @@ import (
 	"github.com/morehao/ark-go-starter/pkg/dbclient"
 	"github.com/morehao/golib/dbaccess/gormdao"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type UserCond struct {
@@ -22,22 +23,22 @@ func (c *UserCond) BuildCondition(db *gorm.DB, tableName string) {
 		c.BaseCond.BuildCondition(db, tableName)
 	}
 	if c.CompanyID != 0 {
-		db.Where(tableName+".company_id = ?", c.CompanyID)
+		db.Where(clause.Eq{Column: clause.Column{Table: tableName, Name: "company_id"}, Value: c.CompanyID})
 	}
 	if c.DepartmentID != 0 {
-		db.Where(tableName+".department_id = ?", c.DepartmentID)
+		db.Where(clause.Eq{Column: clause.Column{Table: tableName, Name: "department_id"}, Value: c.DepartmentID})
 	}
 	if c.Name != "" {
-		db.Where(tableName+".name = ?", c.Name)
+		db.Where(clause.Eq{Column: clause.Column{Table: tableName, Name: "name"}, Value: c.Name})
 	}
 	if c.CreatedBy != 0 {
-		db.Where(tableName+".created_by = ?", c.CreatedBy)
+		db.Where(clause.Eq{Column: clause.Column{Table: tableName, Name: "created_by"}, Value: c.CreatedBy})
 	}
 	if c.UpdatedBy != 0 {
-		db.Where(tableName+".updated_by = ?", c.UpdatedBy)
+		db.Where(clause.Eq{Column: clause.Column{Table: tableName, Name: "updated_by"}, Value: c.UpdatedBy})
 	}
 	if c.DeletedBy != 0 {
-		db.Where(tableName+".deleted_by = ?", c.DeletedBy)
+		db.Where(clause.Eq{Column: clause.Column{Table: tableName, Name: "deleted_by"}, Value: c.DeletedBy})
 	}
 }
 
@@ -45,6 +46,10 @@ type UserDao struct {
 	*gormdao.Dao[model.UserEntity, model.UserEntityList, uint]
 }
 
+// NewUserDao 构造 UserDao。
+//
+// 表名传**逻辑表名** model.TableNameUser 即可：gormdao（v1.32.26 起）会把表名与列名
+// 交给 GORM 按当前方言引用，user 这一 PostgreSQL 保留字无需调用方额外处理。
 func NewUserDao() *UserDao {
 	return &UserDao{
 		Dao: gormdao.NewDao[model.UserEntity, model.UserEntityList, uint](

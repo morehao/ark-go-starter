@@ -9,8 +9,8 @@
 # Features
 
 * **Clear Project Structure**: Inspired by [project-layout](https://github.com/golang-standards/project-layout), follows layered architecture principles. Frontend and backend are separated (`backend/` + `frontend/`), organized for team collaboration and long-term maintenance.
-* **Common Component Integration**: Includes built-in examples for MySQL, Redis, and Elasticsearch.
-* **Full Link Logging**: Provides a custom logging package `glog` based on `zap`, supporting full trace ID propagation across MySQL, Redis, ES, and HTTP calls.
+* **Common Component Integration**: Includes built-in examples for PostgreSQL, Redis, and Elasticsearch.
+* **Full Link Logging**: Provides a custom logging package `glog` based on `zap`, supporting full trace ID propagation across PostgreSQL, Redis, ES, and HTTP calls.
 * **Code Generation Tool**: Comes with a command-line tool `gocli` that can generate standardized code (including model, dao, object, dto, code, service, controller, router layers) based on config.
 * **Swagger API Documentation**: Automatically generate interactive API docs using `swaggo` for easier frontend-backend collaboration and testing.
 * **Frontend Monorepo**: Shared `packages/` (tsconfig/types/api) via pnpm workspace; business apps live in `apps/`.
@@ -44,10 +44,12 @@ Follows [project-layout](https://github.com/golang-standards/project-layout). Cu
 ├── frontend                # React frontend project (pnpm monorepo)
 │   ├── apps
 │   │   └── demo-web        # Demo frontend app (Vite + React + AntD)
-│   └── packages            # Shared packages (tsconfig / types / api)
+│   ├── packages            # Shared packages (ui / api / types / tsconfig)
+│   └── DESIGN.md           # Frontend design language (single source of visual truth)
 ├── Makefile                # Root Makefile (backend + frontend commands)
-├── AGENTS.md               # Development conventions
+├── AGENTS.md               # AI agent entry (conventions index)
 └── docs                    # Documentation
+    └── agents              # Development conventions (split from AGENTS.md)
 ```
 
 ---

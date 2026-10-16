@@ -5,8 +5,8 @@
 # 项目特点
 
 - 清晰的项目结构：参考了[project-layout](https://github.com/golang-standards/project-layout)，遵循分层架构思想，前后端分离（`backend/` + `frontend/`），目录组织合理，便于团队协作与长期维护。
-- 常用组件集成：MySQL、Redis、ES。
-- 全链路日志追踪：基于`zap`封装的日志组件`glog`,支持链路 ID 贯穿 MySQL、Redis、ES、Http 调用。
+- 常用组件集成：PostgreSQL、Redis、ES。
+- 全链路日志追踪：基于`zap`封装的日志组件`glog`,支持链路 ID 贯穿 PostgreSQL、Redis、ES、Http 调用。
 - 代码生成工具：提供`gocli`命令行工具，支持根据配置快速生成标准代码（包括 model、dao、object、dto、code、service、controller、router层代码）。
 - `Swagger`文档支持：使用`swaggo`自动生成 API 文档，方便前后端联调与测试。
 - 前端 Monorepo：基于 pnpm workspace 共享 `packages/`（tsconfig/types/api），业务应用放在 `apps/`。
@@ -37,10 +37,12 @@
 ├── frontend                # React 前端项目（pnpm monorepo）
 │   ├── apps
 │   │   └── demo-web        # 演示前端应用（Vite + React + AntD）
-│   └── packages            # 共享包（tsconfig / types / api）
+│   ├── packages            # 共享包（ui / api / types / tsconfig）
+│   └── DESIGN.md           # 前端设计语言（视觉规范事实源）
 ├── Makefile                # 根 Makefile（backend + frontend 双端命令）
-├── AGENTS.md               # 开发规范
+├── AGENTS.md               # AI 代理入口（开发规范索引）
 └── docs                    # 文档
+    └── agents              # 开发规范正文（由 AGENTS.md 拆分）
 ```
 
 # 基础功能
