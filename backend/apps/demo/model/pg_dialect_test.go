@@ -18,8 +18,9 @@ var postgresModels = []any{
 //
 // 命中的原因：gorm 只把 bool/int/uint/float/string/time/bytes 这类**逻辑类型名**交给方言映射，
 // 其它取值会被原样拼进 DDL。例如 `type:bigint unsigned` 在 PostgreSQL 上实测直接
-// `syntax error at or near "unsigned" (SQLSTATE 42601)`（列类型应为 bigint）。
-// 需要 PostgreSQL 专属类型时直接写 PG 的写法（如 jsonb、double precision），不要写 MySQL 的。
+// `syntax error at or near "unsigned" (SQLSTATE 42601)`（PG 的等价写法是 type:bigint）。
+// 显式写 PG 类型是允许的（type:bigint、type:varchar(255)、type:jsonb 均可），与
+// backend/scripts/sql/table_init.sql 保持同款即可。
 var nonPostgresTypeTokens = []string{
 	"unsigned", "zerofill", "auto_increment",
 	"tinyint", "mediumint", "tinytext", "mediumtext", "longtext",
@@ -43,7 +44,7 @@ func TestModelTagsArePostgresCompatible(t *testing.T) {
 			rawType := strings.ToLower(strings.TrimSpace(field.TagSettings["TYPE"]))
 			for _, token := range nonPostgresTypeTokens {
 				assert.NotContains(t, rawType, token,
-					"表 %s 的列 %s 用了非 PostgreSQL 的 type:%s，请改为 Go 类型 + size（详见 docs/agents/backend-conventions.md#模型字段类型规范postgresql）",
+					"表 %s 的列 %s 用了非 PostgreSQL 的 type:%s，请改成 PG 写法（如 type:bigint，详见 docs/agents/backend-conventions.md#模型字段类型规范postgresql）",
 					s.Table, dbName, field.TagSettings["TYPE"])
 			}
 		}

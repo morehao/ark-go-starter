@@ -80,22 +80,24 @@ COMMENT ON COLUMN "user".deleted_at IS '删除时间（软删除）';
 
 ## 模型字段类型规范（PostgreSQL）
 
-**本仓库唯一目标库是 PostgreSQL**：建表事实源是 `backend/scripts/sql/table_init.sql`（PG 语法），model 的 gorm tag 只描述列名、Go 类型与注释，**不得携带其它方言的类型字面量**。
+**本仓库唯一目标库是 PostgreSQL**：建表事实源是 `backend/scripts/sql/table_init.sql`（PG 语法），model 的 gorm tag **必须显式写 `type:`，且取值只能是 PostgreSQL 合法类型**（与脚本同款，结构体自描述、读模型即知列类型），不得写其它方言的字面量。
 
 | 想要的效果 | 写法 | PG 生成的列 |
 |-----------|------|-------------|
-| 整型（含无符号语义） | `uint` / `int64`（必要时 `size:16`/`size:32`） | `bigint`、`smallint` … |
-| 变长字符串 | `size:255` | `varchar(255)` |
-| 长文本 | 什么都不写（string 默认） | `text` |
-| PostgreSQL 专属类型 | 直接写 PG 写法，如 `type:jsonb` | `jsonb` |
-| 小数 | `precision:10;scale:2` | `numeric(10, 2)` |
+| 大整型主键 / 外键 | `uint` + `type:bigint` | `bigint`（主键带 autoIncrement 时为 `bigserial`） |
+| 变长字符串 | `type:varchar(255)` | `varchar(255)` |
+| 长文本 | `type:text` | `text` |
+| 时间 | `time.Time`（不写 type，由方言推断） | `timestamptz` |
+| 二进制 | `[]byte`（不写 type） | `bytea` |
+| JSON / 集合 / 结构对象 | `type:jsonb` + `serializer:json`（推荐对象内含数组，见下） | `jsonb` |
+| 小数 | `type:numeric` + `precision:10;scale:2` | `numeric(10, 2)` |
 | 列注释 | `comment:中文说明` | 建表后自动 `COMMENT ON COLUMN` |
 
 ```go
 type UserEntity struct {
     gorm.Model
-    CompanyID uint   `gorm:"column:company_id;not null;default:0;comment:公司id"`
-    Name      string `gorm:"column:name;size:255;not null;default:'';comment:姓名"`
+    CompanyID uint   `gorm:"column:company_id;type:bigint;not null;default:0;comment:公司id"`
+    Name      string `gorm:"column:name;type:varchar(255);not null;default:'';comment:姓名"`
 }
 ```
 
@@ -105,6 +107,32 @@ type UserEntity struct {
 ERROR: syntax error at or near "unsigned" (SQLSTATE 42601)
 CREATE TABLE "user" (...,"company_id" bigint unsigned NOT NULL DEFAULT 0,...)
 ```
+
+### 集合 / 结构体字段：`serializer:json` 优先，对象内含数组便于扩展
+
+gorm 对「元素为非 byte 的切片」没有默认映射（`[]string` 连 `schema.Parse` 都过不去），读写 PG 数组需要 `pq.StringArray` 这类实现 `driver.Valuer`/`sql.Scanner` 的类型。**推荐改用 gorm 的 `serializer:json`**：不需要 Valuer/Scanner，也不引入 `lib/pq`，且 PG 上用 `jsonb` 列，后续加字段不用改表：
+
+```go
+// ✅ 推荐：直接存 []string
+Tags []string `gorm:"column:tags;type:jsonb;serializer:json;comment:标签列表"`
+
+// ✅ 更推荐：对象内包含数组，后续扩展字段不动表结构
+type UserMeta struct {
+    Tags    []string `json:"tags"`
+    Level   int      `json:"level"`
+    Remarks string   `json:"remarks"`
+}
+Meta UserMeta `gorm:"column:meta;type:jsonb;serializer:json;comment:扩展元信息"`
+```
+
+```go
+// ❌ 建表能过但读写报错（42804 expression is of type record）
+Tags []string `gorm:"column:tags;type:text[]"`
+// ❌ serializer 不写 type 时列是 text 而不是 jsonb（没法走 GIN 索引、不能 jsonb 查询）
+Meta UserMeta `gorm:"column:meta;serializer:json"`
+```
+
+两者都已在本机 PG 实测：`[]string`/结构体 + `type:jsonb;serializer:json` 建表读写全通；`type:text[]` 配裸 `[]string` 写入必炸；`serializer:json` 不写 `type` 推断成 `text` 列。
 
 守护用例：`apps/demo/model/pg_dialect_test.go` 的 `TestModelTagsArePostgresCompatible` 扫描所有模型的 `type:` tag，命中 MySQL 字面量（`unsigned`、`tinyint`、`datetime`、`longtext` …）即失败；**新增 model 要记得加进该用例的 `postgresModels`**（不需要数据库，纯 tag 校验）。
 
