@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/morehao/ark-go-starter/demo/internal/dto/dtohealth"
 	"github.com/morehao/ark-go-starter/pkg/dbclient"
 	"github.com/morehao/golib/glog"
@@ -12,7 +11,7 @@ import (
 )
 
 type HealthSvc interface {
-	Check(ctx *gin.Context) *dtohealth.DbCheckResp
+	Check(ctx context.Context) *dtohealth.DbCheckResp
 }
 
 type healthSvc struct {
@@ -24,7 +23,7 @@ func NewHealthSvc() HealthSvc {
 	return &healthSvc{}
 }
 
-func (svc *healthSvc) Check(ctx *gin.Context) *dtohealth.DbCheckResp {
+func (svc *healthSvc) Check(ctx context.Context) *dtohealth.DbCheckResp {
 	resp := &dtohealth.DbCheckResp{
 		Postgres: "ok",
 		Redis:    "ok",

@@ -41,7 +41,7 @@ func (ctr *userCtr) Create(ctx *gin.Context) {
 		gincontext.Fail(ctx, err)
 		return
 	}
-	res, err := ctr.userSvc.Create(ctx, &req)
+	res, err := ctr.userSvc.Create(ctx.Request.Context(), &req)
 	if err != nil {
 		gincontext.Fail(ctx, err)
 		return
@@ -64,7 +64,9 @@ func (ctr *userCtr) Delete(ctx *gin.Context) {
 		return
 	}
 
-	if err := ctr.userSvc.Delete(ctx, &req); err != nil {
+	req.OperatorID = gincontext.GetUserID(ctx)
+
+	if err := ctr.userSvc.Delete(ctx.Request.Context(), &req); err != nil {
 		gincontext.Fail(ctx, err)
 		return
 	}
@@ -90,7 +92,7 @@ func (ctr *userCtr) Update(ctx *gin.Context) {
 		gincontext.Fail(ctx, err)
 		return
 	}
-	if err := ctr.userSvc.Update(ctx, &req); err != nil {
+	if err := ctr.userSvc.Update(ctx.Request.Context(), &req); err != nil {
 		gincontext.Fail(ctx, err)
 		return
 	}
@@ -111,7 +113,7 @@ func (ctr *userCtr) Detail(ctx *gin.Context) {
 		gincontext.Fail(ctx, err)
 		return
 	}
-	res, err := ctr.userSvc.Detail(ctx, &req)
+	res, err := ctr.userSvc.Detail(ctx.Request.Context(), &req)
 	if err != nil {
 		gincontext.Fail(ctx, err)
 		return
@@ -133,7 +135,7 @@ func (ctr *userCtr) PageList(ctx *gin.Context) {
 		gincontext.Fail(ctx, err)
 		return
 	}
-	res, err := ctr.userSvc.PageList(ctx, &req)
+	res, err := ctr.userSvc.PageList(ctx.Request.Context(), &req)
 	if err != nil {
 		gincontext.Fail(ctx, err)
 		return
