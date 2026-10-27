@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/morehao/ark-go-starter/demo/internal/dto/dtouser"
 	"github.com/morehao/ark-go-starter/demo/internal/service/svcuser"
+	"github.com/morehao/ark-go-starter/pkg/ginhelper"
 	"github.com/morehao/golib/biz/gcontext/gincontext"
 )
 
@@ -41,6 +42,8 @@ func (ctr *userCtr) Create(ctx *gin.Context) {
 		gincontext.Fail(ctx, err)
 		return
 	}
+	ginhelper.FillOperator(ctx, &req.Operator)
+
 	res, err := ctr.userSvc.Create(ctx.Request.Context(), &req)
 	if err != nil {
 		gincontext.Fail(ctx, err)
@@ -64,7 +67,7 @@ func (ctr *userCtr) Delete(ctx *gin.Context) {
 		return
 	}
 
-	req.Operator.UserID = gincontext.GetUserID(ctx)
+	ginhelper.FillOperator(ctx, &req.Operator)
 
 	if err := ctr.userSvc.Delete(ctx.Request.Context(), &req); err != nil {
 		gincontext.Fail(ctx, err)
@@ -92,6 +95,8 @@ func (ctr *userCtr) Update(ctx *gin.Context) {
 		gincontext.Fail(ctx, err)
 		return
 	}
+	ginhelper.FillOperator(ctx, &req.Operator)
+
 	if err := ctr.userSvc.Update(ctx.Request.Context(), &req); err != nil {
 		gincontext.Fail(ctx, err)
 		return

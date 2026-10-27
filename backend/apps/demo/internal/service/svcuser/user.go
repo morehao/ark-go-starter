@@ -37,6 +37,8 @@ func (svc *userSvc) Create(ctx context.Context, req *dtouser.UserCreateReq) (*dt
 		CompanyID:    req.CompanyID,
 		DepartmentID: req.DepartmentID,
 		Name:         req.Name,
+		CreatedBy:    req.Operator.UserID,
+		UpdatedBy:    req.Operator.UserID,
 	}
 
 	if err := dao.NewUserDao().Insert(ctx, insertEntity); err != nil {
@@ -81,6 +83,7 @@ func (svc *userSvc) Update(ctx context.Context, req *dtouser.UserUpdateReq) erro
 		"company_id":    req.CompanyID,
 		"department_id": req.DepartmentID,
 		"name":          req.Name,
+		"updated_by":    req.Operator.UserID,
 	}
 	if err := dao.NewUserDao().UpdateMap(ctx, req.UserID, updateMap); err != nil {
 		glog.Errorf(ctx, "[svcuser.UserUpdate] dao UpdateMap fail, err:%v, req:%s", err, gutil.ToJsonString(req))
@@ -107,6 +110,8 @@ func (svc *userSvc) Detail(ctx context.Context, req *dtouser.UserDetailReq) (*dt
 			Name:         userEntity.Name,
 		},
 		OperatorBaseInfo: gobject.OperatorBaseInfo{
+			CreatedBy: userEntity.CreatedBy,
+			UpdatedBy: userEntity.UpdatedBy,
 			CreatedAt: userEntity.CreatedAt.Unix(),
 			UpdatedAt: userEntity.UpdatedAt.Unix(),
 		},
@@ -137,6 +142,8 @@ func (svc *userSvc) PageList(ctx context.Context, req *dtouser.UserPageListReq) 
 				Name:         v.Name,
 			},
 			OperatorBaseInfo: gobject.OperatorBaseInfo{
+				CreatedBy: v.CreatedBy,
+				UpdatedBy: v.UpdatedBy,
 				UpdatedAt: v.UpdatedAt.Unix(),
 			},
 		})

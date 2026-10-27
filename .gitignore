@@ -11,6 +11,9 @@
 **/log/
 **/output/
 
+# 本地文件存储（file_storage.driver=local 的运行时数据）
+backend/storage/
+
 # 前端
 **/node_modules/
 **/dist/
