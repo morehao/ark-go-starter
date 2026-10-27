@@ -45,7 +45,8 @@ go test ./apps/demo/internal/service/svcuser -run TestGeneratePassword -v
 ```
 
 > **注意**：后端模块的 go 命令需在 `cd backend` 后执行。
-> `pkg/dbclient/dbcheck_test.go` 依赖本地 PostgreSQL(5432) / Redis(6379) / ES(9200) 服务，未启动对应服务时该包测试会失败（属环境依赖，非代码问题）。
+> `pkg/dbclient/dbcheck_test.go` 依赖本地 PostgreSQL(5432) / Redis(6379) 服务，未启动对应服务时该包测试会失败（属环境依赖，非代码问题）。
+> 本项目不连接 Elasticsearch，`health` 接口只返回 `postgres` / `redis` 两项。
 > 数据库初始化脚本见 `backend/scripts/sql/table_init.sql`（PostgreSQL DDL）。
 
 测试写法约定见 [testing.md](./testing.md)。

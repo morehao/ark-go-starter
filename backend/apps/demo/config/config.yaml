@@ -81,10 +81,6 @@ redis_config:
   read_timeout: 3s
   write_timeout: 3s
 
-es_configs:
-  - service: demo
-    addr: http://127.0.0.1:9200
-
 file_storage:
   driver: local
   bucket: demo

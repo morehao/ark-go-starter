@@ -58,7 +58,7 @@ ark-go-starter/
 | 依赖 / 清理 | `make deps` / `make clean` |
 | Docker | `make docker-build APP=demo` / `make docker-run APP=demo` |
 
-> 注意：后端模块的 go 命令需先 `cd backend`；`pkg/dbclient/dbcheck_test.go` 依赖本地 PostgreSQL(5432)/Redis(6379)/ES(9200)，服务未起时该包测试失败属环境依赖。
+> 注意：后端模块的 go 命令需先 `cd backend`；`pkg/dbclient/dbcheck_test.go` 依赖本地 PostgreSQL(5432)/Redis(6379)，服务未起时该包测试失败属环境依赖。本项目不连接 Elasticsearch。
 > 完整命令与说明见 [commands.md](./docs/agents/commands.md)。
 
 ## 硬性规则速查（必须遵守）

@@ -27,7 +27,6 @@ func (svc *healthSvc) Check(ctx context.Context) *dtohealth.DbCheckResp {
 	resp := &dtohealth.DbCheckResp{
 		Postgres: "ok",
 		Redis:    "ok",
-		ES:       "ok",
 	}
 	checkCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
@@ -40,12 +39,8 @@ func (svc *healthSvc) Check(ctx context.Context) *dtohealth.DbCheckResp {
 		glog.Errorf(ctx, "[svchealth.Check] redis ping fail, err:%v", err)
 		resp.Redis = err.Error()
 	}
-	if err := pingES(checkCtx); err != nil {
-		glog.Errorf(ctx, "[svchealth.Check] es ping fail, err:%v", err)
-		resp.ES = err.Error()
-	}
-	glog.Infof(ctx, "[svchealth.Check] result, postgres:%s, redis:%s, es:%s",
-		resp.Postgres, resp.Redis, resp.ES)
+	glog.Infof(ctx, "[svchealth.Check] result, postgres:%s, redis:%s",
+		resp.Postgres, resp.Redis)
 	return resp
 }
 
@@ -62,19 +57,4 @@ func pingRedis(ctx context.Context) error {
 		return context.DeadlineExceeded
 	}
 	return dbclient.RedisCli.Ping(ctx).Err()
-}
-
-func pingES(ctx context.Context) error {
-	if dbclient.DemoES == nil {
-		return context.DeadlineExceeded
-	}
-	res, err := dbclient.DemoES.Info(dbclient.DemoES.Info.WithContext(ctx))
-	if err != nil {
-		return err
-	}
-	defer func() { _ = res.Body.Close() }()
-	if res.IsError() {
-		return context.DeadlineExceeded
-	}
-	return nil
 }

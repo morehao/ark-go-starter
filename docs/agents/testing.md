@@ -40,7 +40,7 @@ go test ./apps/demo/internal/service/svcuser -run TestGeneratePassword -v
 
 ## 环境依赖
 
-`pkg/dbclient/dbcheck_test.go` 依赖本地 PostgreSQL(5432) / Redis(6379) / ES(9200) 服务；未启动对应服务时该包测试会失败，属环境依赖问题而非代码问题。数据库初始化脚本见 `backend/scripts/sql/table_init.sql`（PostgreSQL DDL）。
+`pkg/dbclient/dbcheck_test.go` 依赖本地 PostgreSQL(5432) / Redis(6379) 服务；未启动对应服务时该包测试会失败，属环境依赖问题而非代码问题。本项目不连接 Elasticsearch。数据库初始化脚本见 `backend/scripts/sql/table_init.sql`（PostgreSQL DDL）。
 
 ## 相关文档
 
