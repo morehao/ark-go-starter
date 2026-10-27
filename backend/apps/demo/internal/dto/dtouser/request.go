@@ -2,16 +2,19 @@ package dtouser
 
 import (
 	"github.com/morehao/ark-go-starter/demo/object/objuser"
+	"github.com/morehao/ark-go-starter/pkg/operator"
 	"github.com/morehao/golib/biz/gobject"
 )
 
 type UserCreateReq struct {
 	objuser.UserBaseInfo
+	operator.Operator
 }
 
 type UserUpdateReq struct {
 	UserID uint `json:"-" uri:"userID" binding:"required"` // 自增 ID
 	objuser.UserBaseInfo
+	operator.Operator
 }
 
 type UserDetailReq struct {
@@ -24,5 +27,5 @@ type UserPageListReq struct {
 
 type UserDeleteReq struct {
 	UserID uint `json:"-" uri:"userID" binding:"required"` // 自增 ID
-	objuser.Operator
+	operator.Operator
 }
