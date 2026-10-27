@@ -21,12 +21,19 @@ import (
 const AppName = "demo"
 
 func Routers(engine *gin.Engine) {
+	middlewares := []gin.HandlerFunc{
+		middleware.Example(),
+	}
+	// 演示用身份中间件：只有 dev 环境挂载，让 controller 能取到操作人；
+	// 它信任客户端请求头，生产环境绝不能启用（详见 middleware.DemoIdentity 注释）。
+	if config.Conf.Server.Env == "dev" {
+		middlewares = append(middlewares, middleware.DemoIdentity())
+	}
+
 	routerGroups := ginserver.NewRouterGroups(engine, AppName, []ginserver.VersionGroup{
 		{
-			Version: ginserver.ApiVersionV1,
-			Middlewares: []gin.HandlerFunc{
-				middleware.Example(),
-			},
+			Version:     ginserver.ApiVersionV1,
+			Middlewares: middlewares,
 		},
 	})
 

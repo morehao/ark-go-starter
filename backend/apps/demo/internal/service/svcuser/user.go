@@ -59,7 +59,7 @@ func (svc *userSvc) Delete(ctx context.Context, req *dtouser.UserDeleteReq) erro
 		return code.GetError(code.UserNotExistError)
 	}
 
-	if err := dao.NewUserDao().Delete(ctx, req.UserID, req.OperatorID); err != nil {
+	if err := dao.NewUserDao().Delete(ctx, req.UserID, req.Operator.UserID); err != nil {
 		glog.Errorf(ctx, "[svcuser.Delete] dao Delete fail, err:%v, req:%s", err, gutil.ToJsonString(req))
 		return code.GetError(code.UserDeleteError)
 	}
