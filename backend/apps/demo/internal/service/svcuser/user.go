@@ -1,13 +1,13 @@
 package svcuser
 
 import (
-	"github.com/gin-gonic/gin"
+	"context"
+
 	"github.com/morehao/ark-go-starter/demo/dao"
 	"github.com/morehao/ark-go-starter/demo/internal/dto/dtouser"
 	"github.com/morehao/ark-go-starter/demo/model"
 	"github.com/morehao/ark-go-starter/demo/object/objuser"
 	"github.com/morehao/ark-go-starter/pkg/code"
-	"github.com/morehao/golib/biz/gcontext/gincontext"
 	"github.com/morehao/golib/biz/gobject"
 	"github.com/morehao/golib/dbaccess/gormdao"
 	"github.com/morehao/golib/glog"
@@ -15,11 +15,11 @@ import (
 )
 
 type UserSvc interface {
-	Create(ctx *gin.Context, req *dtouser.UserCreateReq) (*dtouser.UserCreateResp, error)
-	Delete(ctx *gin.Context, req *dtouser.UserDeleteReq) error
-	Update(ctx *gin.Context, req *dtouser.UserUpdateReq) error
-	Detail(ctx *gin.Context, req *dtouser.UserDetailReq) (*dtouser.UserDetailResp, error)
-	PageList(ctx *gin.Context, req *dtouser.UserPageListReq) (*dtouser.UserPageListResp, error)
+	Create(ctx context.Context, req *dtouser.UserCreateReq) (*dtouser.UserCreateResp, error)
+	Delete(ctx context.Context, req *dtouser.UserDeleteReq) error
+	Update(ctx context.Context, req *dtouser.UserUpdateReq) error
+	Detail(ctx context.Context, req *dtouser.UserDetailReq) (*dtouser.UserDetailResp, error)
+	PageList(ctx context.Context, req *dtouser.UserPageListReq) (*dtouser.UserPageListResp, error)
 }
 
 type userSvc struct {
@@ -32,7 +32,7 @@ func NewUserSvc() UserSvc {
 }
 
 // Create 创建用户管理
-func (svc *userSvc) Create(ctx *gin.Context, req *dtouser.UserCreateReq) (*dtouser.UserCreateResp, error) {
+func (svc *userSvc) Create(ctx context.Context, req *dtouser.UserCreateReq) (*dtouser.UserCreateResp, error) {
 	insertEntity := &model.UserEntity{
 		CompanyID:    req.CompanyID,
 		DepartmentID: req.DepartmentID,
@@ -49,7 +49,7 @@ func (svc *userSvc) Create(ctx *gin.Context, req *dtouser.UserCreateReq) (*dtous
 }
 
 // Delete 删除用户管理
-func (svc *userSvc) Delete(ctx *gin.Context, req *dtouser.UserDeleteReq) error {
+func (svc *userSvc) Delete(ctx context.Context, req *dtouser.UserDeleteReq) error {
 	userEntity, err := dao.NewUserDao().GetByID(ctx, req.UserID)
 	if err != nil {
 		glog.Errorf(ctx, "[svcuser.UserDelete] dao GetByID fail, err:%v, req:%s", err, gutil.ToJsonString(req))
@@ -59,9 +59,7 @@ func (svc *userSvc) Delete(ctx *gin.Context, req *dtouser.UserDeleteReq) error {
 		return code.GetError(code.UserNotExistError)
 	}
 
-	userID := gincontext.GetUserID(ctx)
-
-	if err := dao.NewUserDao().Delete(ctx, req.UserID, userID); err != nil {
+	if err := dao.NewUserDao().Delete(ctx, req.UserID, req.OperatorID); err != nil {
 		glog.Errorf(ctx, "[svcuser.Delete] dao Delete fail, err:%v, req:%s", err, gutil.ToJsonString(req))
 		return code.GetError(code.UserDeleteError)
 	}
@@ -69,7 +67,7 @@ func (svc *userSvc) Delete(ctx *gin.Context, req *dtouser.UserDeleteReq) error {
 }
 
 // Update 更新用户管理
-func (svc *userSvc) Update(ctx *gin.Context, req *dtouser.UserUpdateReq) error {
+func (svc *userSvc) Update(ctx context.Context, req *dtouser.UserUpdateReq) error {
 	userEntity, err := dao.NewUserDao().GetByID(ctx, req.UserID)
 	if err != nil {
 		glog.Errorf(ctx, "[svcuser.UserUpdate] dao GetByID fail, err:%v, req:%s", err, gutil.ToJsonString(req))
@@ -92,7 +90,7 @@ func (svc *userSvc) Update(ctx *gin.Context, req *dtouser.UserUpdateReq) error {
 }
 
 // Detail 根据id获取用户管理
-func (svc *userSvc) Detail(ctx *gin.Context, req *dtouser.UserDetailReq) (*dtouser.UserDetailResp, error) {
+func (svc *userSvc) Detail(ctx context.Context, req *dtouser.UserDetailReq) (*dtouser.UserDetailResp, error) {
 	userEntity, err := dao.NewUserDao().GetByID(ctx, req.UserID)
 	if err != nil {
 		glog.Errorf(ctx, "[svcuser.UserDetail] dao GetByID fail, err:%v, req:%s", err, gutil.ToJsonString(req))
@@ -117,7 +115,7 @@ func (svc *userSvc) Detail(ctx *gin.Context, req *dtouser.UserDetailReq) (*dtous
 }
 
 // PageList 分页获取用户管理列表
-func (svc *userSvc) PageList(ctx *gin.Context, req *dtouser.UserPageListReq) (*dtouser.UserPageListResp, error) {
+func (svc *userSvc) PageList(ctx context.Context, req *dtouser.UserPageListReq) (*dtouser.UserPageListResp, error) {
 	cond := &dao.UserCond{
 		BaseCond: &gormdao.BaseCond{
 			Page:     req.Page,
