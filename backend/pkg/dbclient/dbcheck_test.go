@@ -13,16 +13,16 @@ const (
 	dbConnTimeout = 5 * time.Second
 )
 
-// TestDbcheckVerify 验证 dbclient 对 PostgreSQL/Redis/ES 的调用及调用日志是否生效。
+// TestDbcheckVerify 验证 dbclient 对 PostgreSQL/Redis 的调用及调用日志是否生效。
 //
 // 依赖 testsetup.Initialize 初始化 dbclient 与 glog（读取 apps/demo/config/config.yaml，
-// gorm/redis/es 日志级别为 debug 且输出到 console）。
+// gorm/redis 日志级别为 debug 且输出到 console）。
 //
 // 运行方式：
 //
 //	go test ./pkg/dbclient/ -v -run TestDbcheckVerify
 //
-// 注意：本地需就绪 PostgreSQL(5432)/Redis(6379)/ES(9200)。
+// 注意：本地需就绪 PostgreSQL(5432)/Redis(6379)。
 func TestDbcheckVerify(t *testing.T) {
 	testsetup.Initialize(testsetup.AppNameDemo)
 	defer testsetup.Close(testsetup.AppNameDemo)
@@ -55,17 +55,5 @@ func TestDbcheckVerify(t *testing.T) {
 		}
 		t.Logf("redis set/get => %s", val)
 		dbclient.RedisCli.Del(ctx, "demo:dbcheck")
-	})
-
-	t.Run("Elasticsearch", func(t *testing.T) {
-		if dbclient.DemoES == nil {
-			t.Fatal("DemoES is nil")
-		}
-		res, err := dbclient.DemoES.Info()
-		if err != nil {
-			t.Fatalf("es info failed: %v", err)
-		}
-		defer func() { _ = res.Body.Close() }()
-		t.Logf("es info status => %d", res.StatusCode)
 	})
 }

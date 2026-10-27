@@ -4,5 +4,4 @@ package dtohealth
 type DbCheckResp struct {
 	Postgres string `json:"postgres"` // PostgreSQL 连通性检查结果，连通为 ok，否则为错误信息
 	Redis    string `json:"redis"`    // Redis 连通性检查结果，连通为 ok，否则为错误信息
-	ES       string `json:"es"`       // Elasticsearch 连通性检查结果，连通为 ok，否则为错误信息
 }
