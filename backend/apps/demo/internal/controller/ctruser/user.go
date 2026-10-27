@@ -64,7 +64,7 @@ func (ctr *userCtr) Delete(ctx *gin.Context) {
 		return
 	}
 
-	req.OperatorID = gincontext.GetUserID(ctx)
+	req.Operator.UserID = gincontext.GetUserID(ctx)
 
 	if err := ctr.userSvc.Delete(ctx.Request.Context(), &req); err != nil {
 		gincontext.Fail(ctx, err)

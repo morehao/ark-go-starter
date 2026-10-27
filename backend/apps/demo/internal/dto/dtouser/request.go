@@ -23,6 +23,6 @@ type UserPageListReq struct {
 }
 
 type UserDeleteReq struct {
-	UserID     uint `json:"-" uri:"userID" binding:"required"` // 自增 ID
-	OperatorID uint `json:"-"`                                 // 操作人 ID，由 controller 从登录态填充
+	UserID uint `json:"-" uri:"userID" binding:"required"` // 自增 ID
+	objuser.Operator
 }
