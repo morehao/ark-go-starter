@@ -9,14 +9,19 @@ type UserCreateResp struct {
 	UserID uint `json:"userID"` // 自增 ID
 }
 
+// UserCreateInTxResp 事务创建用户响应。
+type UserCreateInTxResp struct {
+	UserIDs []uint `json:"userIDs"` // 事务内创建成功的用户 ID 列表
+}
+
 type UserDetailResp struct {
-	UserID uint `json:"userID" binding:"required"` // 自增 ID
+	UserID uint `json:"userID"` // 自增 ID
 	objuser.UserBaseInfo
 	gobject.OperatorBaseInfo
 }
 
 type UserPageListItem struct {
-	UserID uint `json:"userID" binding:"required"` // 自增 ID
+	UserID uint `json:"userID"` // 自增 ID
 	objuser.UserBaseInfo
 	gobject.OperatorBaseInfo
 }

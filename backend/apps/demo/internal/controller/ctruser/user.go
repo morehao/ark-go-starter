@@ -10,6 +10,7 @@ import (
 
 type UserCtr interface {
 	Create(ctx *gin.Context)
+	CreateInTx(ctx *gin.Context)
 	Delete(ctx *gin.Context)
 	Update(ctx *gin.Context)
 	Detail(ctx *gin.Context)
@@ -45,6 +46,28 @@ func (ctr *userCtr) Create(ctx *gin.Context) {
 	ginhelper.FillOperator(ctx, &req.Operator)
 
 	res, err := ctr.userSvc.Create(ctx.Request.Context(), &req)
+	if err != nil {
+		gincontext.Fail(ctx, err)
+		return
+	}
+	gincontext.Success(ctx, res)
+}
+
+// CreateInTx 事务示例：同一事务内创建两条用户记录
+// @Tags 用户管理
+// @Summary 事务示例：同一事务内创建两条用户记录
+// @accept application/json
+// @Produce application/json
+// @Param req body dtouser.UserCreateInTxReq true "事务创建请求"
+// @Success 200 {object} gincontext.DtoRender{data=dtouser.UserCreateInTxResp} "{"code": 0, "requestID": "xxx", "data": "ok", "msg": "success"}"
+// @Router /v1/demo/users/tx [post]
+func (ctr *userCtr) CreateInTx(ctx *gin.Context) {
+	var req dtouser.UserCreateInTxReq
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		gincontext.Fail(ctx, err)
+		return
+	}
+	res, err := ctr.userSvc.CreateInTx(ctx.Request.Context(), &req)
 	if err != nil {
 		gincontext.Fail(ctx, err)
 		return

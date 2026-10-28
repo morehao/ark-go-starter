@@ -22,8 +22,16 @@ func registerError(codeMsgMap gerror.CodeMsgMap) {
 	}
 }
 
+// GetError 返回指定错误码对应的业务错误。
+//
+// 传入未注册的错误码时，不返回零值 Error{0, ""}——那会被 gincontext.Fail 当作
+// 「code:0 成功码」静默响应，导致拼错错误码时接口看似成功。这里兜底为系统错误码，
+// 并 panic，让问题在开发/测试阶段立即暴露，而不是上线后静默返回成功。
 func GetError(code int) *gerror.Error {
-	err := errorMap[code]
+	err, ok := errorMap[code]
+	if !ok {
+		panic(fmt.Sprintf("code.GetError: error code %d is not registered", code))
+	}
 	return &err
 }
 
