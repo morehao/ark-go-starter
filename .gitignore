@@ -6,6 +6,7 @@
 .history
 .opencode/*
 .superpowers/
+.dsh/
 
 # 日志
 **/log/

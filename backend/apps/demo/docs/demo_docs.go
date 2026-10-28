@@ -61,6 +61,24 @@ const docTemplatedemo = `{
                 "parameters": [
                     {
                         "type": "integer",
+                        "description": "公司id（可选）",
+                        "name": "companyID",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "部门id（可选）",
+                        "name": "departmentID",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "姓名（可选，精确匹配）",
+                        "name": "name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
                         "description": "页码",
                         "name": "page",
                         "in": "query"
@@ -129,6 +147,51 @@ const docTemplatedemo = `{
                                     "properties": {
                                         "data": {
                                             "$ref": "#/definitions/dtouser.UserCreateResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/demo/users/tx": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "用户管理"
+                ],
+                "summary": "事务示例：同一事务内创建两条用户记录",
+                "parameters": [
+                    {
+                        "description": "事务创建请求",
+                        "name": "req",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtouser.UserCreateInTxReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "{\"code\": 0, \"requestID\": \"xxx\", \"data\": \"ok\", \"msg\": \"success\"}",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/gincontext.DtoRender"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtouser.UserCreateInTxResp"
                                         }
                                     }
                                 }
@@ -287,6 +350,39 @@ const docTemplatedemo = `{
                 }
             }
         },
+        "dtouser.UserCreateInTxReq": {
+            "type": "object",
+            "required": [
+                "firstName",
+                "secondName"
+            ],
+            "properties": {
+                "failAfterFirst": {
+                    "description": "是否在第一条后制造错误以演示回滚",
+                    "type": "boolean"
+                },
+                "firstName": {
+                    "description": "第一条用户姓名（必填）",
+                    "type": "string"
+                },
+                "secondName": {
+                    "description": "第二条用户姓名（必填）",
+                    "type": "string"
+                }
+            }
+        },
+        "dtouser.UserCreateInTxResp": {
+            "type": "object",
+            "properties": {
+                "userIDs": {
+                    "description": "事务内创建成功的用户 ID 列表",
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
         "dtouser.UserCreateReq": {
             "type": "object",
             "properties": {
@@ -315,9 +411,6 @@ const docTemplatedemo = `{
         },
         "dtouser.UserDetailResp": {
             "type": "object",
-            "required": [
-                "userID"
-            ],
             "properties": {
                 "companyID": {
                     "description": "公司id",
@@ -355,9 +448,6 @@ const docTemplatedemo = `{
         },
         "dtouser.UserPageListItem": {
             "type": "object",
-            "required": [
-                "userID"
-            ],
             "properties": {
                 "companyID": {
                     "description": "公司id",
@@ -413,15 +503,15 @@ const docTemplatedemo = `{
             "type": "object",
             "properties": {
                 "companyID": {
-                    "description": "公司id",
+                    "description": "公司id（nil 表示不修改）",
                     "type": "integer"
                 },
                 "departmentID": {
-                    "description": "部门id",
+                    "description": "部门id（nil 表示不修改）",
                     "type": "integer"
                 },
                 "name": {
-                    "description": "姓名",
+                    "description": "姓名（nil 表示不修改）",
                     "type": "string"
                 }
             }

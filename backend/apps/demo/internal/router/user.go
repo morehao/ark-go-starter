@@ -12,6 +12,7 @@ func userRouter(groups *ginserver.RouterGroups) {
 	v1RouterGroup := groups.MustGetGroup(ginserver.ApiVersionV1)
 
 	v1RouterGroup.POST("/users", userCtr.Create)
+	v1RouterGroup.POST("/users/tx", userCtr.CreateInTx)
 	v1RouterGroup.GET("/users", userCtr.PageList)
 	v1RouterGroup.GET("/users/:userID", userCtr.Detail)
 	v1RouterGroup.PUT("/users/:userID", userCtr.Update)

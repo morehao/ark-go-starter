@@ -2,20 +2,24 @@ package svcuser
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/morehao/ark-go-starter/demo/dao"
 	"github.com/morehao/ark-go-starter/demo/internal/dto/dtouser"
 	"github.com/morehao/ark-go-starter/demo/model"
 	"github.com/morehao/ark-go-starter/demo/object/objuser"
 	"github.com/morehao/ark-go-starter/pkg/code"
+	"github.com/morehao/ark-go-starter/pkg/dbclient"
 	"github.com/morehao/golib/biz/gobject"
 	"github.com/morehao/golib/dbaccess/gormdao"
 	"github.com/morehao/golib/glog"
 	"github.com/morehao/golib/gutil"
+	"gorm.io/gorm"
 )
 
 type UserSvc interface {
 	Create(ctx context.Context, req *dtouser.UserCreateReq) (*dtouser.UserCreateResp, error)
+	CreateInTx(ctx context.Context, req *dtouser.UserCreateInTxReq) (*dtouser.UserCreateInTxResp, error)
 	Delete(ctx context.Context, req *dtouser.UserDeleteReq) error
 	Update(ctx context.Context, req *dtouser.UserUpdateReq) error
 	Detail(ctx context.Context, req *dtouser.UserDetailReq) (*dtouser.UserDetailResp, error)
@@ -50,6 +54,45 @@ func (svc *userSvc) Create(ctx context.Context, req *dtouser.UserCreateReq) (*dt
 	}, nil
 }
 
+// CreateInTx 事务示例：在一个事务里创建两条用户记录，任一失败则整体回滚。
+//
+// 关键点（样板示范）：
+//   - 事务入口统一走 dbclient.DemoDB(ctx).Transaction(...)，不要自行 db.Begin()；
+//   - 事务内的 DAO 必须用 dao.NewUserDao().WithTx(tx) 绑定到同一个 tx，
+//     否则 DAO 会走事务外的连接，写入不参与本事务；
+//   - 回调返回非 nil error 即触发回滚，把底层错误原样向上传递（不要吞掉）。
+func (svc *userSvc) CreateInTx(ctx context.Context, req *dtouser.UserCreateInTxReq) (*dtouser.UserCreateInTxResp, error) {
+	resp := &dtouser.UserCreateInTxResp{UserIDs: make([]uint, 0, 2)}
+
+	txErr := dbclient.DemoDB(ctx).Transaction(func(tx *gorm.DB) error {
+		// 事务内 DAO：必须 WithTx 绑定。
+		userDao := dao.NewUserDao().WithTx(tx)
+
+		first := &model.UserEntity{Name: req.FirstName}
+		if err := userDao.Insert(ctx, first); err != nil {
+			return err
+		}
+		resp.UserIDs = append(resp.UserIDs, first.ID)
+
+		// 演示回滚：第一条已写入，这里人为制造错误，验证整体原子性。
+		if req.FailAfterFirst {
+			return fmt.Errorf("demand failure after first insert")
+		}
+
+		second := &model.UserEntity{Name: req.SecondName}
+		if err := userDao.Insert(ctx, second); err != nil {
+			return err
+		}
+		resp.UserIDs = append(resp.UserIDs, second.ID)
+		return nil
+	})
+	if txErr != nil {
+		glog.Errorf(ctx, "[svcuser.UserCreateInTx] Transaction fail, err:%v", txErr)
+		return nil, code.GetError(code.UserCreateError)
+	}
+	return resp, nil
+}
+
 // Delete 删除用户管理
 func (svc *userSvc) Delete(ctx context.Context, req *dtouser.UserDeleteReq) error {
 	userEntity, err := dao.NewUserDao().GetByID(ctx, req.UserID)
@@ -79,11 +122,18 @@ func (svc *userSvc) Update(ctx context.Context, req *dtouser.UserUpdateReq) erro
 		return code.GetError(code.UserNotExistError)
 	}
 
+	// 只写请求显式携带的字段（指针非 nil），避免漏传字段把列清空。
 	updateMap := map[string]any{
-		"company_id":    req.CompanyID,
-		"department_id": req.DepartmentID,
-		"name":          req.Name,
-		"updated_by":    req.Operator.UserID,
+		"updated_by": req.Operator.UserID,
+	}
+	if req.CompanyID != nil {
+		updateMap["company_id"] = *req.CompanyID
+	}
+	if req.DepartmentID != nil {
+		updateMap["department_id"] = *req.DepartmentID
+	}
+	if req.Name != nil {
+		updateMap["name"] = *req.Name
 	}
 	if err := dao.NewUserDao().UpdateMap(ctx, req.UserID, updateMap); err != nil {
 		glog.Errorf(ctx, "[svcuser.UserUpdate] dao UpdateMap fail, err:%v, req:%s", err, gutil.ToJsonString(req))
@@ -125,7 +175,12 @@ func (svc *userSvc) PageList(ctx context.Context, req *dtouser.UserPageListReq) 
 		BaseCond: &gormdao.BaseCond{
 			Page:     req.Page,
 			PageSize: req.PageSize,
+			// 分页必须有稳定排序，否则 offset 翻页可能重复/漏行。
+			OrderField: `"id" DESC`,
 		},
+		CompanyID:    req.CompanyID,
+		DepartmentID: req.DepartmentID,
+		Name:         req.Name,
 	}
 	userEntityList, total, err := dao.NewUserDao().GetPageListByCond(ctx, cond)
 	if err != nil {
