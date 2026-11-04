@@ -10,11 +10,11 @@
   },
   "dependencies": {
     "antd": "^5.21.0",
-    "react": "^18.3.1"
+    "react": "^19.3.1"
   },
   "devDependencies": {
     "@ark-go-starter/tsconfig": "workspace:*",
-    "@types/react": "^18.3.0",
+    "@types/react": "^19.3.0",
     "typescript": "^5.5.0"
   }
 }
