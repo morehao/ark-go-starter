@@ -1,3 +1,8 @@
+//go:build integration
+
+// 依赖本地 PostgreSQL(5432)/Redis(6379)，属集成测试：默认 `go test ./...` 不运行，
+// 需 `go test -tags=integration ./...`。
+
 package dbclient_test
 
 import (

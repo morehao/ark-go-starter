@@ -1,3 +1,8 @@
+//go:build integration
+
+// 依赖本地 PostgreSQL/Redis，属集成测试：默认 `go test ./...` 不运行，
+// 需 `go test -tags=integration ./...`。
+
 package svcuser
 
 import (

@@ -1,3 +1,4 @@
+// Package demo 是示例应用：装配 Gin 引擎、中间件、路由与基础设施。
 package demo
 
 import (
@@ -6,6 +7,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/morehao/ark-go-starter/demo/config"
+
+	// 注册 swag 生成的路由文档：gindocs.Register 依赖其 init 向 swag 注册文档。
 	_ "github.com/morehao/ark-go-starter/demo/docs"
 	"github.com/morehao/ark-go-starter/demo/internal/middleware"
 	"github.com/morehao/ark-go-starter/demo/internal/router"
@@ -15,11 +18,15 @@ import (
 	"github.com/morehao/golib/filestore"
 	"github.com/morehao/golib/glog"
 	"github.com/morehao/golib/storage"
+
+	// 注册 local 存储驱动：storage.New 按 driver 名 "local" 解析，必须 blank import 触发 init。
 	_ "github.com/morehao/golib/storage/driver/local"
 )
 
+// AppName 是 demo 应用名，同时作为路由前缀与日志 service 标识。
 const AppName = "demo"
 
+// Routers 装配 Gin 引擎：注册中间件、路由与文件存储。
 func Routers(engine *gin.Engine) {
 	middlewares := []gin.HandlerFunc{
 		middleware.Example(),

@@ -6,6 +6,8 @@
  * @FilePath: /golib/Users/morehao/Documents/practice/go/go-gin-web/apps/demo/client/httpbingo/httpbingo.go
  * @Description: 这默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
+
+// Package httpbingo 封装对 httpbingo.org 的示例 HTTP 客户端，演示 client 层写法。
 package httpbingo
 
 import (
@@ -17,6 +19,7 @@ import (
 	"github.com/morehao/golib/protocol/ghttp"
 )
 
+// Get 调用 httpbingo.org 的 /get 接口并解析响应。
 func Get(ctx *gin.Context, req *GetRequest) (*GetResponse, error) {
 	cfg := config.Conf
 	var res GetResponse

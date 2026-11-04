@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gorm.io/gorm/schema"
 )
 
@@ -33,9 +34,11 @@ var nonPostgresTypeTokens = []string{
 //
 // 本用例不需要数据库：只读 tag，不做任何连接。
 func TestModelTagsArePostgresCompatible(t *testing.T) {
+	t.Parallel()
+
 	for _, dest := range postgresModels {
 		s, err := schema.Parse(dest, &sync.Map{}, schema.NamingStrategy{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		if err != nil {
 			continue
 		}

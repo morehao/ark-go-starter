@@ -534,7 +534,7 @@ const docTemplatedemo = `{
     }
 }`
 
-// SwaggerInfodemo holds exported Swagger Info so clients can modify it
+// SwaggerInfodemo holds exported Swagger Info so clients can modify it.
 var SwaggerInfodemo = &swag.Spec{
 	Version:          "",
 	Host:             "",

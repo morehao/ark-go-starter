@@ -2,6 +2,7 @@ package code
 
 import "github.com/morehao/golib/gerror"
 
+// 用户管理相关业务错误码。
 const (
 	UserCreateError      = 100500
 	UserDeleteError      = 100501

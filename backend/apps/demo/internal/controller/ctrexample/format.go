@@ -6,6 +6,7 @@ import (
 	"github.com/morehao/golib/biz/gcontext/gincontext"
 )
 
+// FormatCtr 是响应格式化示例控制器接口。
 type FormatCtr interface {
 	FormatResponse(ctx *gin.Context)
 }
@@ -16,6 +17,7 @@ type formatCtr struct {
 
 var _ FormatCtr = (*formatCtr)(nil)
 
+// NewFormatCtr 构造 FormatCtr。
 func NewFormatCtr() FormatCtr {
 	return &formatCtr{
 		exampleSvc: svcexample.NewFormatSvc(),

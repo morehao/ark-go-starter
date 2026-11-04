@@ -1,3 +1,9 @@
+//go:build integration
+
+// 该 e2e 用例依赖本地 PostgreSQL/Redis 与真实 HTTP 栈，属集成测试：
+// 默认 `go test ./...` 不会运行，需显式 `go test -tags=integration ./...`。
+// 未加此 build tag 时，无数据库环境会直接失败，污染单元测试信号。
+
 package ctruser_test
 
 import (
@@ -35,7 +41,7 @@ func configPath(t *testing.T) string {
 	// filename: .../apps/demo/internal/controller/ctruser/user_e2e_test.go
 	// 依次上溯 ctruser → controller → internal → demo，得到 .../apps/demo
 	appDir := filepath.Dir(filename) // .../ctruser
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		appDir = filepath.Dir(appDir) // controller → internal → demo
 	}
 	return filepath.Join(appDir, "config", "config.yaml")

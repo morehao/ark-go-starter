@@ -1,3 +1,4 @@
+// Package code 集中注册业务错误码并统一返回 *gerror.Error。
 package code
 
 import (
@@ -11,7 +12,6 @@ var errorMap = gerror.ErrorMap{}
 
 func registerError(codeMsgMap gerror.CodeMsgMap) {
 	for code, msg := range codeMsgMap {
-
 		if _, ok := errorMap[code]; ok {
 			panic(fmt.Sprintf("error code %d already exists", code))
 		}

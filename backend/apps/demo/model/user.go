@@ -20,12 +20,15 @@ type UserEntity struct {
 	DeletedBy    uint   `gorm:"column:deleted_by;type:bigint;not null;default:0;comment:删除人id"`
 }
 
+// UserEntityList 是 UserEntity 的切片类型。
 type UserEntityList []UserEntity
 
+// TableName 返回用户表的物理表名。
 func (UserEntity) TableName() string {
 	return TableNameUser
 }
 
+// ToMap 把列表转成以主键为 key 的 map。
 func (l UserEntityList) ToMap() map[uint]UserEntity {
 	m := make(map[uint]UserEntity)
 	for _, v := range l {

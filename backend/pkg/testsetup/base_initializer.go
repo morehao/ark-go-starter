@@ -10,6 +10,8 @@ import (
 	"github.com/morehao/golib/dbaccess/dbgorm"
 	"github.com/morehao/golib/dbaccess/dbredis"
 	"github.com/morehao/golib/glog"
+
+	// 注册 zap 日志驱动：glog.InitLogger 按驱动名 "zap" 创建 logger，必须 blank import 触发 init。
 	_ "github.com/morehao/golib/glog/driver/zap"
 	"github.com/morehao/golib/gutil"
 )
@@ -23,6 +25,7 @@ type baseAppInitializer struct {
 	RedisConfig dbredis.RedisConfig
 }
 
+// AppConfig 是测试初始化所需的配置集合。
 type AppConfig struct {
 	Log         map[string]glog.LogConfig `yaml:"log"`
 	DBConfigs   []dbgorm.Config           `yaml:"db_configs"`

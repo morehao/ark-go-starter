@@ -1,3 +1,4 @@
+// Package svchealth 提供健康检查业务逻辑。
 package svchealth
 
 import (
@@ -10,15 +11,16 @@ import (
 	"gorm.io/gorm"
 )
 
+// HealthSvc 是健康检查服务接口。
 type HealthSvc interface {
 	Check(ctx context.Context) *dtohealth.DbCheckResp
 }
 
-type healthSvc struct {
-}
+type healthSvc struct{}
 
 var _ HealthSvc = (*healthSvc)(nil)
 
+// NewHealthSvc 构造 HealthSvc。
 func NewHealthSvc() HealthSvc {
 	return &healthSvc{}
 }

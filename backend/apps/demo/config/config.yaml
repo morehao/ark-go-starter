@@ -60,6 +60,10 @@ db_configs:
   # 目标库为 PostgreSQL（model tag 与 backend/scripts/sql/table_init.sql 都按 PG 写）
   - url: "postgres://postgres:123456@127.0.0.1:5432/demo?sslmode=disable&TimeZone=Asia/Shanghai"
     service: demo
+    # 连接池：显式配置，避免默认无上限导致连接耗尽（golib dbgorm 按 >0 才下发）。
+    max_idle_conns: 10
+    max_open_conns: 100
+    conn_max_lifetime: 1h
 
 redis_config:
   service: demo

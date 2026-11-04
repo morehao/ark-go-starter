@@ -2,24 +2,26 @@ package code
 
 import "github.com/morehao/golib/gerror"
 
+// API 密钥相关业务错误码。
 const (
-	ApiKeyCreateError      = 101101
-	ApiKeyDeleteError      = 101102
-	ApiKeyUpdateError      = 101103
-	ApiKeyGetPageListError = 101104
-	ApiKeyNotExistError    = 101105
-	ApiKeyInvalidError     = 101106
-	ApiKeyExpiredError      = 101107
-	ApiKeyDisabledError    = 101108
+	APIKeyCreateError      = 101101
+	APIKeyDeleteError      = 101102
+	APIKeyUpdateError      = 101103
+	APIKeyGetPageListError = 101104
+	APIKeyNotExistError    = 101105
+	APIKeyInvalidError     = 101106
+	APIKeyExpiredError     = 101107
+	APIKeyDisabledError    = 101108
 )
 
+//nolint:gosec // 错误码文案映射，非凭据。
 var apiKeyErrorMsgMap = gerror.CodeMsgMap{
-	ApiKeyCreateError:      "创建API密钥失败",
-	ApiKeyDeleteError:      "删除API密钥失败",
-	ApiKeyUpdateError:      "更新API密钥失败",
-	ApiKeyGetPageListError: "获取API密钥列表失败",
-	ApiKeyNotExistError:    "API密钥不存在",
-	ApiKeyInvalidError:     "API密钥无效",
-	ApiKeyExpiredError:     "API密钥已过期",
-	ApiKeyDisabledError:    "API密钥已被禁用",
+	APIKeyCreateError:      "创建API密钥失败",
+	APIKeyDeleteError:      "删除API密钥失败",
+	APIKeyUpdateError:      "更新API密钥失败",
+	APIKeyGetPageListError: "获取API密钥列表失败",
+	APIKeyNotExistError:    "API密钥不存在",
+	APIKeyInvalidError:     "API密钥无效",
+	APIKeyExpiredError:     "API密钥已过期",
+	APIKeyDisabledError:    "API密钥已被禁用",
 }

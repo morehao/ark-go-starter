@@ -1,3 +1,4 @@
+// Package middleware 提供 Gin 中间件，含演示用身份注入。
 package middleware
 
 import (
