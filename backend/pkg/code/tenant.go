@@ -2,6 +2,7 @@ package code
 
 import "github.com/morehao/golib/gerror"
 
+// 租户管理相关业务错误码。
 const (
 	TenantCreateError         = 100200
 	TenantDeleteError         = 100201

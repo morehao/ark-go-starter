@@ -2,10 +2,11 @@ package code
 
 import "github.com/morehao/golib/gerror"
 
+// 组织管理相关业务错误码。
 const (
-	OrganizationCreateError       = 100110
-	OrganizationDeleteError       = 100111
-	OrganizationUpdateError       = 100112
+	OrganizationCreateError        = 100110
+	OrganizationDeleteError        = 100111
+	OrganizationUpdateError        = 100112
 	OrganizationGetDetailError     = 100113
 	OrganizationGetPageListError   = 100114
 	OrganizationNotExistError      = 100115
@@ -15,17 +16,18 @@ const (
 )
 
 var organizationErrorMsgMap = gerror.CodeMsgMap{
-	OrganizationCreateError:       "创建组织管理失败",
-	OrganizationDeleteError:       "删除组织管理失败",
-	OrganizationUpdateError:       "修改组织管理失败",
-	OrganizationGetDetailError:    "查看组织管理详情失败",
-	OrganizationGetPageListError:  "查看组织管理列表失败",
-	OrganizationNotExistError:     "组织管理不存在",
+	OrganizationCreateError:        "创建组织管理失败",
+	OrganizationDeleteError:        "删除组织管理失败",
+	OrganizationUpdateError:        "修改组织管理失败",
+	OrganizationGetDetailError:     "查看组织管理详情失败",
+	OrganizationGetPageListError:   "查看组织管理列表失败",
+	OrganizationNotExistError:      "组织管理不存在",
 	OrganizationCodeDuplicateError: "组织编码已存在",
 	OrganizationConfigError:        "组织配置错误",
 	ErrInvalidParam:                "参数错误",
 }
 
+// 部门管理相关业务错误码。
 const (
 	DepartmentCreateError      = 100400
 	DepartmentDeleteError      = 100401

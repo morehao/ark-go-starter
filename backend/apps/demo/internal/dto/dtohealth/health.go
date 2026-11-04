@@ -1,3 +1,4 @@
+// Package dtohealth 定义健康检查接口的响应 DTO。
 package dtohealth
 
 // DbCheckResp 数据源连通性检查响应

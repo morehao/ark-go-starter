@@ -1,3 +1,4 @@
+// Package svcexample 是示例服务层：演示响应格式化等能力。
 package svcexample
 
 import (
@@ -6,20 +7,21 @@ import (
 	"github.com/morehao/ark-go-starter/demo/internal/dto/dtoexample"
 )
 
+// FormatSvc 是响应格式化示例服务接口。
 type FormatSvc interface {
 	FormatResponse(ctx context.Context) *dtoexample.FormatResponseResp
 }
 
 var _ FormatSvc = (*formatSvc)(nil)
 
-type formatSvc struct {
-}
+type formatSvc struct{}
 
+// NewFormatSvc 构造 FormatSvc。
 func NewFormatSvc() FormatSvc {
 	return &formatSvc{}
 }
 
-func (svc *formatSvc) FormatResponse(ctx context.Context) *dtoexample.FormatResponseResp {
+func (svc *formatSvc) FormatResponse(_ context.Context) *dtoexample.FormatResponseResp {
 	pricePtr := 1.22245
 	return &dtoexample.FormatResponseResp{
 		Items: []dtoexample.FormatDataItem{
@@ -42,7 +44,7 @@ func (svc *formatSvc) FormatResponse(ctx context.Context) *dtoexample.FormatResp
 			},
 		},
 		NameMap: map[string][]string{
-			"a": []string{},
+			"a": {},
 		},
 		PriceList: []float64{1.22245, 1.22255},
 		PriceMap: map[string]float64{
@@ -51,7 +53,7 @@ func (svc *formatSvc) FormatResponse(ctx context.Context) *dtoexample.FormatResp
 		PricePtr:   &pricePtr,
 		AnyVal:     &dtoexample.FormatDataItem{Price: 1.22245, PriceList: []float64{1.22245}},
 		AnyMap:     map[string]any{"k": &dtoexample.FormatDataItem{Price: 1.22245}},
-		PtrItemMap: map[string]*dtoexample.FormatDataItem{"k": &dtoexample.FormatDataItem{Price: 1.22245}},
+		PtrItemMap: map[string]*dtoexample.FormatDataItem{"k": {Price: 1.22245}},
 		NilSlice:   nil,
 		NilMap:     nil,
 		NoTagPrice: 1.22245,

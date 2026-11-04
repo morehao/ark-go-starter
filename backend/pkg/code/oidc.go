@@ -2,6 +2,7 @@ package code
 
 import "github.com/morehao/golib/gerror"
 
+// OIDC 协议相关业务错误码。
 const (
 	OIDCClientIDRequiredError     = 101200
 	OIDCClientInvalidError        = 101201
@@ -10,7 +11,7 @@ const (
 	OIDCInvalidScopeError         = 101204
 	OIDCInvalidStateError         = 101205
 	OIDCInvalidPKCEError          = 101206
-	OIDCInvalidCodeVerifierError   = 101207
+	OIDCInvalidCodeVerifierError  = 101207
 	OIDCInvalidAuthCodeError      = 101208
 	OIDCAuthCodeExpiredError      = 101209
 	OIDCAuthCodeUsedError         = 101210
@@ -22,6 +23,7 @@ const (
 	OIDCInvalidClientError        = 101216
 )
 
+//nolint:gosec // 错误码文案映射，非凭据。
 var oidcErrorMsgMap = gerror.CodeMsgMap{
 	OIDCClientIDRequiredError:     "client_id is required",
 	OIDCClientInvalidError:        "invalid client_id",

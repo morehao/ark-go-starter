@@ -2,6 +2,7 @@ package code
 
 import "github.com/morehao/golib/gerror"
 
+// 应用相关业务错误码。
 const (
 	ApplicationCreateError      = 100100
 	ApplicationDeleteError      = 100101

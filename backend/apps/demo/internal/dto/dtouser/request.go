@@ -1,3 +1,4 @@
+// Package dtouser 定义用户管理接口的请求与响应 DTO。
 package dtouser
 
 import (
@@ -6,6 +7,7 @@ import (
 	"github.com/morehao/golib/biz/gobject"
 )
 
+// UserCreateReq 是创建用户的请求。
 type UserCreateReq struct {
 	objuser.UserBaseInfo
 	operator.Operator
@@ -36,6 +38,7 @@ type UserUpdateReq struct {
 	operator.Operator
 }
 
+// UserDetailReq 是查询用户详情的请求。
 type UserDetailReq struct {
 	UserID uint `json:"-" uri:"userID" binding:"required"` // 自增 ID
 }
@@ -50,6 +53,7 @@ type UserPageListReq struct {
 	Name         string `json:"name" form:"name"`                 // 姓名（可选，精确匹配）
 }
 
+// UserDeleteReq 是删除用户的请求。
 type UserDeleteReq struct {
 	UserID uint `json:"-" uri:"userID" binding:"required"` // 自增 ID
 	operator.Operator

@@ -7,15 +7,16 @@ import (
 	"github.com/morehao/golib/glog"
 )
 
+// ClientCtr 是外部 client 调用示例控制器接口。
 type ClientCtr interface {
 	CallGetHttpbingo(ctx *gin.Context)
 }
 
-type clientCtr struct {
-}
+type clientCtr struct{}
 
 var _ ClientCtr = (*clientCtr)(nil)
 
+// NewClientCtr 构造 ClientCtr。
 func NewClientCtr() ClientCtr {
 	return &clientCtr{}
 }

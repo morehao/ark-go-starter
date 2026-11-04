@@ -1,3 +1,4 @@
+// Package model 定义数据库实体与表名常量，字段类型统一按 PostgreSQL 声明。
 package model
 
 // 数据表名常量。

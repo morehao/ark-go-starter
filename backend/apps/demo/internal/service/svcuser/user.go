@@ -1,8 +1,9 @@
+// Package svcuser 是用户管理服务层：承载业务规则、事务与错误转换。
 package svcuser
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
 	"github.com/morehao/ark-go-starter/demo/dao"
 	"github.com/morehao/ark-go-starter/demo/internal/dto/dtouser"
@@ -17,6 +18,7 @@ import (
 	"gorm.io/gorm"
 )
 
+// UserSvc 是用户管理服务接口。
 type UserSvc interface {
 	Create(ctx context.Context, req *dtouser.UserCreateReq) (*dtouser.UserCreateResp, error)
 	CreateInTx(ctx context.Context, req *dtouser.UserCreateInTxReq) (*dtouser.UserCreateInTxResp, error)
@@ -26,11 +28,11 @@ type UserSvc interface {
 	PageList(ctx context.Context, req *dtouser.UserPageListReq) (*dtouser.UserPageListResp, error)
 }
 
-type userSvc struct {
-}
+type userSvc struct{}
 
 var _ UserSvc = (*userSvc)(nil)
 
+// NewUserSvc 构造 UserSvc。
 func NewUserSvc() UserSvc {
 	return &userSvc{}
 }
@@ -41,8 +43,8 @@ func (svc *userSvc) Create(ctx context.Context, req *dtouser.UserCreateReq) (*dt
 		CompanyID:    req.CompanyID,
 		DepartmentID: req.DepartmentID,
 		Name:         req.Name,
-		CreatedBy:    req.Operator.UserID,
-		UpdatedBy:    req.Operator.UserID,
+		CreatedBy:    req.UserID,
+		UpdatedBy:    req.UserID,
 	}
 
 	if err := dao.NewUserDao().Insert(ctx, insertEntity); err != nil {
@@ -76,7 +78,7 @@ func (svc *userSvc) CreateInTx(ctx context.Context, req *dtouser.UserCreateInTxR
 
 		// 演示回滚：第一条已写入，这里人为制造错误，验证整体原子性。
 		if req.FailAfterFirst {
-			return fmt.Errorf("demand failure after first insert")
+			return errors.New("demand failure after first insert")
 		}
 
 		second := &model.UserEntity{Name: req.SecondName}

@@ -1,3 +1,8 @@
+//go:build integration
+
+// 依赖 testsetup 初始化环境并访问外部 HTTP 服务，属集成测试：
+// 默认 `go test ./...` 不运行，需 `go test -tags=integration ./...`。
+
 package httpbingo
 
 import (

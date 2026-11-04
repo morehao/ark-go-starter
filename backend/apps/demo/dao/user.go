@@ -1,3 +1,4 @@
+// Package dao 是数据访问层：封装 GORM 查询条件与 DAO 构造。
 package dao
 
 import (
@@ -8,6 +9,7 @@ import (
 	"gorm.io/gorm/clause"
 )
 
+// UserCond 是用户列表的查询条件。
 type UserCond struct {
 	*gormdao.BaseCond
 	CompanyID    uint
@@ -18,6 +20,7 @@ type UserCond struct {
 	DeletedBy    uint
 }
 
+// BuildCondition 把非零字段拼成 GORM 查询条件。
 func (c *UserCond) BuildCondition(db *gorm.DB, tableName string) {
 	if c.BaseCond != nil {
 		c.BaseCond.BuildCondition(db, tableName)
@@ -42,6 +45,7 @@ func (c *UserCond) BuildCondition(db *gorm.DB, tableName string) {
 	}
 }
 
+// UserDao 是用户表的数据访问对象。
 type UserDao struct {
 	*gormdao.Dao[model.UserEntity, model.UserEntityList, uint]
 }

@@ -1,0 +1,151 @@
+# golangci-lint 配置（v2 schema）—— 本文件是 lint 的唯一事实源。
+#
+# 基础取自 samber/cc-skills-golang 的 golang-lint skill 推荐集，按本项目情况裁剪：
+#   - 需要 golangci-lint v2（`go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest`）；
+#   - 本项目注释以中文为主，godot / misspell / dupword 对中文效果有限（不会误报，但覆盖不到中文），保留它们的英文能力；
+#   - testutils / examples 目录排除，generated 文件宽松处理。
+#
+# 本地/CI 运行：`golangci-lint run ./...`（在 backend 的各 workspace 模块目录下执行，见 Makefile 的 lint 目标）。
+version: "2"
+
+run:
+  concurrency: 4
+  timeout: 5m
+  tests: true
+
+issues:
+  max-issues-per-linter: 0 # 0 = 不限制，暴露全部问题
+  max-same-issues: 50
+
+linters:
+  enable:
+    # correctness
+    - govet # copylocks、printf 格式、struct tag、unreachable
+    - staticcheck # 广泛静态分析：废弃 API、常见错误、可简化写法
+    - unused # 未使用的变量、函数、类型
+    - errcheck # 未检查的错误返回与类型断言
+    - errorlint # errors.Is/As 与 %w 的正确使用
+    - nilerr # err 非 nil 却返回 nil error
+    - forcetypeassert # 无 comma-ok 的类型断言
+    - copyloopvar # 循环变量拷贝问题（Go 1.22+）
+    - durationcheck # time.Duration * time.Duration 误用
+    - reassign # 包级变量重赋值
+    # style
+    - gocritic # 有主见风格：多余转换、range 拷贝、冗余代码
+    - revive # 命名、导出类型、包名重复
+    - whitespace # 行尾空白、多余空行
+    - misspell # 标识符/注释中的常见英文拼写错误
+    - dupword # 注释/字符串中的重复词
+    - predeclared # 遮蔽 Go 内置（len、cap、error）
+    - errname # 错误类型/变量命名（ErrFoo、FooError）
+    - asciicheck # 非 ASCII 标识符（防同形字攻击）
+    # complexity
+    - gocyclo # 圈复杂度阈值
+    - nestif # 过深嵌套
+    - funlen # 函数长度限制
+    # performance
+    - perfsprint # fmt.Sprintf 的更快替代
+    - unconvert # 不必要的类型转换
+    - ineffassign # 赋值后从未读取
+    - goconst # 重复字面量应提成常量
+    # security & resources
+    - gosec # SQL 注入、硬编码凭据、弱加密、路径穿越
+    - bidichk # 危险的双向 Unicode（trojan source CVE-2021-42574）
+    - bodyclose # 未关闭的 HTTP 响应体
+    - noctx # HTTP 请求缺少 context
+    - containedctx # context 存进结构体字段
+    - fatcontext # 循环里的 context.WithValue/WithCancel
+    - sqlclosecheck # 未关闭的 sql.Rows/Stmt
+    - rowserrcheck # 迭代后未检查 sql.Rows.Err()
+    # logging
+    - sloglint # log/slog 一致的代码风格
+    - loggercheck # 结构化 logger 的键值对校验
+    # testing
+    - testifylint # testify 最佳实践
+    - thelper # 测试辅助函数缺 t.Helper()
+    - usetesting # 测试中用 t.Setenv/t.TempDir 替代 os 等价物
+    # modernization & meta
+    - modernize # 旧模式可替换为更新的 Go 特性
+    - exptostd # 用 stdlib 替代 golang.org/x/exp
+    - intrange # range over int 替代 C 风格循环
+    - usestdlibvars # 用 stdlib 常量替代硬编码值
+    - exhaustive # switch 未覆盖全部枚举值
+    - nolintlint # 强制正确的 //nolint 用法
+
+  disable:
+    - godot # 本项目注释以中文为主，godot 只认 ASCII 句号，会把「示例」改成「示例.」，不符合中文排版
+    - lll # 行长度交给格式化工具
+    - prealloc # 误报率高，性能剖析后再开
+    - wrapcheck # 强制包装所有外部错误，噪音过大
+    - err113 # 强制包级 sentinel error，过于教条
+    - mnd # 魔法数字检测极其噪音
+    - iface # 接口污染检测，尚不成熟
+    - nakedret # 裸返回，与 funlen 重叠（短函数无所谓）
+    - noinlineerr # 禁止 if err := ...; err != nil，这是惯用写法
+    - gocognit # 与 gocyclo + nestif 冗余
+    - cyclop # 与 gocyclo 冗余
+    - depguard # 需要逐项目配置 import 白/黑名单
+    - goheader # 文件头强制，项目特定策略
+    - importas # import 别名强制，需要逐项目配置
+    - funcorder # 函数排序，过于教条
+    - godoclint # 与 godot / revive 重叠
+    - varnamelen # 变量名长度，Go 偏好短名
+    - exhaustruct # 结构体字段必须全部赋值，破坏零值惯用
+    - gochecknoglobals # 全局变量，太多合法用法
+    - gochecknoinits # init()，太多合法用法
+    - unparam # 接口场景误报率高
+    - makezero # make([]T, n) 噪音大
+    - testpackage # 强制 _test 包，过于教条
+    - embeddedstructfieldcheck # 嵌入类型位置，次要风格
+    - iotamixing # iota 混用，极罕见
+    - unqueryvet # SELECT * 检测，太小众
+    - recvcheck # 与 gocritic 重叠
+    - mirror # bytes/strings mirror，几乎无命中
+    - protogetter # 仅 protobuf 用户
+    - spancheck # 仅 OTel 用户（本项目有 OTel，如需可单独开启）
+    - zerologlint # 本项目用 zap/glog，非 zerolog
+
+  exclusions:
+    paths:
+      - vendor$
+      - third_party$
+      - testutils$
+      - examples$
+
+  settings:
+    errcheck:
+      check-type-assertions: true
+    funlen:
+      lines: 120
+      statements: 80
+    goconst:
+      min-len: 3
+      min-occurrences: 4
+    gocyclo:
+      min-complexity: 15 # 略放宽（推荐集为 13），避免误伤 handler/service 分支
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+    modernize:
+      # embedlit 建议「嵌入字段的复合字面量省略类型」，但 Go 1.27 编译器
+      # 报 `missing type in composite literal`，建议无法落地，故禁用该 analyzer。
+      disable:
+        - embedlit
+
+formatters:
+  # 只启用列出的格式化器
+  enable:
+    - gofumpt # gofmt 超集
+    - goimports # import 管理
+  settings:
+    gofumpt:
+      # v2 起 extra-rules 拆成下面两项（原 extra-rules 已弃用）
+      extra:
+        group-params: true
+        clothe-returns: false
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

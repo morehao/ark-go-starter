@@ -6,10 +6,10 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-var (
-	RedisCli *redis.Client
-)
+// RedisCli 是全局 Redis 客户端。
+var RedisCli *redis.Client
 
+// InitRedis 初始化 Redis 客户端。
 func InitRedis(config dbredis.RedisConfig, logConfig *glog.LogConfig) error {
 	var opts []dbredis.Option
 	if logConfig != nil {

@@ -1,3 +1,4 @@
+// Package ctrhealth 是健康检查控制器。
 package ctrhealth
 
 import (
@@ -6,6 +7,7 @@ import (
 	"github.com/morehao/golib/biz/gcontext/gincontext"
 )
 
+// HealthCtr 是健康检查控制器接口。
 type HealthCtr interface {
 	Check(ctx *gin.Context)
 }
@@ -16,6 +18,7 @@ type healthCtr struct {
 
 var _ HealthCtr = (*healthCtr)(nil)
 
+// NewHealthCtr 构造 HealthCtr。
 func NewHealthCtr() HealthCtr {
 	return &healthCtr{
 		healthSvc: svchealth.NewHealthSvc(),
@@ -27,7 +30,7 @@ func NewHealthCtr() HealthCtr {
 // @Summary 健康检查
 // @Produce application/json
 // @Success 200 {object} gincontext.DtoRender{data=dtohealth.DbCheckResp} "{"code": 0,"data": "ok","msg": "success"}"
-// @Router /v1/demo/health [get]
+// @Router /v1/demo/health [get].
 func (ctr *healthCtr) Check(ctx *gin.Context) {
 	gincontext.Success(ctx, ctr.healthSvc.Check(ctx.Request.Context()))
 }

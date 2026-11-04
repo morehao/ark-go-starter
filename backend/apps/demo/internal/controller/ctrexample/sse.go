@@ -1,3 +1,4 @@
+// Package ctrexample 是示例控制器：演示 SSE、响应格式化与外部 client 调用。
 package ctrexample
 
 import (
@@ -9,6 +10,7 @@ import (
 	"github.com/morehao/golib/glog"
 )
 
+// SSECtr 是 SSE 流式推送示例控制器接口。
 type SSECtr interface {
 	Time(ctx *gin.Context)
 	TimeRaw(ctx *gin.Context)
@@ -17,11 +19,11 @@ type SSECtr interface {
 	Raw(ctx *gin.Context)
 }
 
-type sseCtr struct {
-}
+type sseCtr struct{}
 
 var _ SSECtr = (*sseCtr)(nil)
 
+// NewSSECtr 构造 SSECtr。
 func NewSSECtr() SSECtr {
 	return &sseCtr{}
 }
@@ -81,18 +83,17 @@ func (ctr *sseCtr) Process(ctx *gin.Context) {
 
 	progress := 0
 
-	clientGone := ctx.Stream(func(w io.Writer) bool {
+	clientGone := ctx.Stream(func(_ io.Writer) bool {
 		if progress <= 100 {
 			// 发送进度更新
 			ctx.SSEvent("progress", fmt.Sprintf(`{"progress": %d, "message": "Processing... %d%%"}`, progress, progress))
 			progress += 10
 			time.Sleep(500 * time.Millisecond)
 			return true
-		} else {
-			// 完成时发送完成事件
-			ctx.SSEvent("complete", `{"progress": 100, "message": "Task completed!"}`)
-			return false
 		}
+		// 完成时发送完成事件
+		ctx.SSEvent("complete", `{"progress": 100, "message": "Task completed!"}`)
+		return false
 	})
 	if clientGone {
 		glog.Infof(ctx, "[sseCtr.Process] Client disconnected during streaming")
@@ -120,9 +121,8 @@ func (ctr *sseCtr) Chat(ctx *gin.Context) {
 
 	messageIndex := 0
 
-	clientGone := ctx.Stream(func(w io.Writer) bool {
+	clientGone := ctx.Stream(func(_ io.Writer) bool {
 		if messageIndex < len(messages) {
-
 			dataMsg := fmt.Sprintf(`{"id": %d, "text": "%s", "timestamp": "%s"}`,
 				messageIndex+1,
 				messages[messageIndex],
@@ -132,11 +132,10 @@ func (ctr *sseCtr) Chat(ctx *gin.Context) {
 			messageIndex++
 			time.Sleep(2 * time.Second)
 			return true
-		} else {
-			// 所有消息发送完毕
-			ctx.SSEvent("end", `{"message": "Conversation ended"}`)
-			return false
 		}
+		// 所有消息发送完毕
+		ctx.SSEvent("end", `{"message": "Conversation ended"}`)
+		return false
 	})
 	if clientGone {
 		glog.Infof(ctx, "[sseCtr.Chat] Client disconnected during streaming")
@@ -154,9 +153,8 @@ func (ctr *sseCtr) Raw(ctx *gin.Context) {
 
 	counter := 0
 
-	clientGone := ctx.Stream(func(w io.Writer) bool {
+	clientGone := ctx.Stream(func(_ io.Writer) bool {
 		if counter < 10 {
-
 			dataMsg := fmt.Sprintf(`{"count": %d, "message": "This is event #%d"}`, counter, counter)
 
 			ctx.SSEvent("message", dataMsg)

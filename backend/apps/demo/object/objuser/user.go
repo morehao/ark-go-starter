@@ -1,3 +1,4 @@
+// Package objuser 定义用户相关的领域对象，供 DTO 组合复用。
 package objuser
 
 // UserBaseInfo 用户基础信息（创建、详情、列表共用）。

@@ -1,3 +1,4 @@
+// Package config 定义应用配置结构并负责从 YAML 加载配置。
 package config
 
 import (
@@ -14,8 +15,10 @@ import (
 	"github.com/morehao/golib/storage"
 )
 
+// Conf 是进程级配置单例，由 LoadConfig/InitConf 填充。
 var Conf *Config
 
+// Config 是应用的全部配置项。
 type Config struct {
 	Server      Server                    `yaml:"server"`
 	Log         map[string]glog.LogConfig `yaml:"log"`
@@ -26,30 +29,32 @@ type Config struct {
 	FileStorage FileStorage               `yaml:"file_storage"`
 }
 
+// Server 是 HTTP 服务配置。
 type Server struct {
 	Name string `yaml:"name"` // 服务名称
 	Port string `yaml:"port"` // 服务端口
 	Env  string `yaml:"env"`  // 环境变量
 }
 
+// Client 是外部 HTTP 客户端配置。
 type Client struct {
 	HTTPBingo *ghttp.Client `yaml:"httpbingo"`
 }
 
 // FileStorage 文件上传存储配置（对应 golib ginupload / filestore）。
 type FileStorage struct {
-	Driver   storage.DriverType `yaml:"driver"`   // 存储驱动类型
-	Bucket   string             `yaml:"bucket"`   // 存储桶
-	Storage  storage.Config     `yaml:"storage"`  // 驱动通用配置
+	Driver  storage.DriverType `yaml:"driver"`  // 存储驱动类型
+	Bucket  string             `yaml:"bucket"`  // 存储桶
+	Storage storage.Config     `yaml:"storage"` // 驱动通用配置
 }
 
-// InitConf 初始化配置（运行时使用，自动查找配置文件）
+// InitConf 初始化配置（运行时使用，自动查找配置文件）.
 func InitConf() {
 	configPath := getConfigPath()
 	LoadConfig(configPath)
 }
 
-// LoadConfig 从指定路径加载配置并设置全局变量（测试环境可直接使用）
+// LoadConfig 从指定路径加载配置并设置全局变量（测试环境可直接使用）.
 func LoadConfig(configPath string) {
 	fmt.Println("Load config file:", configPath)
 

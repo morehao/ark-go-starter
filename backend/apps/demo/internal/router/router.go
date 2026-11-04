@@ -1,3 +1,4 @@
+// Package router 负责注册各业务路由到 Gin 路由分组。
 package router
 
 import (
@@ -6,7 +7,8 @@ import (
 	"github.com/morehao/golib/filestore"
 )
 
-func RegisterRouter(groups *ginserver.RouterGroups, appName string) {
+// RegisterRouter 注册全部业务路由到 v1 分组。
+func RegisterRouter(groups *ginserver.RouterGroups, _ string) {
 	formatRouter(groups)
 	sseRouter(groups)
 	clientRouter(groups)

@@ -2,6 +2,7 @@ package code
 
 import "github.com/morehao/golib/gerror"
 
+// 菜单管理相关业务错误码。
 const (
 	MenuCreateError      = 100600
 	MenuDeleteError      = 100601
@@ -20,6 +21,7 @@ var menuErrorMsgMap = gerror.CodeMsgMap{
 	MenuNotExistError:    "菜单管理不存在",
 }
 
+// 角色管理相关业务错误码。
 const (
 	RoleCreateError      = 100700
 	RoleDeleteError      = 100701

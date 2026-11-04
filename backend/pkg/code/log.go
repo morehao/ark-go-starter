@@ -2,6 +2,7 @@ package code
 
 import "github.com/morehao/golib/gerror"
 
+// 操作日志与登录日志相关业务错误码。
 const (
 	OperationLogCreateError      = 101001
 	OperationLogGetPageListError = 101002

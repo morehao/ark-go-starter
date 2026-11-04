@@ -35,6 +35,7 @@ type SSEMessage struct {
 	Data  string `json:"data"`  // 数据体
 }
 
+// Format 返回 SSE 消息的序列化结果。
 func (msg SSEMessage) Format() string {
 	result := ""
 	if msg.ID != "" {

@@ -31,7 +31,7 @@ PORT              = 8099
 # ============================================================
 # 伪目标
 # ============================================================
-.PHONY: all build build-env clean run lint test swag codegen \
+.PHONY: all build build-env clean run lint test test-integration swag codegen \
         docker-build docker-run check-image \
         list-apps deps tidy update-dep \
         dev-all dev-frontend stop-frontend help
@@ -102,12 +102,19 @@ run:
 	@cd backend && go work sync
 	@cd backend/apps/$(APP)/cmd && go run .
 
-# 运行单元测试
+# 运行单元测试（pkg 公共层 + 指定应用；不含 //go:build integration 的用例）
 test:
 	$(call validate_app)
 	@echo "🧪 正在运行测试..."
 	@cd backend && go work sync
-	@cd backend && go test ./apps/$(APP)/... -v
+	@cd backend && go test ./pkg/... ./apps/$(APP)/... -v
+
+# 运行集成测试（需本地 PostgreSQL(5432)/Redis(6379) 就绪）
+test-integration:
+	$(call validate_app)
+	@echo "🔗 正在运行集成测试..."
+	@cd backend && go work sync
+	@cd backend && go test -tags=integration ./pkg/... ./apps/$(APP)/... -v
 
 # ============================================================
 # 依赖管理
@@ -301,7 +308,8 @@ help:
 	@echo "    make all       APP=<名称>              clean → deps → build → run"
 	@echo ""
 	@echo "  测试 & 检查"
-	@echo "    make test      APP=<名称>              运行单元测试"
+	@echo "    make test      APP=<名称>              运行单元测试（pkg + 指定应用）"
+	@echo "    make test-integration APP=<名称>     运行集成测试（需 PG/Redis）"
 	@echo "    make lint                              运行 golangci-lint"
 	@echo ""
 	@echo "  依赖管理"

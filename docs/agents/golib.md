@@ -13,7 +13,7 @@
 | 包 | 能力 | 关键 API |
 |----|------|----------|
 | `pkg/code` | 业务错误码（基于 golib `gerror`） | `code.GetError(code.XXXError)`；每类资源一个文件（`user.go`、`org.go`…） |
-| `pkg/dbclient` | PostgreSQL / Redis / ES 连接管理（基于 `dbgorm`/`dbredis`/`dbes`） | `dbclient.DemoDB(ctx)`、`dbclient.RedisCli`、`dbclient.DemoES`、`Transaction(func(tx *gorm.DB) error)` |
+| `pkg/dbclient` | PostgreSQL / Redis 连接管理（基于 `dbgorm`/`dbredis`） | `dbclient.DemoDB(ctx)`、`dbclient.GetDB(ctx, name)`、`dbclient.RedisCli`、`dbclient.DemoDB(ctx).Transaction(func(tx *gorm.DB) error)` |
 | `pkg/token` | Token 处理 | 见包内实现 |
 | `pkg/testsetup` | 测试环境初始化（基于 golib `testkit`） | `Initialize/Close`、`NewContext(WithUserID…)`，详见 [pkg/testsetup/README.md](../../backend/pkg/testsetup/README.md) |
 
@@ -28,7 +28,7 @@
 | `dbaccess/dbgorm` | ✅ | GORM MySQL/PostgreSQL 客户端 | 驱动子包需 blank import：`dbgorm/driver/postgres` |
 | `dbaccess/gormdao` | ✅ | 泛型 DAO（原 `genericdao`） | `gormdao.NewDao[T,L](table, name, getDB)`，见 [变动汇总](../golib-变动汇总.md) |
 | `dbaccess/dbredis` | ✅ | Redis 客户端 | |
-| `dbaccess/dbes` | ✅ | Elasticsearch 客户端 | |
+| `dbaccess/dbes` | ⬜ | Elasticsearch 客户端 | 本项目已移除 ES 集成（无 DDL、无健康检查项），需要时再引入 |
 | `glog` | ✅ | 日志（zap 默认 / slog 双驱动） | 驱动需 blank import `glog/driver/zap`；配置格式见变动汇总 |
 | `gtrace/otel` | ✅ | OpenTelemetry 链路初始化 | OTLP gRPC 导出，`otlptracegrpc` 子包 |
 | `gerror` + `gconstant` | ✅ | 业务错误码封装 | 错误码 Map 已迁至顶层 `gconstant` |

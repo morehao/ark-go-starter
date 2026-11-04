@@ -1,6 +1,8 @@
 package ginhelper_test
 
 import (
+	"context"
+	"net/http"
 	"net/http/httptest"
 	"testing"
 
@@ -14,7 +16,7 @@ import (
 // newCtxWithIdentity 构造一个已写入身份 gin Keys 的上下文。
 func newCtxWithIdentity(keys map[string]string) *gin.Context {
 	ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
-	ctx.Request = httptest.NewRequest("GET", "/", nil)
+	ctx.Request = httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/", nil)
 	for k, v := range keys {
 		ctx.Set(k, v)
 	}
@@ -25,6 +27,8 @@ func newCtxWithIdentity(keys map[string]string) *gin.Context {
 //
 // 漏字段不会有编译错误，只会让审计列/归属判断静默拿到零值，因此逐个断言。
 func TestFillOperatorCopiesIdentity(t *testing.T) {
+	t.Parallel()
+
 	ctx := newCtxWithIdentity(map[string]string{
 		gcontext.KeyUserID:   "8001",
 		gcontext.KeyPersonID: "7201",

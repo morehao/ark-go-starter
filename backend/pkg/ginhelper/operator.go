@@ -1,3 +1,4 @@
+// Package ginhelper 提供 Gin 上下文相关的辅助函数，如填充操作人身份。
 package ginhelper
 
 import (
