@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@ark-go-starter/types": "workspace:*",
-    "axios": "^1.7.0"
+    "axios": "^1.21.0"
   },
   "devDependencies": {
     "@ark-go-starter/tsconfig": "workspace:*",
