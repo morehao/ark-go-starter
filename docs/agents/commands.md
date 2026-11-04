@@ -61,6 +61,16 @@ make lint
 golangci-lint run ./... --disable-all -E golint,errcheck,staticcheck
 ```
 
+> **安装 golangci-lint（v2，勿用 `go install`）**
+>
+> 本仓库 `.golangci.yml` 是 **v2 schema**，必须用 golangci-lint **v2**（`golangci-lint --version` 应 ≥ 2）。
+>
+> - ❌ **不要 `go install`**：二进制会落到当前 gvm pkgset 的 `$GOPATH/bin`，切换 Go 版本（如 1.26 → 1.27）后就不在 PATH，且可能与 Go toolchain 版本不匹配。
+> - ❌ **不要裸 `brew install golangci-lint`**：其 formula `depends_on "go"`，会顺带装 Homebrew 的 go；而 `/opt/homebrew/bin` 在 PATH 中通常早于 gvm，会**劫持全局 `which go`**。
+> - ✅ **推荐**：`brew install --ignore-dependencies golangci-lint`（跳过 Homebrew go），或从 [GitHub Releases](https://github.com/golangci/golangci-lint/releases) 下预编译二进制放到独立目录（如 `~/.local/bin`）。
+>
+> 装完用 `which -a go` 确认仍只有 gvm 那条路径，即未污染本地 Go 环境。
+
 ## 代码生成
 
 项目使用 `gocli` 工具进行代码生成：
