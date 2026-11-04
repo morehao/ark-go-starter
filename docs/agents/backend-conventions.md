@@ -321,18 +321,19 @@ return errors.New("db config is empty")
 
 ## 事务处理
 
-使用 `dbclient` 封装的事务：
+使用 `dbclient` 封装的连接开启事务（本项目库名固定为 `demo`，用 `dbclient.DemoDB`）：
 
 ```go
-txErr := dbclient.IamDB(ctx).Transaction(func(tx *gorm.DB) error {
-    result, err = user.CreatePersonWithUser(ctx, tx, params)
-    if err != nil {
-        return err
+txErr := dbclient.DemoDB(ctx).Transaction(func(tx *gorm.DB) error {
+    // 事务内的 DAO 必须 WithTx 绑定到同一个 tx，否则写入不参与本事务
+    userDao := dao.NewUserDao().WithTx(tx)
+    if err := userDao.Insert(ctx, first); err != nil {
+        return err   // 原样上抛，由事务层回滚
     }
     return nil
 })
 if txErr != nil {
-    glog.Errorf(ctx, "[svcuser.Create] Transaction fail, err:%v", txErr)
+    glog.Errorf(ctx, "[svcuser.CreateInTx] Transaction fail, err:%v", txErr)
     return nil, code.GetError(code.UserCreateError)
 }
 ```
