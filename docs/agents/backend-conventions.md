@@ -30,8 +30,54 @@ backend/pkg/                # 公共包（跨应用共享）
 - **结构体**: 导出使用大驼峰 `UserSvc`，非导出使用小驼峰 `userSvc`
 - **文件命名**: 小写下划线，如 `user_service.go`，测试文件 `*_test.go`
 - **数据库表**: 下划线命名，如 `user_department`
+- **缩略词全部大写或全部小写**：`APIKey`、`OIDC`、`URL`、`HTTPClient`，
+  **禁止** `ApiKey`、`Oidc`、`Url`、`HttpClient`（`revive` 的 `var-naming` 会报错）
+
+```go
+// 正确
+const APIKeyCreateError = 101101
+type OIDCConfig struct{}
+
+// 错误 —— 缩略词按单词首字母大写
+const ApiKeyCreateError = 101101
+type OidcConfig struct{}
+```
 
 ## 注释规范
+
+> 由 `.golangci.yml` 的 `revive`（`package-comments` / `exported`）强制，**lint 不通过即视为不合规**。
+
+### 包注释（硬性要求）
+
+每个包必须有且仅有一个文件带 `// Package xxx ...` 注释，紧贴 `package` 子句：
+
+```go
+// Package svcuser 是用户管理服务层：承载业务规则、事务与错误转换。
+package svcuser
+```
+
+- 包注释放在该包**最主要的文件**中（通常是与包同名的文件或入口文件）；
+- 文件顶部有 `//go:build` 时，包注释放在 build tag 之后；
+- 文件头有版权/作者块注释时，与包注释之间**留一个空行**，否则会被当成包注释的一部分。
+
+### 导出符号注释（硬性要求）
+
+所有导出标识符（类型、函数、方法、常量、变量）都必须有 godoc 注释，且**以符号名开头**：
+
+```go
+// UserSvc 是用户管理服务接口。
+type UserSvc interface{}
+
+// NewUserSvc 构造 UserSvc。
+func NewUserSvc() UserSvc { return &userSvc{} }
+
+// Create 创建用户管理。
+func (svc *userSvc) Create(...) (...) {}
+```
+
+- `const` / `var` 成组声明时，可给**整个块**加一行注释，无需逐个注释；
+- `type (...)` 块内的多个别名需要**拆成独立声明**，各自带注释（块注释只能匹配第一个名字）；
+- 中文注释结尾**不加 ASCII 句号**（`.golangci.yml` 已关闭 `godot`，避免把「示例」改成「示例.」）。
 
 ### DTO 字段注释（硬性要求）
 
@@ -213,6 +259,18 @@ import (
 )
 ```
 
+### blank import 必须写明用途
+
+驱动注册类 `_ "..."` 导入必须在**上一行**写注释说明注册了什么、谁在用（`revive` 的 `blank-imports` 会报错）：
+
+```go
+import (
+    "github.com/morehao/golib/dbaccess/dbgorm"
+    // 注册 postgres 驱动：gormdao 按驱动名 "postgres" 解析连接，必须 blank import 触发 init。
+    _ "github.com/morehao/golib/dbaccess/dbgorm/driver/postgres"
+)
+```
+
 ## 接口定义与依赖注入
 
 使用接口定义服务层，通过构造函数注入：
@@ -243,6 +301,22 @@ if err != nil {
     glog.Errorf(ctx, "[svcuser.Create] daoUser GetByID fail, err:%v, req:%s", err, gutil.ToJsonString(req))
     return nil, code.GetError(code.UserCreateError)
 }
+```
+
+### 包装错误必须用 `%w`
+
+需要保留错误链（供上层 `errors.Is` / `errors.As` 判断）时，用 `%w` 而非 `%v`；
+仅用于日志展示的地方才用 `%v`（`errorlint` 会报错）：
+
+```go
+// 正确 —— 保留错误链
+return fmt.Errorf("init db failed: %w", err)
+
+// 错误 —— 错误链断裂，上层无法 errors.Is
+return fmt.Errorf("init db failed: %v", err)
+
+// 无格式化参数时用 errors.New，不要 fmt.Errorf（perfsprint 会报错）
+return errors.New("db config is empty")
 ```
 
 ## 事务处理
@@ -282,6 +356,32 @@ func (ctr *userCtr) Create(ctx *gin.Context) {
     gincontext.Success(ctx, res)
 }
 ```
+
+## 数据库连接池（硬性要求）
+
+`config.yaml` 的 `db_configs` 必须显式配置连接池三项，不依赖默认零值（golib `dbgorm` 仅在 `>0` 时才下发到 `sql.DB`）：
+
+```yaml
+db_configs:
+  - url: "postgres://..."
+    service: demo
+    max_idle_conns: 10
+    max_open_conns: 100
+    conn_max_lifetime: 1h
+```
+
+## 提交前自检（硬性要求）
+
+改完 Go 代码、提交前必须全部通过，否则 CI 会拦：
+
+```bash
+gofmt -w .          # 或 golangci-lint fmt ./...
+make lint           # golangci-lint run，必须 0 issues
+make test APP=demo  # 单元测试（无需 DB/Redis）
+```
+
+- `make test` 覆盖 `pkg/` + 指定应用；依赖 DB/Redis 的集成测试单独用 `make test-integration APP=demo`；
+- 在 `backend/` 下按模块分别检查（`pkg/` 与 `apps/demo/`），见 [commands.md](./commands.md#lint-和代码检查)。
 
 ## 相关文档
 
