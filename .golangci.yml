@@ -126,6 +126,11 @@ linters:
     nolintlint:
       require-explanation: true
       require-specific: true
+    modernize:
+      # embedlit 建议「嵌入字段的复合字面量省略类型」，但 Go 1.27 编译器
+      # 报 `missing type in composite literal`，建议无法落地，故禁用该 analyzer。
+      disable:
+        - embedlit
 
 formatters:
   # 只启用列出的格式化器
