@@ -83,3 +83,12 @@ file_storage:
     # local driver 按 base_url/{bucket}/{key} 拼预签名 URL
     base_url: http://127.0.0.1:8099/v1/demo/objects
     sign_secret: demo-sign-secret
+
+cron:
+  enable_lock: true       # 是否启用分布式锁（多实例互斥）
+  lock_ttl: 60s           # 分布式锁租期
+
+async:
+  redis_addr: 127.0.0.1:6379  # Redis 地址
+  redis_password: "123456"    # Redis 密码
+  redis_db: 0                 # Redis 库号

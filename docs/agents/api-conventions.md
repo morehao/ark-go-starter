@@ -39,6 +39,24 @@ func userRouter(groups *ginserver.RouterGroups) {
 }
 ```
 
+### golib 自带路由模块
+
+除业务 `router.go` 外，golib 的 `gindict`（数据字典）、`ginsetting`（配置中心）、`gincron`（定时任务）、`ginasync`（异步任务）自带 RESTful 资源式路由。它们是 `biz/gserver/*` 下的 `Register` 风格模块，签名统一为 `Register(group *gin.RouterGroup, dep)`，取出 v1 分组后把对应组件实例传进去即可挂载：
+
+```go
+func registerGolibModules(groups *ginserver.RouterGroups) {
+    v1RouterGroup := groups.MustGetGroup(ginserver.ApiVersionV1)
+
+    gindict.Register(v1RouterGroup, config.GetDict())       // 依赖 dict.Dict
+    ginsetting.Register(v1RouterGroup, config.GetSetting()) // 依赖 gsetting.Setting
+    gincron.Register(v1RouterGroup, config.GetCron())       // 依赖 gcron.Scheduler
+    ginasync.Register(v1RouterGroup, config.GetAsync())     // 依赖 gasync.Server
+}
+```
+
+- 组件实例在启动期初始化（demo 用主库 PostgreSQL，组件自带表默认 `AutoMigrate`），路由层只负责 `Register`；实例为 `nil`（如某环境关闭 async）时应跳过注册并告警，避免 panic。
+- 挂载后路由同样位于 `/{版本}/{app}/...` 下，如 `POST /v1/demo/dict-types`、`GET /v1/demo/settings`、`GET /v1/demo/cron-tasks`、`GET /v1/demo/async-tasks`。能力与接入边界见 [golib.md](./golib.md)。
+
 ## Swagger 文档
 
 使用 Swag Go 注解，需包含以下注释：

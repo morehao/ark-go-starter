@@ -5,13 +5,14 @@ go 1.27.3
 require (
 	github.com/gin-gonic/gin v1.12.0
 	github.com/morehao/ark-go-starter/pkg v0.0.0-00010101000000-000000000000
-	github.com/morehao/golib v1.33.0
+	github.com/morehao/golib v1.34.0
 	github.com/stretchr/testify v1.12.1
 	github.com/swaggo/swag v1.16.6
 	gorm.io/gorm v1.31.1
 )
 
 require (
+	github.com/BurntSushi/toml v1.6.0 // indirect
 	github.com/KyleBanks/depth v1.2.1 // indirect
 	github.com/bytedance/gopkg v0.1.4 // indirect
 	github.com/bytedance/sonic v1.15.0 // indirect
@@ -37,11 +38,15 @@ require (
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.30.2 // indirect
+	github.com/go-redsync/redsync/v4 v4.16.0 // indirect
 	github.com/goccy/go-json v0.10.6 // indirect
 	github.com/goccy/go-yaml v1.19.2 // indirect
 	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.30.0 // indirect
+	github.com/hashicorp/errwrap v1.1.0 // indirect
+	github.com/hashicorp/go-multierror v1.1.1 // indirect
+	github.com/hibiken/asynq v0.26.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/pgx/v5 v5.9.2 // indirect
@@ -58,6 +63,8 @@ require (
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/quic-go/quic-go v0.59.1 // indirect
 	github.com/redis/go-redis/v9 v9.18.0 // indirect
+	github.com/robfig/cron/v3 v3.0.1 // indirect
+	github.com/spf13/cast v1.10.0 // indirect
 	github.com/swaggo/files v1.0.1 // indirect
 	github.com/swaggo/gin-swagger v1.6.1 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
@@ -82,6 +89,7 @@ require (
 	golang.org/x/sync v0.23.0 // indirect
 	golang.org/x/sys v0.48.0 // indirect
 	golang.org/x/text v0.42.0 // indirect
+	golang.org/x/time v0.15.0 // indirect
 	golang.org/x/tools v0.49.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260819154853-08b0e4226688 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260819154853-08b0e4226688 // indirect

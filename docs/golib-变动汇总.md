@@ -592,3 +592,38 @@ SELECT count(*) FROM "user" WHERE "user"."deleted_at" IS NULL AND "user"."id" = 
 
 > 环境侧现状：本地 `demo` 库已补建 `"user"` / `user_login_log`（`"user"` 是 PG 保留字，脚本内引用均带双引号），因此 `make test APP=demo` 现在可全绿（仅 `pkg/dbclient` 的 Elasticsearch 子用例依赖本机 9200）。重建库时执行 `psql -d demo -f backend/scripts/sql/table_init.sql` 即可。
 
+
+## 十一、v1.33.0 → v1.34.0 升级记录：configkv 改名 gsetting + gserver 四路由模块
+
+升级目标：`github.com/morehao/golib` v1.33.0 → **v1.34.0**（2026-11-07 发布，当前最新 tag）。`gocli` 不涉及。经核对，`ginserver` 等既有包在两个版本间**无 diff**，升级本身**无破坏性 API 变更**；本仓库的 Go 代码无需为此改动即可编译。
+
+### 11.1 golib 侧变更
+
+| 变更 | 说明 |
+|------|------|
+| **`configkv` → `gsetting` 包重命名**（CHANGELOG Unreleased 记录） | 导入路径改为 `github.com/morehao/golib/gsetting`；底层表由 `core_config` 改名为 `core_setting`（派生索引变为 `idx_core_setting_deleted_at`）。上游暂无消费方，故未提供兼容别名。 |
+| **新增 `biz/gserver` 四个路由模块** | `gindict`（数据字典，依赖 `dict`）、`ginsetting`（配置中心，依赖 `gsetting`）、`gincron`（定时任务，依赖 `task/gcron`）、`ginasync`（异步任务，依赖 `task/gasync`）。均为模块 `Register` 风格的 RESTful 资源式路由适配层，签名统一 `Register(group *gin.RouterGroup, dep)`。 |
+
+四个模块的路由面（资源式，均挂在 `/{版本}/{app}` 下）：
+
+| 模块 | 子资源 | 主要端点 |
+|------|--------|----------|
+| `gindict` | `/dict-types`、`/dict-codes`、`/dict-items` | 类型 CRUD + 启停 + 巡检；按 code 取项/子项/树；项 CRUD + 启停 + 移动层级 |
+| `ginsetting` | `/settings` | 配置 CRUD（创建同名键 upsert）+ 分页列表 |
+| `gincron` | `/cron-tasks`、`/cron-runs` | 任务列表/详情、启停、移除、运行记录查询/清理、标记陈旧 running |
+| `ginasync` | `/async-tasks`、`/async-runs` | 按类型的任务列表/详情、启停、运行记录查询/清理、标记陈旧 processing |
+
+> 详见 golib 仓库 `docs/router-style.md` 与各模块源码；路由风格与既有 `ginupload`/`gindocs` 一致。
+
+### 11.2 对 ark-go-starter 的影响
+
+- **不新增第三方直接依赖，但会带入 golib 组件的传递依赖**：四个 `biz/gserver/*` 模块复用 golib 已有的 `dict`/`gsetting`/`task/gcron`/`task/gasync`。`pkg` 模块不变；`apps/demo` 因直接 import 这些组件包，`go mod tidy` 会把它们的传递依赖（如 `github.com/hibiken/asynq`、`github.com/go-redsync/redsync/v4`、`github.com/robfig/cron/v3`、`golang.org/x/time` 等）以 `// indirect` 形式补进 `apps/demo/go.mod`，版本由 golib 的 `go.mod` 决定，无需手工指定。
+- **纯增量接入**：本模板（demo）在 v1 分组里新增 `gindict`/`ginsetting`/`gincron`/`ginasync` 四个 `Register` 调用；组件实例在启动期用 demo 主库（PostgreSQL）初始化，组件自带表默认 `AutoMigrate` 建表。此前只有 `ginupload`/`gindocs` 两个 gserver 模块接入。
+- **无破坏性变更**：`configkv` 在本仓库未被引用，改名对本仓库无影响；`ginserver` 无 API 变化，既有路由注册不受影响。
+
+### 11.3 本仓库适配点
+
+- 仅同步 `backend/apps/demo/go.mod`、`backend/pkg/go.mod` 的 golib 版本行及对应 `go.sum`。
+- 新增：`apps/demo/config` 增加 `Cron`/`Async` 配置与组件实例存取，`apps/demo/cmd/init.go` 启动期初始化四个组件实例，`apps/demo/internal/router/router.go` 挂载四个路由模块。
+- **Makefile `swag` 目标补 `--parseDependencyLevel 2`**：组件路由的 `@Router` 注解位于 golib 依赖包内，默认的 `--parseDependency --parseInternal` 不会解析依赖包注解、会丢失全部组件路由；补该参数后 `make swag APP=demo` 可正确生成含 gindict/ginsetting/gincron/ginasync 的 swagger。
+- 文档：更新 [docs/agents/golib.md](agents/golib.md)（组件速查表四个模块标 ✅、版本示例改 v1.34.0）与 [docs/agents/api-conventions.md](agents/api-conventions.md)（补 golib 路由模块注册示例）。
