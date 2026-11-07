@@ -170,6 +170,7 @@ swag:
 	@cd backend && swag init \
 		--parseDependency \
 		--parseInternal \
+		--parseDependencyLevel 2 \
 		-g app.go \
 		--dir apps/$(APP) \
 		--output apps/$(APP)/docs \

@@ -8,15 +8,27 @@ import (
 
 	"github.com/morehao/golib/dbaccess/dbgorm"
 	"github.com/morehao/golib/dbaccess/dbredis"
+	"github.com/morehao/golib/dict"
 	"github.com/morehao/golib/glog"
+	"github.com/morehao/golib/gsetting"
 	"github.com/morehao/golib/gtrace"
 	"github.com/morehao/golib/gutil"
 	"github.com/morehao/golib/protocol/ghttp"
 	"github.com/morehao/golib/storage"
+	"github.com/morehao/golib/task/gasync"
+	"github.com/morehao/golib/task/gcron"
 )
 
 // Conf 是进程级配置单例，由 LoadConfig/InitConf 填充。
 var Conf *Config
+
+// 进程级组件实例，在启动期初始化一次，供路由注册使用。
+var (
+	dictInstance    *dict.Dict        // 字典组件实例
+	settingInstance *gsetting.Setting // 设置组件实例
+	cronInstance    *gcron.Scheduler  // 定时任务调度器实例
+	asyncInstance   *gasync.Server    // 异步任务服务端实例
+)
 
 // Config 是应用的全部配置项。
 type Config struct {
@@ -27,6 +39,8 @@ type Config struct {
 	RedisConfig dbredis.RedisConfig       `yaml:"redis_config"`
 	Client      Client                    `yaml:"client"`
 	FileStorage FileStorage               `yaml:"file_storage"`
+	Cron        gcron.Config              `yaml:"cron"`  // 定时任务配置
+	Async       gasync.Config             `yaml:"async"` // 异步任务配置
 }
 
 // Server 是 HTTP 服务配置。
@@ -47,6 +61,30 @@ type FileStorage struct {
 	Bucket  string             `yaml:"bucket"`  // 存储桶
 	Storage storage.Config     `yaml:"storage"` // 驱动通用配置
 }
+
+// SetDict 设置进程级字典组件实例。
+func SetDict(instance *dict.Dict) { dictInstance = instance }
+
+// GetDict 返回进程级字典组件实例。
+func GetDict() *dict.Dict { return dictInstance }
+
+// SetSetting 设置进程级设置组件实例。
+func SetSetting(instance *gsetting.Setting) { settingInstance = instance }
+
+// GetSetting 返回进程级设置组件实例。
+func GetSetting() *gsetting.Setting { return settingInstance }
+
+// SetCron 设置进程级定时任务调度器实例。
+func SetCron(instance *gcron.Scheduler) { cronInstance = instance }
+
+// GetCron 返回进程级定时任务调度器实例。
+func GetCron() *gcron.Scheduler { return cronInstance }
+
+// SetAsync 设置进程级异步任务服务端实例。
+func SetAsync(instance *gasync.Server) { asyncInstance = instance }
+
+// GetAsync 返回进程级异步任务服务端实例。
+func GetAsync() *gasync.Server { return asyncInstance }
 
 // InitConf 初始化配置（运行时使用，自动查找配置文件）.
 func InitConf() {

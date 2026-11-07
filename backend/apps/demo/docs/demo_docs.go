@@ -15,6 +15,2182 @@ const docTemplatedemo = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/async-runs/{id}": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "异步任务"
+                ],
+                "summary": "异步任务运行记录详情",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "运行记录ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/gincontext.DtoRender"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/ginasync.runResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/async-tasks": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "异步任务"
+                ],
+                "summary": "异步任务分页列表",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "状态",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "页码",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "每页条数",
+                        "name": "page_size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/gincontext.DtoRender"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/ginasync.taskListResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/async-tasks/{type}": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "异步任务"
+                ],
+                "summary": "异步任务详情",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "任务类型",
+                        "name": "type",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/gincontext.DtoRender"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/ginasync.taskResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/async-tasks/{type}/runs": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "异步任务"
+                ],
+                "summary": "异步任务运行记录",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "任务类型",
+                        "name": "type",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "队列",
+                        "name": "queue",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "状态",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "页码",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "每页条数",
+                        "name": "page_size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/gincontext.DtoRender"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/ginasync.runListResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "异步任务"
+                ],
+                "summary": "清理运行记录",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "任务类型",
+                        "name": "type",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "before unix 秒",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/ginasync.cleanupRunsRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/gincontext.DtoRender"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/ginasync.affectedResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/async-tasks/{type}/runs/mark-stale": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "异步任务"
+                ],
+                "summary": "标记陈旧运行记录",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "任务类型",
+                        "name": "type",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "cutoff 秒",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/ginasync.markStaleRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/gincontext.DtoRender"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/ginasync.affectedResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/async-tasks/{type}/status": {
+            "patch": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "异步任务"
+                ],
+                "summary": "启停异步任务",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "任务类型",
+                        "name": "type",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "状态",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/ginasync.setStatusRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gincontext.DtoRender"
+                        }
+                    }
+                }
+            }
+        },
+        "/cron-runs/{id}": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "定时任务"
+                ],
+                "summary": "运行记录详情",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "运行记录ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/gincontext.DtoRender"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/gincron.runResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/cron-tasks": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "定时任务"
+                ],
+                "summary": "定时任务分页列表",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "任务类型",
+                        "name": "task_type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "状态",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "业务类型",
+                        "name": "biz_type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "业务ID",
+                        "name": "biz_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "页码",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "每页条数",
+                        "name": "page_size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/gincontext.DtoRender"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/gincron.taskListResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/cron-tasks/{id}": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "定时任务"
+                ],
+                "summary": "定时任务详情",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "任务ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/gincontext.DtoRender"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/gincron.taskResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "定时任务"
+                ],
+                "summary": "移除定时任务",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "任务ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gincontext.DtoRender"
+                        }
+                    }
+                }
+            }
+        },
+        "/cron-tasks/{id}/runs": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "定时任务"
+                ],
+                "summary": "定时任务运行记录",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "任务ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "运行状态",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "页码",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "每页条数",
+                        "name": "page_size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/gincontext.DtoRender"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/gincron.runListResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "定时任务"
+                ],
+                "summary": "清理运行记录",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "任务ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "before unix 秒",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/gincron.cleanupRunsRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/gincontext.DtoRender"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/gincron.affectedResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/cron-tasks/{id}/runs/mark-stale": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "定时任务"
+                ],
+                "summary": "标记陈旧运行记录",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "任务ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "cutoff 秒",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/gincron.markStaleRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/gincontext.DtoRender"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/gincron.affectedResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/cron-tasks/{id}/status": {
+            "patch": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "定时任务"
+                ],
+                "summary": "启停定时任务",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "任务ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "状态",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/gincron.setStatusRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gincontext.DtoRender"
+                        }
+                    }
+                }
+            }
+        },
+        "/dict-codes/{code}/children": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "数据字典"
+                ],
+                "summary": "类型下某父节点的子项",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "类型code",
+                        "name": "code",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "父节点ID(空串取根)",
+                        "name": "parent_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "是否包含停用项",
+                        "name": "include_disabled",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/gincontext.DtoRender"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/gindict.dictItemListResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/dict-codes/{code}/items": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "数据字典"
+                ],
+                "summary": "类型下的项列表",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "类型code",
+                        "name": "code",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "是否包含停用项",
+                        "name": "include_disabled",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/gincontext.DtoRender"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/gindict.dictItemListResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/dict-codes/{code}/tree": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "数据字典"
+                ],
+                "summary": "类型下的项树",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "类型code",
+                        "name": "code",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "是否包含停用项",
+                        "name": "include_disabled",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/gincontext.DtoRender"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/gindict.treeNodeResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/dict-items": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "数据字典"
+                ],
+                "summary": "新建字典项",
+                "parameters": [
+                    {
+                        "description": "新建项",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/gindict.createItemRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/gincontext.DtoRender"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/gindict.dictItemResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/dict-items/{id}": {
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "数据字典"
+                ],
+                "summary": "更新字典项",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "项ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "更新项",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/gindict.updateItemRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gincontext.DtoRender"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "数据字典"
+                ],
+                "summary": "删除字典项",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "项ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "是否级联删除子树",
+                        "name": "cascade",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gincontext.DtoRender"
+                        }
+                    }
+                }
+            }
+        },
+        "/dict-items/{id}/parent": {
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "数据字典"
+                ],
+                "summary": "移动字典项层级",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "项ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "新父节点",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/gindict.moveItemRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gincontext.DtoRender"
+                        }
+                    }
+                }
+            }
+        },
+        "/dict-items/{id}/status": {
+            "patch": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "数据字典"
+                ],
+                "summary": "启停字典项",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "项ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "状态",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/gindict.updateStatusRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gincontext.DtoRender"
+                        }
+                    }
+                }
+            }
+        },
+        "/dict-types": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "数据字典"
+                ],
+                "summary": "字典类型分页列表",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "类型code",
+                        "name": "code",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "状态",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "页码",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "每页条数",
+                        "name": "page_size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/gincontext.DtoRender"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/gindict.dictTypeListResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "数据字典"
+                ],
+                "summary": "新建字典类型",
+                "parameters": [
+                    {
+                        "description": "新建类型",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/gindict.createTypeRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/gincontext.DtoRender"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/gindict.dictTypeResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/dict-types/{id}": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "数据字典"
+                ],
+                "summary": "字典类型详情",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "类型ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/gincontext.DtoRender"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/gindict.dictTypeResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "数据字典"
+                ],
+                "summary": "更新字典类型",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "类型ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "更新类型",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/gindict.updateTypeRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gincontext.DtoRender"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "数据字典"
+                ],
+                "summary": "删除字典类型",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "类型ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "是否级联删除类型下的项",
+                        "name": "cascade",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gincontext.DtoRender"
+                        }
+                    }
+                }
+            }
+        },
+        "/dict-types/{id}/integrity-check": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "数据字典"
+                ],
+                "summary": "字典类型树结构巡检",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "类型ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/gincontext.DtoRender"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/gindict.integrityResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/dict-types/{id}/status": {
+            "patch": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "数据字典"
+                ],
+                "summary": "启停字典类型",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "类型ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "状态",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/gindict.updateStatusRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gincontext.DtoRender"
+                        }
+                    }
+                }
+            }
+        },
+        "/files": {
+            "post": {
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "文件"
+                ],
+                "summary": "上传文件",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "上传文件",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "内容哈希(SHA256)，用于去重",
+                        "name": "content_hash",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/gincontext.DtoRender"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/ginupload.fileRecordResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/files/check-exist": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "文件"
+                ],
+                "summary": "检查文件是否存在",
+                "parameters": [
+                    {
+                        "description": "内容哈希",
+                        "name": "req",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/ginupload.checkExistRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/gincontext.DtoRender"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/ginupload.checkExistResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/files/multipart": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "文件"
+                ],
+                "summary": "创建分片上传",
+                "parameters": [
+                    {
+                        "description": "创建分片上传",
+                        "name": "req",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/ginupload.createMultipartRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/gincontext.DtoRender"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/ginupload.createMultipartResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/files/multipart/{fileID}": {
+            "delete": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "文件"
+                ],
+                "summary": "取消分片上传",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "文件ID",
+                        "name": "fileID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gincontext.DtoRender"
+                        }
+                    }
+                }
+            }
+        },
+        "/files/multipart/{fileID}/complete": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "文件"
+                ],
+                "summary": "完成分片上传",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "文件ID",
+                        "name": "fileID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "完成分片上传",
+                        "name": "req",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/ginupload.completeMultipartRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/gincontext.DtoRender"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/ginupload.fileRecordResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/files/multipart/{fileID}/parts": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "文件"
+                ],
+                "summary": "获取上传分片地址",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "文件ID",
+                        "name": "fileID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "分片上传",
+                        "name": "req",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/ginupload.presignPartRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/gincontext.DtoRender"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/ginupload.presignURLResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/files/redirect": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "文件"
+                ],
+                "summary": "重定向获取文件URL（query 形式，兼容 storage_uri/file_id 场景）",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "文件ID",
+                        "name": "file_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "存储URI",
+                        "name": "storage_uri",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "302": {
+                        "description": "重定向到文件URL",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/files/serve": {
+            "get": {
+                "produces": [
+                    "application/octet-stream"
+                ],
+                "tags": [
+                    "文件"
+                ],
+                "summary": "直接获取文件内容（query 形式，兼容 storage_uri/file_id 场景，仅 local storage 有效）",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "文件ID",
+                        "name": "file_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "存储URI",
+                        "name": "storage_uri",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "文件内容",
+                        "schema": {
+                            "type": "file"
+                        }
+                    }
+                }
+            }
+        },
+        "/files/{id}": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "文件"
+                ],
+                "summary": "获取文件详情",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "文件ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/gincontext.DtoRender"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/ginupload.fileDetailResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "文件"
+                ],
+                "summary": "删除文件",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "文件ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gincontext.DtoRender"
+                        }
+                    }
+                }
+            }
+        },
+        "/files/{id}/parts": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "文件"
+                ],
+                "summary": "列出已上传分片",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "文件ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "单页最大分片数",
+                        "name": "max_parts",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "从该分片号之后继续列举",
+                        "name": "part_number_marker",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/gincontext.DtoRender"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/ginupload.listPartsResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/files/{id}/presign-url": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "文件"
+                ],
+                "summary": "获取文件下载地址",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "文件ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/gincontext.DtoRender"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/ginupload.presignURLResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/files/{id}/redirect": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "文件"
+                ],
+                "summary": "重定向获取文件URL（路径参数形式）",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "文件ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "302": {
+                        "description": "重定向到文件URL",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/files/{id}/serve": {
+            "get": {
+                "produces": [
+                    "application/octet-stream"
+                ],
+                "tags": [
+                    "文件"
+                ],
+                "summary": "直接获取文件内容（路径参数形式，仅 local storage 有效）",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "文件ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "文件内容",
+                        "schema": {
+                            "type": "file"
+                        }
+                    }
+                }
+            }
+        },
+        "/settings": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "配置中心"
+                ],
+                "summary": "分页查询配置项",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "分组",
+                        "name": "group",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "键名(模糊)",
+                        "name": "key",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "值类型",
+                        "name": "value_type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "状态",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "页码",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "每页条数",
+                        "name": "page_size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/gincontext.DtoRender"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/ginsetting.listResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "配置中心"
+                ],
+                "summary": "创建配置项",
+                "parameters": [
+                    {
+                        "description": "创建配置项请求",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/ginsetting.createRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gincontext.DtoRender"
+                        }
+                    }
+                }
+            }
+        },
+        "/settings/{id}": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "配置中心"
+                ],
+                "summary": "查询配置项详情",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "配置项ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/gincontext.DtoRender"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/ginsetting.settingResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "配置中心"
+                ],
+                "summary": "更新配置项",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "配置项ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "更新配置项请求",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/ginsetting.updateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gincontext.DtoRender"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "配置中心"
+                ],
+                "summary": "删除配置项",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "配置项ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gincontext.DtoRender"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/demo/health": {
             "get": {
                 "produces": [
@@ -516,6 +2692,140 @@ const docTemplatedemo = `{
                 }
             }
         },
+        "ginasync.affectedResponse": {
+            "type": "object",
+            "properties": {
+                "affected": {
+                    "type": "integer"
+                }
+            }
+        },
+        "ginasync.cleanupRunsRequest": {
+            "type": "object",
+            "required": [
+                "before_unix"
+            ],
+            "properties": {
+                "before_unix": {
+                    "type": "integer"
+                }
+            }
+        },
+        "ginasync.markStaleRequest": {
+            "type": "object",
+            "required": [
+                "cutoff_seconds"
+            ],
+            "properties": {
+                "cutoff_seconds": {
+                    "type": "integer"
+                }
+            }
+        },
+        "ginasync.runListResponse": {
+            "type": "object",
+            "properties": {
+                "list": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ginasync.runResponse"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "ginasync.runResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "integer"
+                },
+                "duration_ms": {
+                    "type": "integer"
+                },
+                "end_at": {
+                    "type": "integer"
+                },
+                "error_msg": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "max_retry": {
+                    "type": "integer"
+                },
+                "queue": {
+                    "type": "string"
+                },
+                "request_id": {
+                    "type": "string"
+                },
+                "retried": {
+                    "type": "integer"
+                },
+                "start_at": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "task_type": {
+                    "type": "string"
+                }
+            }
+        },
+        "ginasync.setStatusRequest": {
+            "type": "object",
+            "required": [
+                "status"
+            ],
+            "properties": {
+                "status": {
+                    "description": "enabled/disabled",
+                    "type": "string"
+                }
+            }
+        },
+        "ginasync.taskListResponse": {
+            "type": "object",
+            "properties": {
+                "list": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ginasync.taskResponse"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "ginasync.taskResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "integer"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "integer"
+                }
+            }
+        },
         "gincontext.DtoRender": {
             "type": "object",
             "properties": {
@@ -530,11 +2840,825 @@ const docTemplatedemo = `{
                     "type": "string"
                 }
             }
+        },
+        "gincron.affectedResponse": {
+            "type": "object",
+            "properties": {
+                "affected": {
+                    "type": "integer"
+                }
+            }
+        },
+        "gincron.cleanupRunsRequest": {
+            "type": "object",
+            "required": [
+                "before_unix"
+            ],
+            "properties": {
+                "before_unix": {
+                    "type": "integer"
+                }
+            }
+        },
+        "gincron.markStaleRequest": {
+            "type": "object",
+            "required": [
+                "cutoff_seconds"
+            ],
+            "properties": {
+                "cutoff_seconds": {
+                    "type": "integer"
+                }
+            }
+        },
+        "gincron.runListResponse": {
+            "type": "object",
+            "properties": {
+                "list": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/gincron.runResponse"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "gincron.runResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "integer"
+                },
+                "duration_ms": {
+                    "type": "integer"
+                },
+                "end_at": {
+                    "type": "integer"
+                },
+                "error_msg": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "request_id": {
+                    "type": "string"
+                },
+                "start_at": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "task_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "gincron.setStatusRequest": {
+            "type": "object",
+            "required": [
+                "status"
+            ],
+            "properties": {
+                "status": {
+                    "description": "enabled/disabled",
+                    "type": "string"
+                }
+            }
+        },
+        "gincron.taskListResponse": {
+            "type": "object",
+            "properties": {
+                "list": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/gincron.taskResponse"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "gincron.taskResponse": {
+            "type": "object",
+            "properties": {
+                "biz_id": {
+                    "type": "string"
+                },
+                "biz_type": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "integer"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "last_run_at": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "next_run_at": {
+                    "type": "integer"
+                },
+                "spec": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "task_type": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "integer"
+                }
+            }
+        },
+        "gindict.createItemRequest": {
+            "type": "object",
+            "required": [
+                "label",
+                "type_code",
+                "value"
+            ],
+            "properties": {
+                "description": {
+                    "description": "说明",
+                    "type": "string"
+                },
+                "extra": {
+                    "description": "项级扩展 JSON",
+                    "type": "string"
+                },
+                "label": {
+                    "description": "展示文案",
+                    "type": "string"
+                },
+                "parent_id": {
+                    "description": "父项ID，根为空",
+                    "type": "string"
+                },
+                "sort": {
+                    "description": "同层排序",
+                    "type": "integer"
+                },
+                "status": {
+                    "description": "状态，默认 enabled",
+                    "type": "string"
+                },
+                "type_code": {
+                    "description": "所属类型 code",
+                    "type": "string"
+                },
+                "value": {
+                    "description": "码值（同类型内唯一）",
+                    "type": "string"
+                }
+            }
+        },
+        "gindict.createTypeRequest": {
+            "type": "object",
+            "required": [
+                "code"
+            ],
+            "properties": {
+                "code": {
+                    "description": "类型编码（全表唯一，创建后不可变）",
+                    "type": "string"
+                },
+                "description": {
+                    "description": "说明",
+                    "type": "string"
+                },
+                "extra": {
+                    "description": "类型级扩展 JSON",
+                    "type": "string"
+                },
+                "name": {
+                    "description": "类型名称",
+                    "type": "string"
+                },
+                "status": {
+                    "description": "状态 enabled/disabled，默认 enabled",
+                    "type": "string"
+                }
+            }
+        },
+        "gindict.dictItemListResponse": {
+            "type": "object",
+            "properties": {
+                "list": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/gindict.dictItemResponse"
+                    }
+                }
+            }
+        },
+        "gindict.dictItemResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "integer"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "extra": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "level": {
+                    "type": "integer"
+                },
+                "parent_id": {
+                    "type": "string"
+                },
+                "sort": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "type_code": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "integer"
+                },
+                "value": {
+                    "type": "string"
+                }
+            }
+        },
+        "gindict.dictTypeListResponse": {
+            "type": "object",
+            "properties": {
+                "list": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/gindict.dictTypeResponse"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "gindict.dictTypeResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "integer"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "extra": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "integer"
+                }
+            }
+        },
+        "gindict.integrityResponse": {
+            "type": "object",
+            "properties": {
+                "checked": {
+                    "type": "integer"
+                },
+                "healthy": {
+                    "type": "boolean"
+                },
+                "issues": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/gindict.issueResponse"
+                    }
+                },
+                "orphans": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "type_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "gindict.issueResponse": {
+            "type": "object",
+            "properties": {
+                "detail": {
+                    "type": "string"
+                },
+                "item_id": {
+                    "type": "string"
+                },
+                "kind": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "string"
+                }
+            }
+        },
+        "gindict.moveItemRequest": {
+            "type": "object",
+            "properties": {
+                "parent_id": {
+                    "description": "新父项ID，空串表示提升为根",
+                    "type": "string"
+                }
+            }
+        },
+        "gindict.treeNodeResponse": {
+            "type": "object",
+            "properties": {
+                "children": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/gindict.treeNodeResponse"
+                    }
+                },
+                "created_at": {
+                    "type": "integer"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "extra": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "level": {
+                    "type": "integer"
+                },
+                "orphan": {
+                    "type": "boolean"
+                },
+                "parent_id": {
+                    "type": "string"
+                },
+                "sort": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "type_code": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "integer"
+                },
+                "value": {
+                    "type": "string"
+                }
+            }
+        },
+        "gindict.updateItemRequest": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "extra": {
+                    "type": "string"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "sort": {
+                    "type": "integer"
+                }
+            }
+        },
+        "gindict.updateStatusRequest": {
+            "type": "object",
+            "required": [
+                "status"
+            ],
+            "properties": {
+                "status": {
+                    "description": "enabled/disabled",
+                    "type": "string"
+                }
+            }
+        },
+        "gindict.updateTypeRequest": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "extra": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "ginsetting.createRequest": {
+            "type": "object",
+            "required": [
+                "group",
+                "key",
+                "value"
+            ],
+            "properties": {
+                "description": {
+                    "description": "描述",
+                    "type": "string"
+                },
+                "encrypted": {
+                    "description": "是否加密落库",
+                    "type": "boolean"
+                },
+                "group": {
+                    "description": "配置分组",
+                    "type": "string"
+                },
+                "key": {
+                    "description": "配置键名（同组内唯一）",
+                    "type": "string"
+                },
+                "status": {
+                    "description": "状态：enabled/disabled，默认 enabled",
+                    "type": "string"
+                },
+                "value": {
+                    "description": "配置值（明文）",
+                    "type": "string"
+                },
+                "value_type": {
+                    "description": "值类型：json/toml/yaml/string/int/bool/float，默认 string",
+                    "type": "string"
+                }
+            }
+        },
+        "ginsetting.listResponse": {
+            "type": "object",
+            "properties": {
+                "list": {
+                    "description": "当前页数据",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ginsetting.settingResponse"
+                    }
+                },
+                "total": {
+                    "description": "总条数",
+                    "type": "integer"
+                }
+            }
+        },
+        "ginsetting.settingResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "description": "创建时间（unix 秒）",
+                    "type": "integer"
+                },
+                "description": {
+                    "description": "描述",
+                    "type": "string"
+                },
+                "encryption_mode": {
+                    "description": "加密模式：plain/encrypted",
+                    "type": "string"
+                },
+                "group": {
+                    "description": "配置分组",
+                    "type": "string"
+                },
+                "id": {
+                    "description": "配置项ID",
+                    "type": "string"
+                },
+                "key": {
+                    "description": "配置键名",
+                    "type": "string"
+                },
+                "status": {
+                    "description": "状态",
+                    "type": "string"
+                },
+                "updated_at": {
+                    "description": "更新时间（unix 秒）",
+                    "type": "integer"
+                },
+                "value": {
+                    "description": "配置值（明文）",
+                    "type": "string"
+                },
+                "value_type": {
+                    "description": "值类型",
+                    "type": "string"
+                }
+            }
+        },
+        "ginsetting.updateRequest": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "description": "描述",
+                    "type": "string"
+                },
+                "encrypted": {
+                    "description": "配合 value 使用：是否加密落库",
+                    "type": "boolean"
+                },
+                "status": {
+                    "description": "状态",
+                    "type": "string"
+                },
+                "value": {
+                    "description": "新值（为空表示不更新值）",
+                    "type": "string"
+                }
+            }
+        },
+        "ginupload.checkExistRequest": {
+            "type": "object",
+            "required": [
+                "content_hash"
+            ],
+            "properties": {
+                "content_hash": {
+                    "description": "内容哈希",
+                    "type": "string"
+                }
+            }
+        },
+        "ginupload.checkExistResponse": {
+            "type": "object",
+            "properties": {
+                "exists": {
+                    "description": "是否存在",
+                    "type": "boolean"
+                },
+                "file": {
+                    "description": "文件记录(存在时返回)",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/ginupload.fileRecordResponse"
+                        }
+                    ]
+                }
+            }
+        },
+        "ginupload.completeMultipartRequest": {
+            "type": "object",
+            "properties": {
+                "parts": {
+                    "description": "分片列表",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ginupload.uploadPart"
+                    }
+                }
+            }
+        },
+        "ginupload.createMultipartRequest": {
+            "type": "object",
+            "required": [
+                "content_hash",
+                "name",
+                "size"
+            ],
+            "properties": {
+                "content_hash": {
+                    "description": "内容哈希",
+                    "type": "string"
+                },
+                "mime_type": {
+                    "description": "MIME类型",
+                    "type": "string"
+                },
+                "name": {
+                    "description": "文件名",
+                    "type": "string"
+                },
+                "size": {
+                    "description": "文件大小(字节)",
+                    "type": "integer"
+                }
+            }
+        },
+        "ginupload.createMultipartResponse": {
+            "type": "object",
+            "properties": {
+                "file_id": {
+                    "description": "文件ID",
+                    "type": "string"
+                },
+                "upload_id": {
+                    "description": "上传会话ID",
+                    "type": "string"
+                }
+            }
+        },
+        "ginupload.fileDetailResponse": {
+            "type": "object",
+            "properties": {
+                "content_hash": {
+                    "description": "内容哈希",
+                    "type": "string"
+                },
+                "created_at": {
+                    "description": "创建时间(RFC3339)",
+                    "type": "string"
+                },
+                "file_id": {
+                    "description": "文件ID",
+                    "type": "string"
+                },
+                "mime_type": {
+                    "description": "MIME类型",
+                    "type": "string"
+                },
+                "name": {
+                    "description": "文件名",
+                    "type": "string"
+                },
+                "size": {
+                    "description": "文件大小(字节)",
+                    "type": "integer"
+                },
+                "status": {
+                    "description": "文件状态",
+                    "type": "string"
+                },
+                "storage_uri": {
+                    "description": "存储URI",
+                    "type": "string"
+                },
+                "updated_at": {
+                    "description": "更新时间(RFC3339)",
+                    "type": "string"
+                },
+                "upload_id": {
+                    "description": "上传会话ID(仅分片上传时有值)",
+                    "type": "string"
+                }
+            }
+        },
+        "ginupload.fileRecordResponse": {
+            "type": "object",
+            "properties": {
+                "file_id": {
+                    "description": "文件ID",
+                    "type": "string"
+                },
+                "mime_type": {
+                    "description": "MIME类型",
+                    "type": "string"
+                },
+                "name": {
+                    "description": "文件名",
+                    "type": "string"
+                },
+                "status": {
+                    "description": "文件状态(pending/uploading/completed/failed/aborted)",
+                    "type": "string"
+                }
+            }
+        },
+        "ginupload.listPartsResponse": {
+            "type": "object",
+            "properties": {
+                "is_truncated": {
+                    "description": "是否被截断",
+                    "type": "boolean"
+                },
+                "next_part_number_marker": {
+                    "description": "下一页游标",
+                    "type": "integer"
+                },
+                "parts": {
+                    "description": "已上传分片",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ginupload.presignedPartResponse"
+                    }
+                }
+            }
+        },
+        "ginupload.presignPartRequest": {
+            "type": "object",
+            "required": [
+                "part_number"
+            ],
+            "properties": {
+                "part_number": {
+                    "description": "分片编号",
+                    "type": "integer"
+                }
+            }
+        },
+        "ginupload.presignURLResponse": {
+            "type": "object",
+            "properties": {
+                "expires_in": {
+                    "description": "过期时间(秒)",
+                    "type": "integer"
+                },
+                "headers": {
+                    "description": "签名覆盖的请求头，必须原样发送",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/http.Header"
+                        }
+                    ]
+                },
+                "method": {
+                    "description": "预签名请求的 HTTP 方法",
+                    "type": "string"
+                },
+                "url": {
+                    "description": "预签名URL",
+                    "type": "string"
+                }
+            }
+        },
+        "ginupload.presignedPartResponse": {
+            "type": "object",
+            "properties": {
+                "etag": {
+                    "description": "分片 ETag（内容 MD5），complete 时回传",
+                    "type": "string"
+                },
+                "part_number": {
+                    "description": "分片编号",
+                    "type": "integer"
+                }
+            }
+        },
+        "ginupload.uploadPart": {
+            "type": "object",
+            "required": [
+                "part_number"
+            ],
+            "properties": {
+                "etag": {
+                    "description": "分片ETag",
+                    "type": "string"
+                },
+                "part_number": {
+                    "description": "分片编号",
+                    "type": "integer"
+                }
+            }
+        },
+        "http.Header": {
+            "type": "object",
+            "additionalProperties": {
+                "type": "array",
+                "items": {
+                    "type": "string"
+                }
+            }
         }
     }
 }`
 
-// SwaggerInfodemo holds exported Swagger Info so clients can modify it.
+// SwaggerInfodemo holds exported Swagger Info so clients can modify it
 var SwaggerInfodemo = &swag.Spec{
 	Version:          "",
 	Host:             "",
