@@ -9,5 +9,8 @@
     "build": "pnpm -r --filter './packages/*' --filter './apps/*' build",
     "typecheck": "pnpm -r --filter '@ark-go-starter/types' --filter '@ark-go-starter/api' --filter '@ark-go-starter/ui' --filter '@ark-go-starter/demo-web' exec tsc --noEmit -p tsconfig.json"
   },
-  "packageManager": "pnpm@11.21.0"
+  "engines": {
+    "node": ">=26"
+  },
+  "packageManager": "pnpm@12.10.1"
 }
