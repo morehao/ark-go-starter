@@ -71,7 +71,7 @@ ark-go-starter/
 4. **错误处理**：业务错误统一 `code.GetError(code.XXXError)`（`pkg/code`）；日志用 `glog.Errorf(ctx, "[module.Method] msg, err:%v", err)`。详见 [backend-conventions.md](./docs/agents/backend-conventions.md#错误处理)。
 5. **事务**：使用 `dbclient` 封装的 `Transaction(func(tx *gorm.DB) error {...})`，不要自行开事务。详见 [backend-conventions.md](./docs/agents/backend-conventions.md#事务处理)。
 6. **Controller 返回**：统一走 `gincontext`，绑定失败 `gincontext.Fail(ctx, err)`，成功 `gincontext.Success(ctx, res)`。详见 [backend-conventions.md](./docs/agents/backend-conventions.md#controller-返回模式)。
-7. **路由**：`/{版本}/{app}/{资源复数}`，RESTful + HTTP 方法，如 `GET /v1/demo/users`；路径参数 `:xxxID`；**层级不超过 4 层**。详见 [api-conventions.md](./docs/agents/api-conventions.md)。
+7. **路由**：`/{版本}/{app}/{资源复数}`，RESTful + HTTP 方法，如 `GET /v1/demo/products`；路径参数 `:xxxID`；**层级不超过 4 层**。详见 [api-conventions.md](./docs/agents/api-conventions.md)。
 8. **Swagger**：新增接口需补 `@Tags/@Summary/@Param/@Success/@Router` 注解，并执行 `make swag APP=demo`。详见 [api-conventions.md](./docs/agents/api-conventions.md#swagger-文档)。
 9. **测试**：同包或 `_test` 包，用 `testsetup.Initialize(testsetup.AppNameDemo)` 初始化环境（基于 `pkg/testsetup`，详见 [pkg/testsetup/README.md](./backend/pkg/testsetup/README.md)），标准库 `testing` + `testify`；**依赖 DB/Redis/外网的用例必须加 `//go:build integration`**（否则 `go test ./...` 在无库环境全红）；错误断言用 `assert.NoError` 而非 `assert.Nil`。详见 [testing.md](./docs/agents/testing.md#集成测试必须隔离硬性要求)。
 10. **工具链**：数据库 GORM + PostgreSQL（**唯一目标库**；DDL 见 `backend/scripts/sql/table_init.sql`，model tag 禁写其它方言类型）。缓存 Redis，日志 golib/glog，链路 OpenTelemetry。详见 [toolchain.md](./docs/agents/toolchain.md) 与 [模型字段类型规范](./docs/agents/backend-conventions.md#模型字段类型规范postgresql)。

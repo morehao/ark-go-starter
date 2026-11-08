@@ -70,7 +70,7 @@ components:
 - **定位**：工程实践模板的前端基座，「冷白工程台」——浅色、数据密集、克制。
 - **画布**：页面底色 `{colors.surface-layout}`（冷白）；内容承载于白色圆角卡片 `{colors.surface-card}`，卡片以 `1px solid {colors.border-hairline}` hairline 描边分层、**不使用卡片阴影**（阴影仅留给 Modal 等浮层）。
 - **品牌**：靛蓝 `{colors.brand-primary}` 是唯一强调色（主按钮 / 链接 / 选中态 / 输入聚焦）；渐变 `{colors.brand-gradient}` 仅出现在品牌区与 Logo/头像（全站唯一「hero 大气层」）。
-- **导航**：约定左侧深色栏 `{colors.surface-sidebar}`（#0f172a，近黑蓝），菜单选中项用 `{colors.surface-selected-bg}` 柔和半透明高亮（非整块亮色）；顶部白 Header 56px。当前 demo 仅有 Header，侧栏为模板规范预留。
+- **导航**：约定左侧深色栏 `{colors.surface-sidebar}`（#0f172a，近黑蓝），菜单选中项用 `{colors.surface-selected-bg}` 柔和半透明高亮（非整块亮色）；顶部白 Header 56px。demo 已使用深色侧栏 + 顶部 Header 的多页骨架，侧栏令牌已实际落地。
 - **基调**：以「表格 + 搜索 + 抽屉/弹窗」构成业务页；页面表面一律**中性灰阶**（禁用靛蓝淡底 tint），把主色当作稀有资源；全站开启 `tabular-nums` 让 ID/时间/数字等宽对齐。
 
 > **参照锚点**：方法论受 **Stripe**（数据表格骨架、`tabular-nums`、ink-mute 灰阶文字）与 **Vercel**（精确灰阶分层、渐变只出现在品牌区这一个「hero 大气层」）启发，纪律细节参考 **Linear / Supabase**（主色稀有、hairline 层级）。非照搬任何具体品牌配色。
@@ -224,5 +224,5 @@ PageContainer(title, description, extra=刷新 + 主操作[type=primary])
 
 1. `theme.ts` 与 DESIGN.md 为**人工同步**，暂无 lint/test 强制一致。
 2. 当前 `packages/ui` 仅落地 `theme` / `AppShell` / `PageContainer` 三项；状态 Tag 字典、列宽工厂（`idColumn` / `timeColumn` / `actionColumn`）、`TimeCell`、`IDCell`、`RemoteSelect` 等按业务需要再逐步引入，并同步补充本文件。
-3. demo 未使用侧栏与登录页，相关令牌（`surface-sidebar` / `selected-bg` / 渐变）暂作为模板规范预留。
+3. demo 已使用深色侧栏 + 顶部 Header 多页骨架（菜单 + `useState` 切页，未引入 react-router），侧栏令牌已落地；登录页仍为预留。
 4. 未接入路由库/状态管理库；如需多页应用，先补 `AppShell` 之外的 `MainLayout` 规范再落地。

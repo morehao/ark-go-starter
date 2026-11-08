@@ -12,7 +12,7 @@ import (
 
 // postgresModels 是受本用例守护的模型清单，新增 model 时补进来。
 var postgresModels = []any{
-	&UserEntity{},
+	&ProductEntity{},
 }
 
 // nonPostgresTypeTokens 是禁止出现在 gorm `type:` tag 里的其它方言字面量。
