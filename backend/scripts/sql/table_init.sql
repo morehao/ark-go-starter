@@ -5,10 +5,9 @@
 --   createdb demo
 --   psql -d demo -f backend/scripts/sql/table_init.sql
 --
--- 注意：user 是 PostgreSQL 保留字，凡出现在 SQL 中都必须写成 "user"（双引号）。
--- Go 侧不受此限制：golib/gormdao（v1.32.26 起）会把表名与列名交给 GORM 按当前方言引用，
--- 所以 model.TableNameUser 是**不带引号**的逻辑表名，传给 gormdao.NewDao 即可，
--- 生成的 SQL 形如 SELECT count(*) FROM "user" WHERE "user"."deleted_at" IS NULL。
+-- 注意：product 表名在 PostgreSQL 中非关键字，SQL 中可直接写 product（无需像保留字那样加双引号）。
+-- Go 侧 model.TableNameProduct 是**不带引号**的逻辑表名，传给 gormdao.NewDao 即可，
+-- 生成的 SQL 形如 SELECT count(*) FROM "product" WHERE "product"."deleted_at" IS NULL。
 --
 -- 其余表（core_file、core_file_upload）由 golib/filestore 在应用启动时 AutoMigrate 创建。
 --
@@ -21,35 +20,35 @@
 -- CREATE DATABASE demo;
 
 -- ----------------------------------------------------------------------------
--- 用户表
+-- 商品表
 -- ----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS "user"
+CREATE TABLE IF NOT EXISTS product
 (
-    id            BIGSERIAL    PRIMARY KEY,               -- 自增ID
-    company_id    BIGINT       NOT NULL DEFAULT 0,        -- 公司id
-    department_id BIGINT       NOT NULL DEFAULT 0,        -- 部门id
-    name          VARCHAR(255) NOT NULL DEFAULT '',       -- 姓名
-    created_at    TIMESTAMPTZ  NOT NULL DEFAULT now(),    -- 创建时间
-    updated_at    TIMESTAMPTZ  NOT NULL DEFAULT now(),    -- 更新时间（由 GORM 维护）
-    deleted_at    TIMESTAMPTZ           DEFAULT NULL,     -- 删除时间（软删除）
-    created_by    BIGINT       NOT NULL DEFAULT 0,        -- 创建人id
-    updated_by    BIGINT       NOT NULL DEFAULT 0,        -- 更新人id
-    deleted_by    BIGINT       NOT NULL DEFAULT 0         -- 删除人id
+    id          BIGSERIAL     PRIMARY KEY,               -- 自增ID
+    name        VARCHAR(255)  NOT NULL DEFAULT '',       -- 商品名称
+    category_id BIGINT        NOT NULL DEFAULT 0,        -- 分类id
+    price       NUMERIC(10,2) NOT NULL DEFAULT 0,        -- 价格
+    created_at  TIMESTAMPTZ   NOT NULL DEFAULT now(),    -- 创建时间
+    updated_at  TIMESTAMPTZ   NOT NULL DEFAULT now(),    -- 更新时间（由 GORM 维护）
+    deleted_at  TIMESTAMPTZ            DEFAULT NULL,     -- 删除时间（软删除）
+    created_by  BIGINT        NOT NULL DEFAULT 0,        -- 创建人id
+    updated_by  BIGINT        NOT NULL DEFAULT 0,        -- 更新人id
+    deleted_by  BIGINT        NOT NULL DEFAULT 0         -- 删除人id
 );
 
-CREATE INDEX IF NOT EXISTS idx_user_deleted_at ON "user" (deleted_at);
+CREATE INDEX IF NOT EXISTS idx_product_deleted_at ON product (deleted_at);
 
-COMMENT ON TABLE "user" IS '用户表';
-COMMENT ON COLUMN "user".id IS '自增ID';
-COMMENT ON COLUMN "user".company_id IS '公司id';
-COMMENT ON COLUMN "user".department_id IS '部门id';
-COMMENT ON COLUMN "user".name IS '姓名';
-COMMENT ON COLUMN "user".created_at IS '创建时间';
-COMMENT ON COLUMN "user".updated_at IS '更新时间（由 GORM 维护）';
-COMMENT ON COLUMN "user".deleted_at IS '删除时间（软删除）';
-COMMENT ON COLUMN "user".created_by IS '创建人id';
-COMMENT ON COLUMN "user".updated_by IS '更新人id';
-COMMENT ON COLUMN "user".deleted_by IS '删除人id';
+COMMENT ON TABLE product IS '商品表';
+COMMENT ON COLUMN product.id IS '自增ID';
+COMMENT ON COLUMN product.name IS '商品名称';
+COMMENT ON COLUMN product.category_id IS '分类id';
+COMMENT ON COLUMN product.price IS '价格';
+COMMENT ON COLUMN product.created_at IS '创建时间';
+COMMENT ON COLUMN product.updated_at IS '更新时间（由 GORM 维护）';
+COMMENT ON COLUMN product.deleted_at IS '删除时间（软删除）';
+COMMENT ON COLUMN product.created_by IS '创建人id';
+COMMENT ON COLUMN product.updated_by IS '更新人id';
+COMMENT ON COLUMN product.deleted_by IS '删除人id';
 
 -- ----------------------------------------------------------------------------
 -- 用户登录日志表

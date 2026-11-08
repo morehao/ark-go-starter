@@ -22,7 +22,7 @@ func RegisterRouter(groups *ginserver.RouterGroups, _ string) {
 	clientRouter(groups)
 	healthRouter(groups)
 	fileRouter(groups)
-	userRouter(groups)
+	productRouter(groups)
 	registerGolibModules(groups)
 }
 

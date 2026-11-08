@@ -4,10 +4,10 @@
 
 ## API 路由规范
 
-- **路径格式**: RESTful 资源式，`/{版本}/{app}/{资源复数}` + HTTP 方法，如 `GET /v1/demo/users`
+- **路径格式**: RESTful 资源式，`/{版本}/{app}/{资源复数}` + HTTP 方法，如 `GET /v1/demo/products`
 - **版本号**: 放在路径最前，使用 `/v1/`, `/v2/` 等格式
 - **App 标识**: 用于区分不同应用，如 `demo`
-- **资源名**: 复数形式，小写 kebab-case（如 `user` → `users`、`user-info`）；路径参数用 `:xxxID`（如 `:userID`）
+- **资源名**: 复数形式，小写 kebab-case（如 `product` → `products`、`user-info`）；路径参数用 `:xxxID`（如 `:productID`）
 - **HTTP 方法**: 创建 `POST`、列表 `GET`、详情 `GET /:id`、修改 `PUT /:id`、删除 `DELETE /:id`
 
 **路由层级限制为 4 层**，避免使用多层嵌套路径。
@@ -16,26 +16,26 @@
 
 | 模块 | 操作 | 完整路径 |
 |------|------|----------|
-| user | 创建 | `POST /v1/demo/users` |
-| user | 列表 | `GET /v1/demo/users` |
-| user | 详情 | `GET /v1/demo/users/:userID` |
-| user | 修改 | `PUT /v1/demo/users/:userID` |
-| user | 删除 | `DELETE /v1/demo/users/:userID` |
+| product | 创建 | `POST /v1/demo/products` |
+| product | 列表 | `GET /v1/demo/products` |
+| product | 详情 | `GET /v1/demo/products/:productID` |
+| product | 修改 | `PUT /v1/demo/products/:productID` |
+| product | 删除 | `DELETE /v1/demo/products/:productID` |
 
 ### 路由注册
 
 在 `internal/router/*.go` 中注册路由，先按版本分组，再按资源分组：
 
 ```go
-func userRouter(groups *ginserver.RouterGroups) {
-    userCtr := ctruser.NewUserCtr()
+func productRouter(groups *ginserver.RouterGroups) {
+    productCtr := ctrproduct.NewProductCtr()
     v1RouterGroup := groups.MustGetGroup(ginserver.ApiVersionV1)
 
-    v1RouterGroup.POST("/users", userCtr.Create)
-    v1RouterGroup.GET("/users", userCtr.PageList)
-    v1RouterGroup.GET("/users/:userID", userCtr.Detail)
-    v1RouterGroup.PUT("/users/:userID", userCtr.Update)
-    v1RouterGroup.DELETE("/users/:userID", userCtr.Delete)
+    v1RouterGroup.POST("/products", productCtr.Create)
+    v1RouterGroup.GET("/products", productCtr.PageList)
+    v1RouterGroup.GET("/products/:productID", productCtr.Detail)
+    v1RouterGroup.PUT("/products/:productID", productCtr.Update)
+    v1RouterGroup.DELETE("/products/:productID", productCtr.Delete)
 }
 ```
 
@@ -62,13 +62,13 @@ func registerGolibModules(groups *ginserver.RouterGroups) {
 使用 Swag Go 注解，需包含以下注释：
 
 ```go
-// @Tags 用户管理
-// @Summary 创建用户管理
+// @Tags 商品管理
+// @Summary 创建商品管理
 // @accept application/json
 // @Produce application/json
-// @Param req body dtouser.UserCreateReq true "创建用户管理"
-// @Success 200 {object} gincontext.DtoRender{data=dtouser.UserCreateResp}
-// @Router /v1/demo/user/create [post]
+// @Param req body dtoproduct.ProductCreateReq true "创建商品管理"
+// @Success 200 {object} gincontext.DtoRender{data=dtoproduct.ProductCreateResp}
+// @Router /v1/demo/products [post]
 ```
 
 生成文档：

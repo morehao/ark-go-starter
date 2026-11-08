@@ -2222,7 +2222,7 @@ const docTemplatedemo = `{
                 }
             }
         },
-        "/v1/demo/users": {
+        "/v1/demo/products": {
             "get": {
                 "consumes": [
                     "application/json"
@@ -2231,25 +2231,19 @@ const docTemplatedemo = `{
                     "application/json"
                 ],
                 "tags": [
-                    "用户管理"
+                    "商品管理"
                 ],
-                "summary": "用户管理列表分页",
+                "summary": "商品管理列表分页",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "公司id（可选）",
-                        "name": "companyID",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "部门id（可选）",
-                        "name": "departmentID",
+                        "description": "分类id（可选）",
+                        "name": "categoryID",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "姓名（可选，精确匹配）",
+                        "description": "商品名称（可选，精确匹配）",
                         "name": "name",
                         "in": "query"
                     },
@@ -2279,7 +2273,7 @@ const docTemplatedemo = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dtouser.UserPageListResp"
+                                            "$ref": "#/definitions/dtoproduct.ProductPageListResp"
                                         }
                                     }
                                 }
@@ -2296,17 +2290,17 @@ const docTemplatedemo = `{
                     "application/json"
                 ],
                 "tags": [
-                    "用户管理"
+                    "商品管理"
                 ],
-                "summary": "创建用户管理",
+                "summary": "创建商品管理",
                 "parameters": [
                     {
-                        "description": "创建用户管理",
+                        "description": "创建商品管理",
                         "name": "req",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dtouser.UserCreateReq"
+                            "$ref": "#/definitions/dtoproduct.ProductCreateReq"
                         }
                     }
                 ],
@@ -2322,7 +2316,7 @@ const docTemplatedemo = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dtouser.UserCreateResp"
+                                            "$ref": "#/definitions/dtoproduct.ProductCreateResp"
                                         }
                                     }
                                 }
@@ -2332,7 +2326,7 @@ const docTemplatedemo = `{
                 }
             }
         },
-        "/v1/demo/users/tx": {
+        "/v1/demo/products/tx": {
             "post": {
                 "consumes": [
                     "application/json"
@@ -2341,9 +2335,9 @@ const docTemplatedemo = `{
                     "application/json"
                 ],
                 "tags": [
-                    "用户管理"
+                    "商品管理"
                 ],
-                "summary": "事务示例：同一事务内创建两条用户记录",
+                "summary": "事务示例：同一事务内创建两条商品记录",
                 "parameters": [
                     {
                         "description": "事务创建请求",
@@ -2351,7 +2345,7 @@ const docTemplatedemo = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dtouser.UserCreateInTxReq"
+                            "$ref": "#/definitions/dtoproduct.ProductCreateInTxReq"
                         }
                     }
                 ],
@@ -2367,7 +2361,7 @@ const docTemplatedemo = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dtouser.UserCreateInTxResp"
+                                            "$ref": "#/definitions/dtoproduct.ProductCreateInTxResp"
                                         }
                                     }
                                 }
@@ -2377,7 +2371,7 @@ const docTemplatedemo = `{
                 }
             }
         },
-        "/v1/demo/users/{userID}": {
+        "/v1/demo/products/{productID}": {
             "get": {
                 "consumes": [
                     "application/json"
@@ -2386,14 +2380,14 @@ const docTemplatedemo = `{
                     "application/json"
                 ],
                 "tags": [
-                    "用户管理"
+                    "商品管理"
                 ],
-                "summary": "用户管理详情",
+                "summary": "商品管理详情",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "userID",
-                        "name": "userID",
+                        "description": "productID",
+                        "name": "productID",
                         "in": "path",
                         "required": true
                     }
@@ -2410,7 +2404,7 @@ const docTemplatedemo = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dtouser.UserDetailResp"
+                                            "$ref": "#/definitions/dtoproduct.ProductDetailResp"
                                         }
                                     }
                                 }
@@ -2427,24 +2421,24 @@ const docTemplatedemo = `{
                     "application/json"
                 ],
                 "tags": [
-                    "用户管理"
+                    "商品管理"
                 ],
-                "summary": "修改用户管理",
+                "summary": "修改商品管理",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "userID",
-                        "name": "userID",
+                        "description": "productID",
+                        "name": "productID",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "修改用户管理",
+                        "description": "修改商品管理",
                         "name": "req",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dtouser.UserUpdateReq"
+                            "$ref": "#/definitions/dtoproduct.ProductUpdateReq"
                         }
                     }
                 ],
@@ -2477,14 +2471,14 @@ const docTemplatedemo = `{
                     "application/json"
                 ],
                 "tags": [
-                    "用户管理"
+                    "商品管理"
                 ],
-                "summary": "删除用户管理",
+                "summary": "删除商品管理",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "userID",
-                        "name": "userID",
+                        "description": "productID",
+                        "name": "productID",
                         "in": "path",
                         "required": true
                     }
@@ -2526,7 +2520,7 @@ const docTemplatedemo = `{
                 }
             }
         },
-        "dtouser.UserCreateInTxReq": {
+        "dtoproduct.ProductCreateInTxReq": {
             "type": "object",
             "required": [
                 "firstName",
@@ -2538,20 +2532,20 @@ const docTemplatedemo = `{
                     "type": "boolean"
                 },
                 "firstName": {
-                    "description": "第一条用户姓名（必填）",
+                    "description": "第一条商品名称（必填）",
                     "type": "string"
                 },
                 "secondName": {
-                    "description": "第二条用户姓名（必填）",
+                    "description": "第二条商品名称（必填）",
                     "type": "string"
                 }
             }
         },
-        "dtouser.UserCreateInTxResp": {
+        "dtoproduct.ProductCreateInTxResp": {
             "type": "object",
             "properties": {
-                "userIDs": {
-                    "description": "事务内创建成功的用户 ID 列表",
+                "productIDs": {
+                    "description": "事务内创建成功的商品 ID 列表",
                     "type": "array",
                     "items": {
                         "type": "integer"
@@ -2559,37 +2553,37 @@ const docTemplatedemo = `{
                 }
             }
         },
-        "dtouser.UserCreateReq": {
+        "dtoproduct.ProductCreateReq": {
             "type": "object",
             "properties": {
-                "companyID": {
-                    "description": "公司id",
-                    "type": "integer"
-                },
-                "departmentID": {
-                    "description": "部门id",
+                "categoryID": {
+                    "description": "分类id",
                     "type": "integer"
                 },
                 "name": {
-                    "description": "姓名",
+                    "description": "商品名称",
                     "type": "string"
+                },
+                "price": {
+                    "description": "价格",
+                    "type": "number"
                 }
             }
         },
-        "dtouser.UserCreateResp": {
+        "dtoproduct.ProductCreateResp": {
             "type": "object",
             "properties": {
-                "userID": {
+                "productID": {
                     "description": "自增 ID",
                     "type": "integer"
                 }
             }
         },
-        "dtouser.UserDetailResp": {
+        "dtoproduct.ProductDetailResp": {
             "type": "object",
             "properties": {
-                "companyID": {
-                    "description": "公司id",
+                "categoryID": {
+                    "description": "分类id",
                     "type": "integer"
                 },
                 "createdAt": {
@@ -2600,13 +2594,17 @@ const docTemplatedemo = `{
                     "description": "创建人id",
                     "type": "integer"
                 },
-                "departmentID": {
-                    "description": "部门id",
-                    "type": "integer"
-                },
                 "name": {
-                    "description": "姓名",
+                    "description": "商品名称",
                     "type": "string"
+                },
+                "price": {
+                    "description": "价格",
+                    "type": "number"
+                },
+                "productID": {
+                    "description": "自增 ID",
+                    "type": "integer"
                 },
                 "updatedAt": {
                     "description": "更新时间",
@@ -2615,18 +2613,14 @@ const docTemplatedemo = `{
                 "updatedBy": {
                     "description": "更新人id",
                     "type": "integer"
-                },
-                "userID": {
-                    "description": "自增 ID",
-                    "type": "integer"
                 }
             }
         },
-        "dtouser.UserPageListItem": {
+        "dtoproduct.ProductPageListItem": {
             "type": "object",
             "properties": {
-                "companyID": {
-                    "description": "公司id",
+                "categoryID": {
+                    "description": "分类id",
                     "type": "integer"
                 },
                 "createdAt": {
@@ -2637,13 +2631,17 @@ const docTemplatedemo = `{
                     "description": "创建人id",
                     "type": "integer"
                 },
-                "departmentID": {
-                    "description": "部门id",
-                    "type": "integer"
-                },
                 "name": {
-                    "description": "姓名",
+                    "description": "商品名称",
                     "type": "string"
+                },
+                "price": {
+                    "description": "价格",
+                    "type": "number"
+                },
+                "productID": {
+                    "description": "自增 ID",
+                    "type": "integer"
                 },
                 "updatedAt": {
                     "description": "更新时间",
@@ -2652,21 +2650,17 @@ const docTemplatedemo = `{
                 "updatedBy": {
                     "description": "更新人id",
                     "type": "integer"
-                },
-                "userID": {
-                    "description": "自增 ID",
-                    "type": "integer"
                 }
             }
         },
-        "dtouser.UserPageListResp": {
+        "dtoproduct.ProductPageListResp": {
             "type": "object",
             "properties": {
                 "list": {
                     "description": "数据列表",
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/dtouser.UserPageListItem"
+                        "$ref": "#/definitions/dtoproduct.ProductPageListItem"
                     }
                 },
                 "total": {
@@ -2675,20 +2669,20 @@ const docTemplatedemo = `{
                 }
             }
         },
-        "dtouser.UserUpdateReq": {
+        "dtoproduct.ProductUpdateReq": {
             "type": "object",
             "properties": {
-                "companyID": {
-                    "description": "公司id（nil 表示不修改）",
-                    "type": "integer"
-                },
-                "departmentID": {
-                    "description": "部门id（nil 表示不修改）",
+                "categoryID": {
+                    "description": "分类id（nil 表示不修改）",
                     "type": "integer"
                 },
                 "name": {
-                    "description": "姓名（nil 表示不修改）",
+                    "description": "商品名称（nil 表示不修改）",
                     "type": "string"
+                },
+                "price": {
+                    "description": "价格（nil 表示不修改）",
+                    "type": "number"
                 }
             }
         },

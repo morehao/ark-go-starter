@@ -75,8 +75,9 @@ import { AppShell, PageContainer, tokens } from '@ark-go-starter/ui'
 ## 已知空白（与 DESIGN.md `Known Gaps` 一致）
 
 - `packages/ui` 目前仅落地 `theme` / `AppShell` / `PageContainer`；状态 Tag 字典、列宽工厂（`idColumn` / `timeColumn` / `actionColumn`）、`TimeCell` / `IDCell` / `RemoteSelect` 待按业务引入；
-- demo 未使用侧栏与登录页，相关令牌（`surface-sidebar` / `selected-bg` / 渐变）为模板预留；
-- 未接入路由库 / 状态管理库；如需多页应用，先补 `AppShell` 之外的 `MainLayout` 规范再落地；
+- demo 已落地多页骨架：深色 `Sider`（侧栏）+ 顶部 `Header` + `Content`，侧栏令牌（`surface-sidebar` / `selected-bg` / 渐变）已实际使用；当前页面有**商品管理 / 数据字典 / 配置中心 / 定时任务 / 异步任务 / 健康检查**六个（对应 `frontend/apps/demo-web/src/pages/{Products,Dicts,Settings,Cron,Async,Health}`）。切页用 `antd` `Menu` + `useState`，**仍未引入 react-router**；
+- 登录页仍为模板预留，尚未落地；
+- 未接入路由库 / 状态管理库；如需真正的前端路由（URL 可定位、可回退），先补 `AppShell` 之外的 `MainLayout` 规范再落地；
 - 引入上述内容时，同步更新 `frontend/DESIGN.md`，本文的空白清单也应一并核对。
 
 ## 相关文档
