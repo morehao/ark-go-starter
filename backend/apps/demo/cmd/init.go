@@ -90,7 +90,8 @@ func initComponents() error {
 	config.SetCron(cronInstance)
 	glog.Infof(context.Background(), "[%s.initComponents] cron initialized", demo.AppName)
 
-	asyncInstance, err := gasync.NewServer(&config.Conf.Async, db)
+	asyncCfg := config.Conf.Async.ToGasync()
+	asyncInstance, err := gasync.NewServer(&asyncCfg, db)
 	if err != nil {
 		return fmt.Errorf("init async failed: %w", err)
 	}

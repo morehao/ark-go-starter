@@ -52,6 +52,39 @@ func TestDbcheckVerify(t *testing.T) {
 
 判断标准：只要调用了 `testsetup.Initialize`（会连库）或发起真实网络请求，就要加 tag。
 
+## 端到端测试（e2e，两端覆盖）
+
+项目提供前后端 e2e，作为集成测试之上的最外层保障。**e2e 与集成测试的 tag 不同**：
+
+| 层 | 位置 | build tag / 命令 | 说明 |
+| --- | --- | --- | --- |
+| 后端集成级 e2e | `apps/demo/internal/controller/ctrproduct/product_e2e_test.go` | `//go:build integration`，`make test-integration` | 进程内真栈（httptest）+ 真库，快、定位准 |
+| 后端真端口 e2e | `apps/demo/e2e/` | `//go:build e2e`，`make e2e-backend` | 真实 TCP 端口 + 真库，验证二进制可起、端口可通 |
+| 前端 Playwright e2e | `frontend/e2e/` | `make e2e-frontend` | 真浏览器 + 前端服务 + 真后端，覆盖核心用户路径 |
+
+**硬性规则**：
+- 后端 e2e 用例必须加 `//go:build e2e`，`go test ./...` 与 `make test` 默认不执行，不污染单元信号。
+- 前端 e2e 的数据统一加 `e2e-` 前缀 + 时间戳保证唯一，并在 `frontend/e2e/support/teardown.ts` 兜底清理，避免脏数据留在真实库。
+- 前端 Playwright 依赖后端运行在 `http://localhost:8099`（vite `/v1` 代理转发）；由 Makefile / CI 负责拉起后端。
+
+```bash
+# 首次：安装前端依赖与 Playwright 浏览器
+make e2e-install
+
+# 本地一键两端 e2e（需本地 PG/Redis 就绪，后端 8099 会由 e2e 自行/由你启动）
+make e2e
+
+# 分别运行
+make e2e-backend  APP=demo   # 后端真端口 e2e（用例自起随机端口）
+make e2e-frontend            # 前端 Playwright（需先启动后端 8099，Playwright 自动拉起前端）
+
+# 依赖预检（探测本地 PG/Redis 端口）
+make e2e-deps-check
+```
+
+> 复用本地 PG/Redis 的策略：e2e 沿用 `backend/apps/demo/config/config.yaml` 指向的本地实例，
+> 未就绪时 `make e2e-deps-check` 会明确报错，不自动起库。
+
 ## 断言约定
 
 | 场景 | 写法 | 原因 |

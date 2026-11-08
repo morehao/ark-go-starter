@@ -53,6 +53,7 @@ ark-go-starter/
 | 前后端一起起 | `make dev-all APP=demo` |
 | 测试 | `make test APP=demo`（单元，无需 DB） |
 | 集成测试 | `make test-integration APP=demo`（需 PG/Redis） |
+| 端到端测试 | `make e2e APP=demo`（后端真端口 + 前端 Playwright，需 PG/Redis；首次 `make e2e-install`） |
 | Lint | `make lint` |
 | 代码生成 | `make codegen APP=demo COMMAND=api\|module\|model` |
 | Swagger | `make swag APP=demo` |
