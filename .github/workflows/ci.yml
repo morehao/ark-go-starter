@@ -126,3 +126,105 @@ jobs:
           cd backend
           (cd pkg && govulncheck ./...)
           (cd apps/demo && govulncheck ./...)
+
+  e2e:
+    name: E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: "123456"
+          POSTGRES_DB: demo
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/pkg/go.mod
+          cache-dependency-path: |
+            backend/go.work.sum
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          # 省略 version：读取 frontend/package.json 的 packageManager（pnpm@12.10.1），
+          # 与本地/engines 保持单一事实源。package_json_file 指向 workspace 根的 package.json。
+          package_json_file: frontend/package.json
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          # 与 frontend/package.json 的 engines.node（>=26）对齐；Node 26 为当前 LTS。
+          node-version: 26
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Init PostgreSQL schema
+        env:
+          PGPASSWORD: "123456"
+        run: |
+          psql -h 127.0.0.1 -U postgres -d demo -f backend/scripts/sql/table_init.sql
+
+      # 后端真端口 e2e：用例内部用 testsetup + Routers 自起随机端口，不依赖外部进程
+      - name: Backend e2e (real port)
+        run: |
+          cd backend
+          go test -tags=e2e ./apps/demo/e2e/... -v -count=1
+
+      # 前端 Playwright 需要一个真实后端在 8099：构建二进制并后台启动
+      - name: Build & start backend for frontend e2e
+        run: |
+          cd backend
+          go build -o output/build/demo ./apps/demo/cmd
+          APP_CONFIG_PATH="$PWD/apps/demo/config/config.yaml" ./output/build/demo > /tmp/demo_be.log 2>&1 &
+          for i in $(seq 1 40); do
+            if curl -sf http://127.0.0.1:8099/v1/demo/health >/dev/null; then echo "backend up"; break; fi
+            sleep 1
+          done
+          curl -sf http://127.0.0.1:8099/v1/demo/health
+
+      - name: Install frontend deps
+        run: |
+          cd frontend
+          pnpm install --frozen-lockfile=false
+          pnpm --filter @ark-go-starter/e2e exec playwright install --with-deps chromium
+
+      - name: Frontend e2e (Playwright)
+        env:
+          E2E_WEB_MODE: preview
+        run: |
+          cd frontend/e2e
+          pnpm exec playwright test
+
+      - name: Upload Playwright artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            frontend/e2e/playwright-report/
+            frontend/e2e/test-results/
+          retention-days: 7
+
+      - name: Dump backend log on failure
+        if: failure()
+        run: cat /tmp/demo_be.log || true

@@ -121,14 +121,24 @@ export default function ProductsPage() {
       width: 160,
       render: (_, record) => (
         <Space size="middle">
-          <Button type="link" size="small" onClick={() => openEdit(record)}>
+          <Button
+            type="link"
+            size="small"
+            data-testid={`product-edit-${record.productID}`}
+            onClick={() => openEdit(record)}
+          >
             编辑
           </Button>
           <Popconfirm
             title="确认删除该商品？"
             onConfirm={() => handleDelete(record.productID)}
           >
-            <Button type="link" size="small" danger>
+            <Button
+              type="link"
+              size="small"
+              danger
+              data-testid={`product-delete-${record.productID}`}
+            >
               删除
             </Button>
           </Popconfirm>
@@ -144,7 +154,7 @@ export default function ProductsPage() {
       extra={
         <Space>
           <Button onClick={load}>刷新</Button>
-          <Button type="primary" onClick={openCreate}>
+          <Button type="primary" data-testid="product-create-btn" onClick={openCreate}>
             新建商品
           </Button>
         </Space>
@@ -184,13 +194,23 @@ export default function ProductsPage() {
             label="名称"
             rules={[{ required: true, message: '请输入商品名称' }]}
           >
-            <Input placeholder="请输入商品名称" />
+            <Input placeholder="请输入商品名称" data-testid="product-input-name" />
           </Form.Item>
           <Form.Item name="categoryID" label="分类 ID">
-            <InputNumber style={{ width: '100%' }} min={0} placeholder="请输入分类 ID" />
+            <InputNumber
+              style={{ width: '100%' }}
+              min={0}
+              placeholder="请输入分类 ID"
+              data-testid="product-input-category"
+            />
           </Form.Item>
           <Form.Item name="price" label="价格">
-            <InputNumber style={{ width: '100%' }} min={0} placeholder="请输入价格" />
+            <InputNumber
+              style={{ width: '100%' }}
+              min={0}
+              placeholder="请输入价格"
+              data-testid="product-input-price"
+            />
           </Form.Item>
         </Form>
       </Modal>

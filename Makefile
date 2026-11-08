@@ -32,6 +32,7 @@ PORT              = 8099
 # 伪目标
 # ============================================================
 .PHONY: all build build-env clean run lint test test-integration swag codegen \
+        e2e e2e-backend e2e-frontend e2e-install e2e-deps-check \
         docker-build docker-run check-image \
         list-apps deps tidy update-dep \
         dev-all dev-frontend stop-frontend help
@@ -115,6 +116,38 @@ test-integration:
 	@echo "🔗 正在运行集成测试..."
 	@cd backend && go work sync
 	@cd backend && go test -tags=integration ./pkg/... ./apps/$(APP)/... -v
+
+# ============================================================
+# E2E 端到端测试
+# ============================================================
+
+# 依赖预检：探测本地 PostgreSQL(5432)/Redis(6379) 是否就绪（e2e 复用本地实例）
+e2e-deps-check:
+	@ok=1; \
+	if ! nc -z 127.0.0.1 5432 2>/dev/null; then echo "❌ PostgreSQL(127.0.0.1:5432) 未就绪，请先启动本地 PG 并执行 backend/scripts/sql/table_init.sql"; ok=0; fi; \
+	if ! nc -z 127.0.0.1 6379 2>/dev/null; then echo "❌ Redis(127.0.0.1:6379) 未就绪，请先启动本地 Redis"; ok=0; fi; \
+	[ $$ok -eq 1 ] && echo "✅ 本地 PG/Redis 就绪" || exit 1
+
+# 后端真端口端到端测试（需 PG/Redis；--tags=e2e 与单元/集成测试隔离）
+e2e-backend:
+	$(call validate_app)
+	@echo "🌐 正在运行后端 e2e（真端口）..."
+	@cd backend && go work sync
+	@cd backend && go test -tags=e2e ./apps/$(APP)/e2e/... -v -count=1
+
+# 前端 Playwright 端到端测试（需后端 8099 已在运行；前端服务由 playwright webServer 自动拉起）
+e2e-frontend:
+	@echo "🎭 正在运行前端 Playwright e2e..."
+	@cd frontend/e2e && pnpm exec playwright test
+
+# 两端 e2e 全量
+e2e: e2e-deps-check e2e-backend e2e-frontend
+
+# 首次安装 Playwright 浏览器依赖
+e2e-install:
+	@echo "📦 正在安装前端依赖与 Playwright 浏览器..."
+	@cd frontend && pnpm install
+	@cd frontend/e2e && pnpm exec playwright install --with-deps chromium
 
 # ============================================================
 # 依赖管理
@@ -311,6 +344,11 @@ help:
 	@echo "  测试 & 检查"
 	@echo "    make test      APP=<名称>              运行单元测试（pkg + 指定应用）"
 	@echo "    make test-integration APP=<名称>     运行集成测试（需 PG/Redis）"
+	@echo "    make e2e       [APP=<名称>]            两端端到端测试（后端真端口 + 前端 Playwright）"
+	@echo "    make e2e-backend APP=<名称>          后端真端口 e2e（需 PG/Redis）"
+	@echo "    make e2e-frontend                      前端 Playwright e2e（需后端 8099 已运行）"
+	@echo "    make e2e-install                       安装前端依赖与 Playwright 浏览器（首次）"
+	@echo "    make e2e-deps-check                    探测本地 PG/Redis 是否就绪"
 	@echo "    make lint                              运行 golangci-lint"
 	@echo ""
 	@echo "  依赖管理"

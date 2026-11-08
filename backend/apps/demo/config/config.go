@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/morehao/golib/dbaccess/dbgorm"
 	"github.com/morehao/golib/dbaccess/dbredis"
@@ -40,7 +41,33 @@ type Config struct {
 	Client      Client                    `yaml:"client"`
 	FileStorage FileStorage               `yaml:"file_storage"`
 	Cron        gcron.Config              `yaml:"cron"`  // 定时任务配置
-	Async       gasync.Config             `yaml:"async"` // 异步任务配置
+	Async       AsyncConfig               `yaml:"async"` // 异步任务配置
+}
+
+// AsyncConfig 是异步任务（golib/gasync）的配置。
+//
+// golib 的 gasync.Config 未声明 yaml tag，yaml.v3 默认按字段名小写（redisaddr）
+// 匹配，导致 config.yaml 里 snake_case 的 redis_addr 无法生效、启动时报
+// "gasync: redis addr is empty"。这里用带 yaml tag 的本地结构承接配置，
+// 再转换为 gasync.Config，既保持配置文件 snake_case 风格，又避免运行时踩坑。
+type AsyncConfig struct {
+	RedisAddr     string        `yaml:"redis_addr"`     // Redis 地址
+	RedisPassword string        `yaml:"redis_password"` // Redis 密码
+	RedisDB       int           `yaml:"redis_db"`       // Redis 库号
+	Concurrency   int           `yaml:"concurrency"`    // 并发度（<=0 时用 gasync 默认）
+	Timeout       time.Duration `yaml:"timeout"`        // 任务超时（<=0 时用 gasync 默认）
+}
+
+// ToGasync 转换为 golib gasync.Config。
+func (c AsyncConfig) ToGasync() gasync.Config {
+	cfg := gasync.Config{
+		RedisAddr:     c.RedisAddr,
+		RedisPassword: c.RedisPassword,
+		RedisDB:       c.RedisDB,
+		Concurrency:   c.Concurrency,
+		Timeout:       c.Timeout,
+	}
+	return cfg
 }
 
 // Server 是 HTTP 服务配置。

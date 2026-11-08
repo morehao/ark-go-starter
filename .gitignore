@@ -21,6 +21,11 @@ backend/storage/
 .pnpm-store
 pnpm-debug.log*
 
+# 前端 e2e（Playwright）产物
+frontend/e2e/playwright-report/
+frontend/e2e/test-results/
+frontend/e2e/blob-report/
+
 # Go 编译产物
 *.test
 *.exe
