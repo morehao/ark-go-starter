@@ -12,7 +12,7 @@ import FilesPage from './pages/Files'
 const { Sider, Header, Content } = Layout
 
 /** 菜单项 key 到页面组件的映射（不引入路由库，用 state 切换） */
-const PAGES: Record<string, () => JSX.Element> = {
+const PAGES: Record<string, () => React.JSX.Element> = {
   products: ProductsPage,
   dicts: DictsPage,
   settings: SettingsPage,
