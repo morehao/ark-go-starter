@@ -372,6 +372,33 @@ export interface AsyncTaskRunListResult {
   total: number
 }
 
+// ============================ 文件上传 Files ============================
+// golib ginupload 路由，接口路径 /v1/demo/files，响应字段为 snake_case。
+
+/** 文件记录（上传成功后返回，对应 ginupload.fileRecordResponse） */
+export interface FileRecord {
+  // 文件 ID
+  file_id: string
+  // 文件名
+  name: string
+  // MIME 类型
+  mime_type: string
+  // 文件状态：pending/uploading/completed/failed/aborted
+  status: string
+}
+
+/** 下载地址响应（对应 ginupload.presignURLResponse） */
+export interface PresignURLResp {
+  // 预签名 URL
+  url: string
+  // 预签名请求的 HTTP 方法
+  method: string
+  // 签名覆盖的请求头，必须原样发送
+  headers: Record<string, string[]>
+  // 过期时间（秒）
+  expires_in: number
+}
+
 // ============================ 健康检查 Health ============================
 
 /** 依赖连通性检查结果：连通为 ok，否则为错误信息 */

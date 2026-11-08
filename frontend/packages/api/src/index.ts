@@ -16,8 +16,10 @@ import type {
   DictTypeCreateReq,
   DictTypeListResult,
   DictTypeUpdateReq,
+  FileRecord,
   PageQuery,
   PageResult,
+  PresignURLResp,
   ProductCreateReq,
   ProductDetail,
   ProductPageListItem,
@@ -329,6 +331,45 @@ export function getAsyncRun(id: string) {
   return request<AsyncTaskRun>({
     url: `/async-runs/${id}`,
     method: 'get',
+  })
+}
+
+// ============================ 文件上传 Files ============================
+
+/** 上传单个文件 POST /demo/files（multipart，字段 file / content_hash） */
+export function uploadFile(file: File, contentHash?: string) {
+  const form = new FormData()
+  form.append('file', file)
+  if (contentHash) form.append('content_hash', contentHash)
+  return request<FileRecord>({
+    url: '/demo/files',
+    method: 'post',
+    data: form,
+    // Content-Type 交给浏览器自动生成（含 multipart boundary），此处不手动设置
+  })
+}
+
+/** 文件详情 GET /demo/files/{id} */
+export function getFile(id: string) {
+  return request<FileRecord>({
+    url: `/demo/files/${id}`,
+    method: 'get',
+  })
+}
+
+/** 删除文件 DELETE /demo/files/{id} */
+export function deleteFile(id: string) {
+  return request<unknown>({
+    url: `/demo/files/${id}`,
+    method: 'delete',
+  })
+}
+
+/** 获取下载地址 POST /demo/files/{id}/presign-url */
+export function presignDownload(id: string) {
+  return request<PresignURLResp>({
+    url: `/demo/files/${id}/presign-url`,
+    method: 'post',
   })
 }
 

@@ -7,6 +7,7 @@ import SettingsPage from './pages/Settings'
 import CronPage from './pages/Cron'
 import AsyncPage from './pages/Async'
 import HealthPage from './pages/Health'
+import FilesPage from './pages/Files'
 
 const { Sider, Header, Content } = Layout
 
@@ -18,6 +19,7 @@ const PAGES: Record<string, () => JSX.Element> = {
   cron: CronPage,
   async: AsyncPage,
   health: HealthPage,
+  files: FilesPage,
 }
 
 const MENU_ITEMS = [
@@ -27,6 +29,7 @@ const MENU_ITEMS = [
   { key: 'cron', label: '定时任务' },
   { key: 'async', label: '异步任务' },
   { key: 'health', label: '健康检查' },
+  { key: 'files', label: '文件上传' },
 ]
 
 export default function App() {
