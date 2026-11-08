@@ -46,12 +46,12 @@ jobs:
           (cd apps/demo && go vet ./...)
 
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v7
+        uses: golangci/golangci-lint-action@v9
         with:
           version: ${{ env.GOLANGCI_LINT_VERSION }}
           working-directory: backend/pkg
       - name: golangci-lint (demo)
-        uses: golangci/golangci-lint-action@v7
+        uses: golangci/golangci-lint-action@v9
         with:
           version: ${{ env.GOLANGCI_LINT_VERSION }}
           working-directory: backend/apps/demo
