@@ -13,7 +13,7 @@
     "@ark-go-starter/api": "workspace:*",
     "@ark-go-starter/types": "workspace:*",
     "@ark-go-starter/ui": "workspace:*",
-    "@morehao/ark-iam-react": "file:/Users/morehao/Documents/practice/go/ark-iam/frontend/morehao-ark-iam-react-0.2.0.tgz",
+    "@morehao/ark-iam-react": "^0.2.0",
     "antd": "^6.7.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
