@@ -31,7 +31,7 @@ jobs:
         # 用 git clone 到 $GITHUB_WORKSPACE 的上一级（= 本地 replace 期望的 ../ark-iam），
         # 不用 actions/checkout 的 path（其 path 被限制在 workspace 内）。ark-iam 为 public 仓。
         run: |
-          git clone --depth 1 --branch v0.2.0 https://github.com/morehao/ark-iam.git "$GITHUB_WORKSPACE/../ark-iam"
+          git clone --depth 1 --branch v0.2.1 https://github.com/morehao/ark-iam.git "$GITHUB_WORKSPACE/../ark-iam"
 
       - name: Set up Go
         uses: actions/setup-go@v7
@@ -106,7 +106,7 @@ jobs:
         # 用 git clone 到 $GITHUB_WORKSPACE 的上一级（= 本地 replace 期望的 ../ark-iam），
         # 不用 actions/checkout 的 path（其 path 被限制在 workspace 内）。ark-iam 为 public 仓。
         run: |
-          git clone --depth 1 --branch v0.2.0 https://github.com/morehao/ark-iam.git "$GITHUB_WORKSPACE/../ark-iam"
+          git clone --depth 1 --branch v0.2.1 https://github.com/morehao/ark-iam.git "$GITHUB_WORKSPACE/../ark-iam"
 
       - name: Set up Go
         uses: actions/setup-go@v7
@@ -144,7 +144,7 @@ jobs:
         # 用 git clone 到 $GITHUB_WORKSPACE 的上一级（= 本地 replace 期望的 ../ark-iam），
         # 不用 actions/checkout 的 path（其 path 被限制在 workspace 内）。ark-iam 为 public 仓。
         run: |
-          git clone --depth 1 --branch v0.2.0 https://github.com/morehao/ark-iam.git "$GITHUB_WORKSPACE/../ark-iam"
+          git clone --depth 1 --branch v0.2.1 https://github.com/morehao/ark-iam.git "$GITHUB_WORKSPACE/../ark-iam"
 
       - name: Set up Go
         uses: actions/setup-go@v7
@@ -199,7 +199,7 @@ jobs:
         # 用 git clone 到 $GITHUB_WORKSPACE 的上一级（= 本地 replace 期望的 ../ark-iam），
         # 不用 actions/checkout 的 path（其 path 被限制在 workspace 内）。ark-iam 为 public 仓。
         run: |
-          git clone --depth 1 --branch v0.2.0 https://github.com/morehao/ark-iam.git "$GITHUB_WORKSPACE/../ark-iam"
+          git clone --depth 1 --branch v0.2.1 https://github.com/morehao/ark-iam.git "$GITHUB_WORKSPACE/../ark-iam"
 
       - name: Set up Go
         uses: actions/setup-go@v7

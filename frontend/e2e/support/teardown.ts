@@ -5,6 +5,9 @@ import { cleanupE2EProducts } from './api'
  * 即便有用例失败，teardown 仍会执行。
  */
 export default async function globalTeardown(): Promise<void> {
+  // IAM 开启时业务接口走 OIDC fail-closed（免登录会 401），此免登录清理无意义且会产生噪音，
+  // 且 IAM 场景不通过免登录接口造 e2e- 商品，故直接跳过。
+  if (process.env.E2E_IAM === '1') return
   try {
     await cleanupE2EProducts()
   } catch (e) {
