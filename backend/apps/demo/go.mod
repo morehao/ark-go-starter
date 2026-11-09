@@ -124,5 +124,5 @@ require (
 replace (
 	github.com/morehao/ark-iam/iam => ../../../../ark-iam/backend/iam
 	github.com/morehao/ark-iam/pkg => ../../../../ark-iam/backend/pkg
-	github.com/morehao/ark-iam/sdk => ../../../../ark-iam/backend/sdk
+	github.com/morehao/ark-iam/sdk => ../../../../ark-iam/sdk
 )
