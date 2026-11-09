@@ -18,7 +18,7 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.13 // indirect
 	github.com/gin-contrib/sse v1.1.1 // indirect
 	github.com/go-chi/chi/v5 v5.5.0 // indirect
-	github.com/go-jose/go-jose/v4 v4.1.6 // indirect
+	github.com/go-jose/go-jose/v4 v4.1.9 // indirect
 	github.com/go-logr/logr v1.4.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/jsonpointer v1.0.0 // indirect
@@ -88,7 +88,7 @@ require (
 	golang.org/x/crypto v0.57.0 // indirect
 	golang.org/x/mod v0.41.0 // indirect
 	golang.org/x/net v0.60.0 // indirect
-	golang.org/x/oauth2 v0.37.0 // indirect
+	golang.org/x/oauth2 v0.38.0 // indirect
 	golang.org/x/sync v0.24.0 // indirect
 	golang.org/x/sys v0.48.0 // indirect
 	golang.org/x/text v0.43.0 // indirect
@@ -110,8 +110,8 @@ require (
 	github.com/gin-gonic/gin v1.12.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/morehao/ark-go-starter/pkg v0.0.0-00010101000000-000000000000
-	github.com/morehao/ark-iam/iam v0.0.0
-	github.com/morehao/ark-iam/pkg v0.0.0
+	github.com/morehao/ark-iam/iam v0.3.0
+	github.com/morehao/ark-iam/pkg v0.3.0
 	github.com/morehao/ark-iam/sdk v0.3.0
 	github.com/morehao/golib v1.34.0
 	github.com/stretchr/testify v1.12.1
@@ -119,10 +119,4 @@ require (
 	gorm.io/gorm v1.31.2
 )
 
-// ark-iam 本地源码 replace：仅 iam/pkg（模块路径与目录不一致，未发布为可 go get 版本）。
-// sdk 已发布，走 require github.com/morehao/ark-iam/sdk v0.3.0（无 replace）。
-// 注意：消费方模块不会继承 ark-iam 各模块自身的 replace，需在此把 iam/pkg 指到本地。
-replace (
-	github.com/morehao/ark-iam/iam => ../../../../ark-iam/backend/iam
-	github.com/morehao/ark-iam/pkg => ../../../../ark-iam/backend/pkg
-)
+// ark-iam 三个模块（iam/pkg/sdk）均已发布为可 go get 的根级子模块，统一 v0.3.0，无需任何 replace。
