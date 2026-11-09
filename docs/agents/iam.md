@@ -137,7 +137,62 @@ iam:
 
 ---
 
-## 7. 常用操作
+## 7. 部署：demo-web(:3000) 与内嵌 IAM 的 redirect_uri 对齐（踩坑必读）
+
+内嵌 IAM 的 OIDC 回调走 `redirect_uri = {前端 origin}/auth/callback`（demo-web 即
+`http://localhost:3000/auth/callback`）。**关键前提**：该地址必须登记在所用 OIDC 客户端的 `redirect_uris` 白名单里，
+否则 `/iam/oidc/authorize` 会返回 400「The requested redirect_uri is missing in the client configuration」。
+内置种子客户端 `platform_admin_web` 默认只登记了控制台的 `http://localhost:4001/auth/callback`，**不含 3000**，
+所以直接拿它跑 demo-web 会卡在回调对齐。二选一处理：
+
+### 方案 A：复用种子客户端 `platform_admin_web`，把 3000 回调登记进去
+
+`/iam/config.json` 默认下发 `clientId=platform_admin_web`（`model.SeedBuiltinClientPlatformAdminWeb`），
+复用它最省事，只需给该客户端补一条 `http://localhost:3000/auth/callback` 回调。两种做法：
+
+- **改接口**（推荐，可控）：`DefaultConsoleDomains`（最小域集）**不含** `application` / `oauth-client` 域，
+  因此 platform 的 `application-clients`（`POST/GET /iam/v1/platform/application-clients`）**默认未挂载**（404/SPA）。
+  需先在该应用 `SetupIAM` 的 `Domains` 里加入 `iam.DomainApplication` + `iam.DomainOAuthClient`（并满足域依赖），
+  重启后即可用 `PUT/POST` 更新种子客户端的 `redirectURIs`。
+- **SQL 直改**（临时联调）：直接更新种子客户端行的 `redirect_uris` 列（JSON 数组，追加
+  `"http://localhost:3000/auth/callback"`），例如：
+  ```sql
+  UPDATE iam_application_client
+     SET redirect_uris = jsonb_set(redirect_uris::jsonb,
+           '{0}', '"http://localhost:3000/auth/callback"', true)  -- 或按需 append
+   WHERE code = 'platform_admin_web';
+  ```
+  （仅限本地联调；生产走控制台/接口管理。）
+
+### 方案 B：另建一个 public client 专供 demo-web
+
+在内嵌 IAM 创建 **public client**：`PKCE`（`requirePKCE=enable`）、`tokenEndpointAuthMethod=none`、
+`redirect_uri=http://localhost:3000/auth/callback`、`grantTypes=[authorization_code, refresh_token]`、`scopes=[openid, profile, email]`。
+建好后把其 `code`（即 client_id）配到以下任一处，让前端拿到正确 clientId：
+
+- `config.yaml` 的 `iam` 段（若宿主扩展了 `clientId` 下发），或
+- `/iam/config.json` 的 `clientId`（内嵌默认下发种子客户端，需改为新 client 的 code），或
+- 前端环境变量 `VITE_OIDC_CLIENT_ID`（`createAuthProvider` 兜底读取）。
+
+> 无论 A/B：门面包默认回调路径是 **`/auth/callback`**（`redirectPath=/auth/callback`，**不是** `/callback`），
+> `/iam/config.json` 的 `callbackPath` 也是 `/auth/callback`，前端登记与客户端白名单务必一致。
+
+---
+
+## 8. 生产安全项（非 dev fail-closed）
+
+`iam.enable=true` 且 `server.env != dev` 时，ark-iam 的 `validateNonDevSecurityConfig` 强制要求（否则 `iam.New` 报错、进程起不来）：
+
+- `iam.signing_key`：OIDC 签名私钥 PEM（RSA/EC），签发/验签 id_token；
+- `iam.encryption_key`：会话/令牌加密密钥（≥32 字节随机）；
+- `iam.cookie_secure: true`：SSO 会话 cookie 的 Secure 标志，HTTPS 生产必须为 true；
+- `iam.issuer`：建议显式设为对外域名（`https://.../iam/oidc` 或反代后的公网地址），须与 `Mount` 前缀一致。
+
+参考 `config.prod.yaml` 已补的 `iam` 段（占位值请用密钥管理/环境变量注入真实密钥，**勿把真实私钥提交入库**）。
+
+---
+
+## 9. 常用操作
 
 **启用（临时，本地联调）**：把 `config.yaml` 的 `iam.enable` 改为 `true`（或用带 `iam.enable: true` 的临时配置），
 `BOOTSTRAP_TOKEN=xxx make run APP=demo`，随后走 `/iam/install` 初始化管理员 → 建 client → 前端登录。
