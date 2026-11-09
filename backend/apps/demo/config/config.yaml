@@ -92,3 +92,16 @@ async:
   redis_addr: 127.0.0.1:6379  # Redis 地址
   redis_password: "123456"    # Redis 密码
   redis_db: 0                 # Redis 库号
+
+# 可选内嵌 ark-iam（形态 2）。默认关闭：不初始化 IAM、不建表、不挂 /iam/* 路由，
+# 业务鉴权回落到固定 dev 身份（仅 dev）。打开后本进程即 IAM，业务接口全部走 OIDC 鉴权。
+iam:
+  enable: false               # 是否启用内嵌 IAM（默认 false）
+  prefix: /iam                # IAM 挂载路由前缀（须与前端 basePath 一致）
+  dsn: ""                     # IAM 数据库 DSN，空则复用 db_configs 第一个库
+  redis_addr: ""              # IAM Redis 地址，空则复用 redis_config
+  redis_password: ""          # IAM Redis 密码，空则复用 redis_config
+  issuer: ""                  # OIDC issuer，空则按端口推导
+  signing_key: ""             # 签名私钥 PEM，非 dev 必填
+  encryption_key: ""          # 加密密钥，非 dev 必填
+  cookie_secure: false        # SSO cookie Secure，生产（HTTPS）必须 true
