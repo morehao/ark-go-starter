@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/url"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/morehao/ark-go-starter/demo/config"
@@ -140,8 +142,29 @@ func buildRawConfig(issuer string, cfg config.IAMConfig) *pkgconfig.Config {
 	raw.Server.Env = config.Conf.Server.Env
 	raw.Server.Port = config.Conf.Server.Port
 	raw.OIDC.Issuer = issuer
+	// FrontendLoginURL 是内嵌登录页地址：SSO 无会话时 `/iam/oidc/sso-login` 会 302 到
+	// `{FrontendLoginURL}?authRequestID=...`。**必须显式设置**且带挂载前缀（登录页 SPA 托管在
+	// `{prefix}/login`）；留空会导致 Location 退化成相对地址、丢失 authRequestID。
+	// 由 issuer（`{scheme}://{host}{prefix}/oidc`）推导 origin + `{prefix}/login`。
+	raw.OIDC.FrontendLoginURL = loginURLFromIssuer(issuer, cfg.GetPrefix())
 	raw.OIDC.CookieSecure = cfg.CookieSecure
 	raw.OIDC.SigningPrivateKeyPEM = cfg.SigningKey
 	raw.OIDC.EncryptionKey = cfg.EncryptionKey
 	return raw
+}
+
+// loginURLFromIssuer 由 OP issuer 与挂载前缀推导内嵌登录页地址
+// `{origin}{prefix}/login`（与 MountFrontend 托管、config.json 的 loginPath 一致）。
+// issuer 形如 `http://localhost:8099/iam/oidc`；issuer 非法时回退 `issuerOrigin + prefix + /login`。
+func loginURLFromIssuer(issuer, prefix string) string {
+	p := prefix
+	if p == "" || p == "/" {
+		p = ""
+	} else {
+		p = "/" + strings.Trim(p, "/")
+	}
+	if u, err := url.Parse(issuer); err == nil && u.Scheme != "" && u.Host != "" {
+		return u.Scheme + "://" + u.Host + p + "/login"
+	}
+	return strings.TrimSuffix(issuer, "/") + p + "/login"
 }
