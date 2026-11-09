@@ -27,7 +27,14 @@ func main() {
 
 	engine := gin.New()
 	engine.Use(gin.Recovery())
-	demo.Routers(engine)
+	// Routers 返回可选内嵌 IAM 的运行时 Closer（未启用时为 nil，Close 为安全空操作）。
+	if iamCloser := demo.Routers(engine); iamCloser != nil {
+		defer func() {
+			if err := iamCloser.Close(); err != nil {
+				glog.Errorf(context.Background(), "%s close iam fail, err:%v", demo.AppName, err)
+			}
+		}()
+	}
 
 	if err := engine.Run(":" + config.Conf.Server.Port); err != nil {
 		glog.Errorf(context.Background(), "%s run fail, port:%s", demo.AppName, config.Conf.Server.Port)

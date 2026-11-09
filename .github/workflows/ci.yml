@@ -22,6 +22,17 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # ark-go-starter 后端可选内嵌 ark-iam（backend/apps/demo/go.mod 用本地 replace 指向
+      # 仓外 ../ark-iam/backend/{iam,pkg,sdk}）。ARK-IAM 的 Go 模块未发布为可 go get 的版本
+      #（模块路径 .../ark-iam/iam 与目录 backend/iam 不一致，proxy 无法解析），故 CI 直接
+      # checkout ark-iam 源码到与本地一致的相对位置（$GITHUB_WORKSPACE 的上一级/ark-iam），
+      # 使 replace 在干净环境同样可解析。ark-iam 为 public 仓，无需额外凭据。
+      - name: Checkout ark-iam (for local replace)
+        # 用 git clone 到 $GITHUB_WORKSPACE 的上一级（= 本地 replace 期望的 ../ark-iam），
+        # 不用 actions/checkout 的 path（其 path 被限制在 workspace 内）。ark-iam 为 public 仓。
+        run: |
+          git clone --depth 1 --branch v0.2.0 https://github.com/morehao/ark-iam.git "$GITHUB_WORKSPACE/../ark-iam"
+
       - name: Set up Go
         uses: actions/setup-go@v7
         with:
@@ -86,6 +97,17 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # ark-go-starter 后端可选内嵌 ark-iam（backend/apps/demo/go.mod 用本地 replace 指向
+      # 仓外 ../ark-iam/backend/{iam,pkg,sdk}）。ARK-IAM 的 Go 模块未发布为可 go get 的版本
+      #（模块路径 .../ark-iam/iam 与目录 backend/iam 不一致，proxy 无法解析），故 CI 直接
+      # checkout ark-iam 源码到与本地一致的相对位置（$GITHUB_WORKSPACE 的上一级/ark-iam），
+      # 使 replace 在干净环境同样可解析。ark-iam 为 public 仓，无需额外凭据。
+      - name: Checkout ark-iam (for local replace)
+        # 用 git clone 到 $GITHUB_WORKSPACE 的上一级（= 本地 replace 期望的 ../ark-iam），
+        # 不用 actions/checkout 的 path（其 path 被限制在 workspace 内）。ark-iam 为 public 仓。
+        run: |
+          git clone --depth 1 --branch v0.2.0 https://github.com/morehao/ark-iam.git "$GITHUB_WORKSPACE/../ark-iam"
+
       - name: Set up Go
         uses: actions/setup-go@v7
         with:
@@ -112,6 +134,17 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
+
+      # ark-go-starter 后端可选内嵌 ark-iam（backend/apps/demo/go.mod 用本地 replace 指向
+      # 仓外 ../ark-iam/backend/{iam,pkg,sdk}）。ARK-IAM 的 Go 模块未发布为可 go get 的版本
+      #（模块路径 .../ark-iam/iam 与目录 backend/iam 不一致，proxy 无法解析），故 CI 直接
+      # checkout ark-iam 源码到与本地一致的相对位置（$GITHUB_WORKSPACE 的上一级/ark-iam），
+      # 使 replace 在干净环境同样可解析。ark-iam 为 public 仓，无需额外凭据。
+      - name: Checkout ark-iam (for local replace)
+        # 用 git clone 到 $GITHUB_WORKSPACE 的上一级（= 本地 replace 期望的 ../ark-iam），
+        # 不用 actions/checkout 的 path（其 path 被限制在 workspace 内）。ark-iam 为 public 仓。
+        run: |
+          git clone --depth 1 --branch v0.2.0 https://github.com/morehao/ark-iam.git "$GITHUB_WORKSPACE/../ark-iam"
 
       - name: Set up Go
         uses: actions/setup-go@v7
@@ -156,6 +189,17 @@ jobs:
           --health-retries 10
     steps:
       - uses: actions/checkout@v7
+
+      # ark-go-starter 后端可选内嵌 ark-iam（backend/apps/demo/go.mod 用本地 replace 指向
+      # 仓外 ../ark-iam/backend/{iam,pkg,sdk}）。ARK-IAM 的 Go 模块未发布为可 go get 的版本
+      #（模块路径 .../ark-iam/iam 与目录 backend/iam 不一致，proxy 无法解析），故 CI 直接
+      # checkout ark-iam 源码到与本地一致的相对位置（$GITHUB_WORKSPACE 的上一级/ark-iam），
+      # 使 replace 在干净环境同样可解析。ark-iam 为 public 仓，无需额外凭据。
+      - name: Checkout ark-iam (for local replace)
+        # 用 git clone 到 $GITHUB_WORKSPACE 的上一级（= 本地 replace 期望的 ../ark-iam），
+        # 不用 actions/checkout 的 path（其 path 被限制在 workspace 内）。ark-iam 为 public 仓。
+        run: |
+          git clone --depth 1 --branch v0.2.0 https://github.com/morehao/ark-iam.git "$GITHUB_WORKSPACE/../ark-iam"
 
       - name: Set up Go
         uses: actions/setup-go@v7

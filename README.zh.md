@@ -13,6 +13,7 @@
 - Docker 支持： 提供基础的`Dockerfile`，实现容器化部署
 - 丰富的`Makefile`工具链：支持`make`命令快速构建、运行、代码生成、接口文档生成、docker 部署、前端启动等基础操作。
 - 逐渐丰富的`golib`库：对常用组件封装，使用更友好。
+- 可选内嵌 IAM：通过 `iam.enable` 开关（默认关闭）在同一进程内嵌 [ark-iam](https://github.com/morehao/ark-iam) 作为 OIDC Provider，对业务接口做真鉴权，详见 [docs/agents/iam.md](./docs/agents/iam.md)。
 
 # 项目结构
 

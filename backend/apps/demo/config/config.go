@@ -42,6 +42,7 @@ type Config struct {
 	FileStorage FileStorage               `yaml:"file_storage"`
 	Cron        gcron.Config              `yaml:"cron"`  // 定时任务配置
 	Async       AsyncConfig               `yaml:"async"` // 异步任务配置
+	IAM         IAMConfig                 `yaml:"iam"`   // 内嵌 IAM 配置
 }
 
 // AsyncConfig 是异步任务（golib/gasync）的配置。
@@ -68,6 +69,37 @@ func (c AsyncConfig) ToGasync() gasync.Config {
 		Timeout:       c.Timeout,
 	}
 	return cfg
+}
+
+// IAMConfig 是可选内嵌 ark-iam 的配置。
+//
+// Enable=false（默认）时零副作用：不初始化 IAM、不建表、不挂 /iam/* 路由，业务鉴权回落到
+// 固定 dev 身份（仅 dev 环境，生产禁用）。Enable=true 时在本进程内挂载 IAM（形态 2 内嵌）。
+type IAMConfig struct {
+	Enable        bool   `yaml:"enable"`         // 是否启用内嵌 IAM
+	Prefix        string `yaml:"prefix"`         // IAM 挂载路由前缀，缺省 /iam
+	DSN           string `yaml:"dsn"`            // IAM 数据库 DSN，空则复用主库第一个 db_configs
+	RedisAddr     string `yaml:"redis_addr"`     // IAM Redis 地址，空则复用 redis_config
+	RedisPassword string `yaml:"redis_password"` // IAM Redis 密码，空则复用 redis_config
+	Issuer        string `yaml:"issuer"`         // OIDC issuer，空则按端口推导（http://localhost:{port}/iam/oidc 风格）
+	SigningKey    string `yaml:"signing_key"`    // 签名私钥（PEM），非 dev 必填
+	EncryptionKey string `yaml:"encryption_key"` // 加密密钥，非 dev 必填
+	CookieSecure  bool   `yaml:"cookie_secure"`  // SSO 会话 cookie 的 Secure 标志，生产（HTTPS）必须 true
+}
+
+// GetPrefix 返回归一化后的 IAM 路由前缀（保证以 "/" 开头且不以 "/" 结尾）。
+func (c IAMConfig) GetPrefix() string {
+	prefix := c.Prefix
+	if prefix == "" {
+		return "/iam"
+	}
+	if prefix[0] != '/' {
+		prefix = "/" + prefix
+	}
+	for len(prefix) > 1 && prefix[len(prefix)-1] == '/' {
+		prefix = prefix[:len(prefix)-1]
+	}
+	return prefix
 }
 
 // Server 是 HTTP 服务配置。

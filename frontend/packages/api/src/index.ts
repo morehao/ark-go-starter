@@ -36,15 +36,55 @@ export const http = axios.create({
   timeout: 10000,
 })
 
+/** 取当前登录令牌；返回空值表示未登录（不注入 Authorization）。由宿主在 auth 层注入实现。 */
+export type TokenProvider = () => string | null | undefined
+
+/** 未认证（HTTP 401 或业务未认证码）回调；由宿主注入（如跳转 IAM 登录页）。 */
+export type UnauthorizedHandler = () => void
+
+let tokenProvider: TokenProvider | null = null
+let unauthorizedHandler: UnauthorizedHandler | null = null
+
+/**
+ * 注册令牌提供者：request 拦截器据此注入 `Authorization: Bearer <token>`。
+ * 传 null 解除注册。宿主（demo-web 的 auth 层）在登录态变化时调用。
+ */
+export function setTokenProvider(provider: TokenProvider | null): void {
+  tokenProvider = provider
+}
+
+/** 注册未认证处理器：收到 401 时触发（通常跳转 IAM 登录页）。传 null 解除注册。 */
+export function setUnauthorizedHandler(handler: UnauthorizedHandler | null): void {
+  unauthorizedHandler = handler
+}
+
+http.interceptors.request.use((config) => {
+  const token = tokenProvider?.()
+  if (token && config.headers) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
+
 http.interceptors.response.use(
   (response) => {
     const body = response.data as ApiResponse
     if (body.code !== 0) {
+      // 与后端鉴权一致：401 语义由宿主处理（跳登录），其余业务错误直接抛错
+      if (response.status === 401) {
+        unauthorizedHandler?.()
+      }
       return Promise.reject(new Error(body.msg || `request failed, code=${body.code}`))
     }
     return body.data as unknown as typeof response
   },
-  (error) => Promise.reject(error),
+  (error) => {
+    // HTTP 层 401（中间件拒绝，非 body.code 路径）→ 触发未认证处理（跳 IAM 登录）
+    if (error?.response?.status === 401) {
+      unauthorizedHandler?.()
+    }
+    return Promise.reject(error)
+  },
 )
 
 export async function request<T>(config: AxiosRequestConfig): Promise<T> {
