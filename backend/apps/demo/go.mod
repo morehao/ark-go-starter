@@ -112,17 +112,17 @@ require (
 	github.com/morehao/ark-go-starter/pkg v0.0.0-00010101000000-000000000000
 	github.com/morehao/ark-iam/iam v0.0.0
 	github.com/morehao/ark-iam/pkg v0.0.0
-	github.com/morehao/ark-iam/sdk v0.0.0
+	github.com/morehao/ark-iam/sdk v0.3.0
 	github.com/morehao/golib v1.34.0
 	github.com/stretchr/testify v1.12.1
 	github.com/swaggo/swag v1.16.6
 	gorm.io/gorm v1.31.2
 )
 
-// ark-iam 本地源码 replace（先本地联调；ark-iam 打 tag 后改 go get @vX）。
-// 注意：消费方模块不会继承 ark-iam 各模块自身的 replace，必须在此把三个模块都指到本地。
+// ark-iam 本地源码 replace：仅 iam/pkg（模块路径与目录不一致，未发布为可 go get 版本）。
+// sdk 已发布，走 require github.com/morehao/ark-iam/sdk v0.3.0（无 replace）。
+// 注意：消费方模块不会继承 ark-iam 各模块自身的 replace，需在此把 iam/pkg 指到本地。
 replace (
 	github.com/morehao/ark-iam/iam => ../../../../ark-iam/backend/iam
 	github.com/morehao/ark-iam/pkg => ../../../../ark-iam/backend/pkg
-	github.com/morehao/ark-iam/sdk => ../../../../ark-iam/sdk
 )
