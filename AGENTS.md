@@ -15,6 +15,7 @@
 | API 路由与 Swagger | [docs/agents/api-conventions.md](./docs/agents/api-conventions.md) | **新增或修改接口前必读** |
 | 测试规范 | [docs/agents/testing.md](./docs/agents/testing.md) | 编写测试时 |
 | golib 能力说明 | [docs/agents/golib.md](./docs/agents/golib.md) | **写新功能 / 引入通用组件前必读（能力复用）** |
+| 可选内嵌 IAM | [docs/agents/iam.md](./docs/agents/iam.md) | 接入 / 启停 IAM、排查登录与鉴权 |
 | 常用工具与选型 | [docs/agents/toolchain.md](./docs/agents/toolchain.md) | 引入或替换组件时 |
 
 ## 项目概述

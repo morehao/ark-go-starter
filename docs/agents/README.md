@@ -16,6 +16,7 @@
 | [api-conventions.md](./api-conventions.md) | 路由路径规范、路由注册、Swagger 注解 | 新增或修改接口时 |
 | [testing.md](./testing.md) | 测试文件组织、测试环境初始化、断言写法 | 编写测试时 |
 | [golib.md](./golib.md) | golib 公共组件库能力说明：项目内封装层、golib 组件速查（已用/可用）、驱动注册、内置表与升级约定 | 写新功能、引入通用组件前（能力复用） |
+| [iam.md](./iam.md) | 可选内嵌 ark-iam：`iam.enable` 开关、`iam_` 表前缀与 AutoMigrate/`table_init.sql` 迁移边界、`biz_iam_user_map` 身份映射、OIDC 鉴权中间件、生产配置 | 接入 / 启停 IAM、排查鉴权与登录时 |
 | [toolchain.md](./toolchain.md) | 依赖、API 文档、代码生成、存储、链路追踪、日志等工具选型 | 引入或替换组件时 |
 
 ## 阅读顺序建议
