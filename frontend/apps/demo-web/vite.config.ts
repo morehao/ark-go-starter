@@ -10,6 +10,11 @@ export default defineConfig({
         target: 'http://localhost:8099',
         changeOrigin: true,
       },
+      // 内嵌 IAM 托管在 /iam（/iam/config.json、/iam/oidc、/iam/install、内嵌登录页等）
+      '/iam': {
+        target: 'http://localhost:8099',
+        changeOrigin: true,
+      },
     },
   },
 })
