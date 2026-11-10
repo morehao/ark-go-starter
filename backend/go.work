@@ -1,6 +1,16 @@
 go 1.27.3
 
+// 决策 D1：新 ark-iam 模块集合尚未发布到 Go proxy，用本地 go.work 罩住源码，不提交 replace。
+// 除 contract/sdk/pkg 外，sdk 的 go.mod 还 require 了 backend/apps/{auth,platformadmin,tenantadmin}
+// 三模块（各自带本地相对 replace）——这些模块不在 use 里时，工作区模块图加载会绕过 sdk 的本地
+// replace 转而向 proxy 拉取不存在的版本而失败，故一并 use。
 use (
 	./apps/demo
 	./pkg
+	../../ark-iam/contract
+	../../ark-iam/sdk
+	../../ark-iam/pkg
+	../../ark-iam/backend/apps/auth
+	../../ark-iam/backend/apps/platformadmin
+	../../ark-iam/backend/apps/tenantadmin
 )

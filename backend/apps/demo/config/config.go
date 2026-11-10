@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/morehao/golib/dbaccess/dbgorm"
@@ -71,20 +72,56 @@ func (c AsyncConfig) ToGasync() gasync.Config {
 	return cfg
 }
 
-// IAMConfig 是可选内嵌 ark-iam 的配置。
+// IAM 接入三态取值。Mode 为空时按旧 Enable 字段归一（Enable=true → ModeOP）。
+const (
+	ModeDisabled = "disabled" // 不接入：零副作用，不初始化 IAM、不建表、不挂 /iam/* 路由
+	ModeOP       = "op"       // 本进程内嵌 OIDC Provider：建库、挂 /iam/* 路由、签发/验签
+	ModeRP       = "rp"       // 对接外部 ark-iam：仅本地验签，不建库、不挂路由
+)
+
+// IAMConfig 是可选接入 ark-iam 的配置。
 //
-// Enable=false（默认）时零副作用：不初始化 IAM、不建表、不挂 /iam/* 路由，业务鉴权回落到
-// 固定 dev 身份（仅 dev 环境，生产禁用）。Enable=true 时在本进程内挂载 IAM（形态 2 内嵌）。
+// 三态 mode（disabled 默认 / op 本进程内嵌 OP / rp 对接外部 ark-iam 仅本地验签）决定接入形态。
+// 兼容旧字段 Enable：mode 为空且 Enable=true 时按 op 处理，否则 disabled。
+// 均未接入（disabled）时零副作用：不初始化 IAM、不建表、不挂 /iam/* 路由，业务鉴权回落到
+// 固定 dev 身份（仅 dev 环境，生产禁用）。
 type IAMConfig struct {
-	Enable        bool   `yaml:"enable"`         // 是否启用内嵌 IAM
+	Mode          string `yaml:"mode"`           // 接入形态：disabled（默认）| op | rp
+	Enable        bool   `yaml:"enable"`         // 旧二态开关（兼容）：mode 为空且为 true 时按 op
 	Prefix        string `yaml:"prefix"`         // IAM 挂载路由前缀，缺省 /iam
 	DSN           string `yaml:"dsn"`            // IAM 数据库 DSN，空则复用主库第一个 db_configs
 	RedisAddr     string `yaml:"redis_addr"`     // IAM Redis 地址，空则复用 redis_config
 	RedisPassword string `yaml:"redis_password"` // IAM Redis 密码，空则复用 redis_config
-	Issuer        string `yaml:"issuer"`         // OIDC issuer，空则按端口推导（http://localhost:{port}/iam/oidc 风格）
-	SigningKey    string `yaml:"signing_key"`    // 签名私钥（PEM），非 dev 必填
-	EncryptionKey string `yaml:"encryption_key"` // 加密密钥，非 dev 必填
-	CookieSecure  bool   `yaml:"cookie_secure"`  // SSO 会话 cookie 的 Secure 标志，生产（HTTPS）必须 true
+	Issuer        string `yaml:"issuer"`         // OIDC issuer，op 空则按端口推导；rp 为外部 ark-iam 的 issuer
+	JWKSURL       string `yaml:"jwks_url"`       // rp 形态的 JWKS 端点，空则按 issuer 推导
+	Audience      string `yaml:"audience"`       // rp 形态需校验的 token aud（防其它应用 token 误接受）
+	SigningKey    string `yaml:"signing_key"`    // 签名私钥（PEM），非 dev 必填（op）
+	EncryptionKey string `yaml:"encryption_key"` // 加密密钥，非 dev 必填（op）
+	CookieSecure  bool   `yaml:"cookie_secure"`  // SSO 会话 cookie 的 Secure 标志，生产（HTTPS）必须 true（op）
+}
+
+// EffectiveMode 返回归一化（小写、去空白）后的接入形态。
+//
+// 规则：mode 非空 → 校验只接受 disabled/op/rp（非法值原样返回，由调用方经 Validate 报错）；
+// mode 为空且 Enable=true → op；否则 disabled。
+func (c IAMConfig) EffectiveMode() string {
+	if mode := strings.ToLower(strings.TrimSpace(c.Mode)); mode != "" {
+		return mode
+	}
+	if c.Enable {
+		return ModeOP
+	}
+	return ModeDisabled
+}
+
+// Validate 校验接入形态是否合法（仅接受 disabled/op/rp）。disabled 恒合法。
+func (c IAMConfig) Validate() error {
+	switch c.EffectiveMode() {
+	case ModeDisabled, ModeOP, ModeRP:
+		return nil
+	default:
+		return fmt.Errorf("invalid iam.mode %q: must be one of %q|%q|%q", c.Mode, ModeDisabled, ModeOP, ModeRP)
+	}
 }
 
 // GetPrefix 返回归一化后的 IAM 路由前缀（保证以 "/" 开头且不以 "/" 结尾）。

@@ -2,19 +2,42 @@ import { useEffect, type ReactNode } from 'react'
 import { Spin } from 'antd'
 import { createAuthProvider, useAuthGuard } from '@morehao/ark-iam-react/auth'
 import { setTokenProvider, setUnauthorizedHandler } from '@ark-go-starter/api'
+import type { IAMMode } from './config'
 
 /**
- * 门面包 AuthProvider：内部已含 `<BrowserRouter>` + react-oidc-context 的 `<AuthProvider>`，
- * 会先 `GET {runtimeConfigBase}/config.json` 拉运行时配置（成功/失败都落定后才渲染 children）。
+ * 门面包 AuthProvider：内部已含 `<BrowserRouter>` + react-oidc-context 的 `<AuthProvider>`。
  *
  * 关键约定：**外层不要再包 `<BrowserRouter>`**，否则 react-router 嵌套报错。
- * clientID / issuer 优先由 `/iam/config.json` 下发（useRuntimeConfig: true），
- * 也可用 `VITE_OIDC_CLIENT_ID` / `VITE_OIDC_ISSUER` 兜底；issuer 默认回退 `/oidc`。
+ *
+ * 两种接入模式（详见 ./config.ts 的 IAMMode）：
+ * - `op`：内嵌本进程 IAM。`useRuntimeConfig: true` + `runtimeConfigBase: '/iam'`，
+ *   clientID / issuer 优先由 `/iam/config.json` 下发（VITE_OIDC_CLIENT_ID / VITE_OIDC_ISSUER 兜底）。
+ * - `rp`：对接外部 ark-iam。`useRuntimeConfig: false`，不走本站 `/iam`，
+ *   直接使用 `VITE_OIDC_ISSUER` 作为 issuer、`VITE_OIDC_CLIENT_ID` 作为 clientID 直连远端 OP。
  */
-export const IAMAuthProvider = createAuthProvider({
-  useRuntimeConfig: true,
-  runtimeConfigBase: '/iam',
-})
+function createIAMAuthProvider(mode: IAMMode) {
+  if (mode === 'rp') {
+    // 外部 issuer 绝对地址；config.ts 已保证 rp 时 VITE_OIDC_ISSUER 非空
+    return createAuthProvider({
+      useRuntimeConfig: false,
+      issuer: import.meta.env.VITE_OIDC_ISSUER,
+      clientID: import.meta.env.VITE_OIDC_CLIENT_ID,
+    })
+  }
+  // op（默认走内嵌 /iam runtime config）
+  return createAuthProvider({
+    useRuntimeConfig: true,
+    runtimeConfigBase: '/iam',
+  })
+}
+
+/**
+ * 按 mode 创建对应的门面包 AuthProvider。仅 op / rp 会挂载（disabled 不挂，见 main.tsx）。
+ * 由 main.tsx 在渲染前根据 detectIAMMode() 结果调用。
+ */
+export function getIAMAuthProvider(mode: IAMMode) {
+  return createIAMAuthProvider(mode)
+}
 
 /**
  * 登录守卫 + 令牌桥接。必须渲染在 `IAMAuthProvider` 内部（依赖其 OIDC context）。

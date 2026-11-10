@@ -7,6 +7,11 @@ package demo_test
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"encoding/base64"
+	"encoding/json"
+	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -23,7 +28,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// setupIAMIntegrationEnv 初始化 DB/Redis 并写入一份启用内嵌 IAM 的配置。
+// setupIAMIntegrationEnv 初始化 DB/Redis 并写入一份启用内嵌 IAM（op 形态）的配置。
 func setupIAMIntegrationEnv(t *testing.T) *gin.Engine {
 	t.Helper()
 	testsetup.Initialize(testsetup.AppNameDemo)
@@ -31,9 +36,9 @@ func setupIAMIntegrationEnv(t *testing.T) *gin.Engine {
 
 	prev := config.Conf
 	t.Cleanup(func() { config.Conf = prev })
-	// 加载真实配置（拿到 DBConfigs/RedisConfig），再打开 iam.enable。
+	// 加载真实配置（拿到 DBConfigs/RedisConfig），再打开 iam op 形态。
 	config.LoadConfig(integrationConfigPath(t))
-	config.Conf.IAM = config.IAMConfig{Enable: true, Prefix: "/iam"}
+	config.Conf.IAM = config.IAMConfig{Mode: config.ModeOP, Prefix: "/iam"}
 
 	gin.SetMode(gin.TestMode)
 	return gin.New()
@@ -48,15 +53,17 @@ func integrationConfigPath(t *testing.T) string {
 	return filepath.Join(appDir, "config", "config.yaml")
 }
 
-// TestSetupIAMEnabledMountsRoutes Enable=true：/iam/install 可达、/iam/config.json 可达。
-func TestSetupIAMEnabledMountsRoutes(t *testing.T) {
+// TestSetupIAMOPMountsRoutes op 形态：/iam/install 可达、/iam/config.json 可达、建表、KeySource 非空。
+func TestSetupIAMOPMountsRoutes(t *testing.T) {
 	engine := setupIAMIntegrationEnv(t)
 
 	closer, err := demo.SetupIAM(engine)
-	require.NoError(t, err, "Enable=true SetupIAM 应成功")
-	require.NotNil(t, closer, "Enable=true 应返回非 nil closer")
+	require.NoError(t, err, "op SetupIAM 应成功")
+	require.NotNil(t, closer, "op 应返回非 nil closer")
 	t.Cleanup(func() { _ = closer.Close() })
-	require.NotNil(t, demo.CurrentIAM(), "Enable=true 应设置 IAM 运行时")
+	rt := demo.CurrentIAM()
+	require.NotNil(t, rt, "op 应设置 IAM 运行时")
+	assert.NotNil(t, rt.KeySource(), "op 形态必须产出非空 KeySource（供本地验签）")
 
 	for _, path := range []string{"/iam/install", "/iam/config.json"} {
 		rec := httptest.NewRecorder()
@@ -71,6 +78,71 @@ func TestSetupIAMEnabledMountsRoutes(t *testing.T) {
 		Scan(&cnt).Error
 	require.NoError(t, err)
 	assert.Positive(t, cnt, "RunMigrations 应建出 iam_ 前缀表")
+	_ = rt
+}
+
+// mockJWKS 启动一个返回单条 RSA 公钥 JWKS 的假 OIDC 端点（/keys），并返回其 URL 与清理函数。
+func mockJWKS(t *testing.T) string {
+	t.Helper()
+	priv, err := rsa.GenerateKey(rand.Reader, 2048)
+	require.NoError(t, err)
+	pub := priv.Public().(*rsa.PublicKey)
+	jwks := map[string]any{
+		"keys": []map[string]any{{
+			"kty": "RSA",
+			"kid": "test-kid",
+			"alg": "RS256",
+			"use": "sig",
+			"n":   base64.RawURLEncoding.EncodeToString(pub.N.Bytes()),
+			"e":   base64.RawURLEncoding.EncodeToString(big.NewInt(int64(pub.E)).Bytes()),
+		}},
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/keys" {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(jwks)
+	}))
+	t.Cleanup(srv.Close)
+	return srv.URL + "/keys"
+}
+
+// TestSetupIAMRPMockJWKS rp 形态：用假 JWKS 端点验证 setupRP 成功、KeySource 非空、且不挂任何路由。
+func TestSetupIAMRPMockJWKS(t *testing.T) {
+	prev := config.Conf
+	t.Cleanup(func() { config.Conf = prev })
+
+	jwksURL := mockJWKS(t)
+	config.Conf = &config.Config{
+		Server: config.Server{Name: "demo", Port: "8099", Env: "dev"},
+		IAM:    config.IAMConfig{Mode: config.ModeRP, Prefix: "/iam", JWKSURL: jwksURL, Issuer: "http://op.example/oidc"},
+	}
+
+	gin.SetMode(gin.TestMode)
+	engine := gin.New()
+
+	closer, err := demo.SetupIAM(engine)
+	require.NoError(t, err, "rp SetupIAM 应成功（JWKS 预取成功）")
+	require.NotNil(t, closer, "rp 应返回非 nil closer")
+	t.Cleanup(func() { _ = closer.Close() })
+
+	rt := demo.CurrentIAM()
+	require.NotNil(t, rt, "rp 应设置 IAM 运行时")
+	require.NotNil(t, rt.KeySource(), "rp 形态必须产出非空 KeySource")
+
+	// 能按 kid 取到公钥（验签路径可用）。
+	pub, err := rt.KeySource().PublicKey(context.Background(), "test-kid")
+	require.NoError(t, err, "应按 kid 取到公钥")
+	assert.NotNil(t, pub)
+
+	// rp 不挂任何 /iam/* 路由（不建库、不 Mount）。
+	for _, path := range []string{"/iam/install", "/iam/config.json", "/iam/oidc"} {
+		rec := httptest.NewRecorder()
+		engine.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
+		assert.Equal(t, http.StatusNotFound, rec.Code, "rp 时 %s 不应挂载", path)
+	}
 }
 
 // ensureMapDDL 幂等地创建 biz_iam_user_map（与 scripts/sql/table_init.sql 一致）。

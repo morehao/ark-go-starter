@@ -10,7 +10,8 @@ export default defineConfig({
         target: 'http://localhost:8099',
         changeOrigin: true,
       },
-      // 内嵌 IAM 托管在 /iam（/iam/config.json、/iam/oidc、/iam/install、内嵌登录页等）
+      // 内嵌 IAM（mode=op）托管在 /iam（/iam/config.json、/iam/oidc、/iam/install、内嵌登录页等）。
+      // 仅 op 模式需要；rp 模式前端直连外部 VITE_OIDC_ISSUER，无需本站 /iam 代理（保留无害）。
       '/iam': {
         target: 'http://localhost:8099',
         changeOrigin: true,

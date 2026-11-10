@@ -17,7 +17,7 @@
 * **Docker Support**: Includes a basic `Dockerfile` for containerized deployment.
 * **Makefile Toolchain**: Provides a rich set of make commands to simplify code build, run, generation, Swagger docs, Docker deployment, and frontend startup.
 * **Growing Golib Library**: Common utility components are abstracted and reusable via the [golib](https://github.com/morehao/golib) package.
-* **Optional Embedded IAM**: Optionally embed [ark-iam](https://github.com/morehao/ark-iam) in the same process (`iam.enable` switch, default off) as an OIDC provider that protects business APIs. See [docs/agents/iam.md](./docs/agents/iam.md).
+* **Optional Account Auth (ark-iam, three modes)**: Choose via `iam.mode` — `disabled` (default, no auth), `op` (embed an OIDC Provider in this process — this project *is* the IAM), or `rp` (delegate to an external ark-iam, local verify only). See [docs/agents/iam.md](./docs/agents/iam.md).
 
 ---
 

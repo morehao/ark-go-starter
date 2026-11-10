@@ -32,7 +32,7 @@ import (
 	"github.com/morehao/ark-go-starter/pkg/dbclient"
 	"github.com/morehao/ark-go-starter/pkg/iamlink"
 	"github.com/morehao/ark-go-starter/pkg/testsetup"
-	"github.com/morehao/ark-iam/sdk/contract"
+	"github.com/morehao/ark-iam/contract"
 	"github.com/morehao/ark-iam/sdk/rp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

@@ -2,22 +2,23 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { AppShell } from '@ark-go-starter/ui'
 import App from './App'
-import { detectIAMEnabled } from './auth/config'
-import { AuthGuard, IAMAuthProvider } from './auth'
+import { detectIAMMode, type IAMMode } from './auth/config'
+import { AuthGuard, getIAMAuthProvider } from './auth'
 
 /**
- * 应用根节点。
- * - IAM 关闭：`<AppShell><App/></AppShell>`（保持现状免登录）；
- * - IAM 打开：在 AppShell 外层套 IAMAuthProvider（内含 BrowserRouter）+ AuthGuard（登录守卫）。
+ * 应用根节点（三态 mode）。
+ * - `disabled`：AppShell 直接包裹 App（免登录现状）；
+ * - `op` / `rp`：外层套对应 mode 的 IAMAuthProvider（内含 BrowserRouter）+ AuthGuard（登录守卫）。
  */
-function Root({ iamEnabled }: { iamEnabled: boolean }) {
-  if (!iamEnabled) {
+function Root({ mode }: { mode: IAMMode }) {
+  if (mode === 'disabled') {
     return (
       <AppShell>
         <App />
       </AppShell>
     )
   }
+  const IAMAuthProvider = getIAMAuthProvider(mode)
   return (
     <IAMAuthProvider>
       <AuthGuard>
@@ -30,10 +31,10 @@ function Root({ iamEnabled }: { iamEnabled: boolean }) {
 }
 
 async function bootstrap() {
-  const iamEnabled = await detectIAMEnabled()
+  const mode = await detectIAMMode()
   ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
-      <Root iamEnabled={iamEnabled} />
+      <Root mode={mode} />
     </React.StrictMode>,
   )
 }

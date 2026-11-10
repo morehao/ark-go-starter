@@ -165,8 +165,6 @@ github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd h1:TRLaZ9cD/w
 github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd/go.mod h1:6dJC0mAP4ikYIbvyc7fijjWJddQyLn8Ig3JB5CqoB9Q=
 github.com/modern-go/reflect2 v1.0.2 h1:xBagoLtFs94CBntxluKeaWgTMpvLxC4ur3nMaC9Gz0M=
 github.com/modern-go/reflect2 v1.0.2/go.mod h1:yWuevngMOJpCy52FWWMvUC8ws7m/LJsjYzDa0/r8luk=
-github.com/morehao/ark-iam/iam v0.3.0 h1:nliW4f8tolvcyuSSLLFeY972sZe7HuNOIDaA0nqy9SA=
-github.com/morehao/ark-iam/iam v0.3.0/go.mod h1:Cyqzli8IhL5uKZvZoSBrvVaGeeLrv+Wp01kac7bR6Iw=
 github.com/morehao/ark-iam/pkg v0.3.0 h1:dMwm7yvKJAhN3HKnpzDkvIWuVDxWvNwJ6QDHhbmhiaQ=
 github.com/morehao/ark-iam/pkg v0.3.0/go.mod h1:tcQi+8n0Zn/zqHDjE0XKn2cL283V275JRPQl5mCzqy4=
 github.com/morehao/ark-iam/sdk v0.3.0 h1:tcqZn65RjokCnKaAHHvCYj+HkR8MsMuQoX89GMcnHzs=

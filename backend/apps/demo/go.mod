@@ -110,13 +110,14 @@ require (
 	github.com/gin-gonic/gin v1.12.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/morehao/ark-go-starter/pkg v0.0.0-00010101000000-000000000000
-	github.com/morehao/ark-iam/iam v0.3.0
+	github.com/morehao/ark-iam/contract v0.4.0
 	github.com/morehao/ark-iam/pkg v0.3.0
-	github.com/morehao/ark-iam/sdk v0.3.0
+	github.com/morehao/ark-iam/sdk v0.4.2
 	github.com/morehao/golib v1.34.0
 	github.com/stretchr/testify v1.12.1
 	github.com/swaggo/swag v1.16.6
 	gorm.io/gorm v1.31.2
 )
 
-// ark-iam 三个模块（iam/pkg/sdk）均已发布为可 go get 的根级子模块，统一 v0.3.0，无需任何 replace。
+// ark-iam 新模块集合（contract/sdk/pkg）尚未发布到 Go proxy，由 backend/go.work 罩住本地源码（决策 D1），
+// 故此处仅占位 v0.0.0 且不写 replace；发布后替换为实际版本号即可。

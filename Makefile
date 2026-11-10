@@ -69,7 +69,7 @@ build:
 	$(call validate_app)
 	@echo "🔨 正在构建应用程序 $(APP)..."
 	@mkdir -p $(BUILD_DIR)
-	@cd backend && go work sync
+	@cd backend && ( go work sync || echo "⚠️  go work sync 跳过（迁移期 ark-iam contract 未发布，见 docs/agents/iam.md）" )
 	@cd backend && go build -ldflags="-X 'main.BuildVersion=$(VERSION)'" -o output/build/$(BINARY) $(MAIN_DIR)
 	@echo "✅ 构建完成: ./backend/output/build/$(BINARY)"
 
@@ -78,7 +78,7 @@ build-env:
 	$(call validate_app)
 	@echo "🔨 正在为 [$(GO_ENV)] 构建 $(APP)..."
 	@mkdir -p $(BUILD_DIR)
-	@cd backend && go work sync
+	@cd backend && ( go work sync || echo "⚠️  go work sync 跳过（迁移期 ark-iam contract 未发布，见 docs/agents/iam.md）" )
 	@cd backend && $(GO_ENV) go build -ldflags="-X 'main.BuildVersion=$(VERSION)'" -o output/build/$(BINARY) $(MAIN_DIR)
 	@echo "✅ 构建完成: ./backend/output/build/$(BINARY)"
 
@@ -100,21 +100,21 @@ clean:
 run:
 	$(call validate_app)
 	@echo "🚀 正在运行应用程序 $(APP)..."
-	@cd backend && go work sync
+	@cd backend && ( go work sync || echo "⚠️  go work sync 跳过（迁移期 ark-iam contract 未发布，见 docs/agents/iam.md）" )
 	@cd backend/apps/$(APP)/cmd && go run .
 
 # 运行单元测试（pkg 公共层 + 指定应用；不含 //go:build integration 的用例）
 test:
 	$(call validate_app)
 	@echo "🧪 正在运行测试..."
-	@cd backend && go work sync
+	@cd backend && ( go work sync || echo "⚠️  go work sync 跳过（迁移期 ark-iam contract 未发布，见 docs/agents/iam.md）" )
 	@cd backend && go test ./pkg/... ./apps/$(APP)/... -v
 
 # 运行集成测试（需本地 PostgreSQL(5432)/Redis(6379) 就绪）
 test-integration:
 	$(call validate_app)
 	@echo "🔗 正在运行集成测试..."
-	@cd backend && go work sync
+	@cd backend && ( go work sync || echo "⚠️  go work sync 跳过（迁移期 ark-iam contract 未发布，见 docs/agents/iam.md）" )
 	@cd backend && go test -tags=integration ./pkg/... ./apps/$(APP)/... -v
 
 # ============================================================
@@ -132,7 +132,7 @@ e2e-deps-check:
 e2e-backend:
 	$(call validate_app)
 	@echo "🌐 正在运行后端 e2e（真端口）..."
-	@cd backend && go work sync
+	@cd backend && ( go work sync || echo "⚠️  go work sync 跳过（迁移期 ark-iam contract 未发布，见 docs/agents/iam.md）" )
 	@cd backend && go test -tags=e2e ./apps/$(APP)/e2e/... -v -count=1
 
 # 前端 Playwright 端到端测试（需后端 8099 已在运行；前端服务由 playwright webServer 自动拉起）
@@ -156,7 +156,7 @@ e2e-install:
 # 同步 workspace 并更新所有子模块依赖
 deps:
 	@echo "📦 正在下载依赖项..."
-	@cd backend && go work sync
+	@cd backend && ( go work sync || echo "⚠️  go work sync 跳过（迁移期 ark-iam contract 未发布，见 docs/agents/iam.md）" )
 	@find ./backend -name "go.mod" -not -path "*/vendor/*" | while read modfile; do \
 		dir=$$(dirname $$modfile); \
 		echo "  => $$dir"; \
@@ -171,7 +171,7 @@ tidy:
 		echo "==> Tidy in $$dir"; \
 		(cd $$dir && go mod tidy); \
 	done
-	@cd backend && go work sync
+	@cd backend && ( go work sync || echo "⚠️  go work sync 跳过（迁移期 ark-iam contract 未发布，见 docs/agents/iam.md）" )
 
 # 升级指定依赖包（仅在引用该包的模块中执行）
 # 用法：make update-dep ARGS="-u github.com/morehao/golib@v0.1.1"
@@ -323,8 +323,12 @@ list-apps:
 lint:
 	@echo "🔍 正在运行代码检查工具..."
 	@cd backend && go work edit -json | grep -o '"DiskPath": "[^"]*"' | awk '{gsub(/"/, "", $$2); print $$2}' | while read mod; do \
-		echo "  => lint $$mod"; \
-		(cd $$mod && golangci-lint run ./...); \
+		case "$$mod" in \
+			./*|../ark-go-starter/*) \
+				echo "  => lint $$mod"; \
+				(cd $$mod && golangci-lint run ./...);; \
+			*) echo "  => skip $$mod (non-repo module, e.g. local ark-iam source during migration)";; \
+		esac; \
 	done
 
 # ============================================================
