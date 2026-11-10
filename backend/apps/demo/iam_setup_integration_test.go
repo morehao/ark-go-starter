@@ -111,6 +111,11 @@ func mockJWKS(t *testing.T) string {
 
 // TestSetupIAMRPMockJWKS rp 形态：用假 JWKS 端点验证 setupRP 成功、KeySource 非空、且不挂任何路由。
 func TestSetupIAMRPMockJWKS(t *testing.T) {
+	// rp 形态虽不建库/不挂路由，但 setupRP 会经 glog 打印启动日志；必须先初始化日志驱动，
+	// 否则 glog.Infof 会在未初始化的 zap logger 上 panic（nil BufferedWriteSyncer）。
+	testsetup.Initialize(testsetup.AppNameDemo)
+	t.Cleanup(func() { testsetup.Close(testsetup.AppNameDemo) })
+
 	prev := config.Conf
 	t.Cleanup(func() { config.Conf = prev })
 
