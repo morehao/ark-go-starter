@@ -68,7 +68,11 @@ db_configs:
 redis_config:
   service: demo
   addr: 127.0.0.1:6379
-  password: 123456
+  # 本地 dev 的 Redis 容器默认未设 requirepass，置空即可直连。
+  # 注意：go-redis 在配置了密码但服务端未设密码时，AUTH 会返回
+  # "ERR AUTH <password> called without any password configured"，启动即失败。
+  # 若你的 Redis 设了密码，改这里，或用 APP_CONFIG_PATH 指向本地覆盖配置。
+  password: ""
   db: 0
   dial_timeout: 5s
   read_timeout: 3s
@@ -90,7 +94,7 @@ cron:
 
 async:
   redis_addr: 127.0.0.1:6379  # Redis 地址
-  redis_password: "123456"    # Redis 密码
+  redis_password: ""          # Redis 密码（与 redis_config 保持一致：本机 dev 无密码）
   redis_db: 0                 # Redis 库号
 
 # 可选接入 ark-iam（三态 mode）。默认 disabled：不初始化 IAM、不建表、不挂 /iam/* 路由，
