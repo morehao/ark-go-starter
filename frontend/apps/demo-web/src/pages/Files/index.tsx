@@ -1,8 +1,14 @@
 import { useState } from 'react'
 import { App, Button, Descriptions, Popconfirm, Space, Tag, Upload, type UploadProps } from 'antd'
 import { PageContainer, tokens } from '@ark-go-starter/ui'
-import { deleteFile, getFile, uploadFile } from '@ark-go-starter/api'
+import { checkFileExists, deleteFile, getFile, uploadFile } from '@ark-go-starter/api'
 import type { FileRecord } from '@ark-go-starter/types'
+import {
+  MULTIPART_THRESHOLD_BYTES,
+  MultipartContentExistsError,
+  uploadMultipartFile,
+  type MultipartProgress,
+} from './multipart'
 
 /** 文件状态到中文文案 + Tag 颜色的映射（仅状态展示使用语义色） */
 const STATUS_MAP: Record<string, { text: string; color: string }> = {
@@ -21,15 +27,16 @@ function renderStatus(status: string) {
 }
 
 /**
- * 计算文件的 SHA-256（小写 hex）。
+ * 计算小文件的 SHA-256（小写 hex），仅供普通上传路径使用。
  *
  * 后端 POST /v1/demo/files 的 content_hash 是必填项（ginupload.UploadRequest 上
  * binding:"required"）；且当传入值恰好是 64 位 hex 时，filestore 会校验它与实际内容一致
  * （不一致报 content_hash does not match uploaded content）。因此这里必须传真实摘要：
  * 传空 → content_hash is required；传假值 → 失去去重语义、甚至被拒。
  *
- * 限制：crypto.subtle.digest 需要一次性读入整个文件，超大文件会占用等量内存；
- * 超大文件应改走 /v1/demo/files/multipart 分片上传（按分片流式计算摘要）。
+ * 限制：crypto.subtle.digest 需要一次性读入整个文件，内存占用与文件同量级；
+ * 因此超过 {@link MULTIPART_THRESHOLD_BYTES} 的文件走分片上传（见 ./multipart.ts，
+ * 摘要用 js-sha256 增量计算，堆占用只与分块大小相关）。
  */
 async function sha256Hex(file: File): Promise<string> {
   if (!globalThis.crypto?.subtle) {
@@ -43,24 +50,58 @@ export default function FilesPage() {
   const { message } = App.useApp()
   const [record, setRecord] = useState<FileRecord | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [progressText, setProgressText] = useState<string | null>(null)
 
-  // customRequest：接管 antd Upload 的上传流程，走 uploadFile，成功后按 file_id 拉详情
+  /** 分片进度 → 中文文案（摘要与分片两个阶段分别描述） */
+  const handleMultipartProgress = (progress: MultipartProgress) => {
+    if (progress.phase === 'hashing') {
+      setProgressText(`正在计算文件摘要… ${progress.percent}%`)
+      return
+    }
+    setProgressText(
+      `分片上传中 ${progress.partsDone}/${progress.partsTotal}（${progress.percent}%）`,
+    )
+  }
+
+  // customRequest：接管 antd Upload 的上传流程。
+  // - 小文件（≤ 8 MiB）：保持原有普通上传（服务端流式落盘，WebCrypto 一次性算摘要）；
+  // - 大文件（> 8 MiB）：走 multipart 分片上传，摘要增量计算、分片逐片直传，
+  //   避免 crypto.subtle 把整个文件读进内存（见 ./multipart.ts）。
   const customRequest: UploadProps['customRequest'] = async (options) => {
     const file = options.file as File
     setUploading(true)
+    setProgressText(null)
     try {
-      const uploaded = await uploadFile(file, await sha256Hex(file))
-      // 上传成功返回 file_id，再拉一次详情（详情接口返回 name/mime_type/status）
-      const detail = await getFile(uploaded.file_id).catch(() => uploaded)
+      let detail: FileRecord
+      if (file.size > MULTIPART_THRESHOLD_BYTES) {
+        const result = await uploadMultipartFile(file, handleMultipartProgress)
+        detail = result.file
+        message.success(`上传成功（分片上传 ${result.partsTotal} 片）`)
+      } else {
+        const uploaded = await uploadFile(file, await sha256Hex(file))
+        // 上传成功返回 file_id，再拉一次详情（详情接口返回 name/mime_type/status）
+        detail = await getFile(uploaded.file_id).catch(() => uploaded)
+        message.success('上传成功')
+      }
       setRecord(detail)
-      message.success('上传成功')
       options.onSuccess?.(detail, undefined as never)
     } catch (e) {
+      if (e instanceof MultipartContentExistsError) {
+        // 同内容已存在（创建会话返回 409）：无需重新上传，直接复用已有记录（秒传）
+        const existing = await checkFileExists(e.contentHash).catch(() => null)
+        if (existing?.exists && existing.file) {
+          setRecord(existing.file)
+          message.info('内容已存在，已秒传复用已有文件')
+          options.onSuccess?.(existing.file, undefined as never)
+          return
+        }
+      }
       const msg = e instanceof Error ? e.message : '上传失败，请检查后端是否可用'
       message.error(msg)
       options.onError?.(e instanceof Error ? e : new Error(msg))
     } finally {
       setUploading(false)
+      setProgressText(null)
     }
   }
 
@@ -90,7 +131,7 @@ export default function FilesPage() {
   return (
     <PageContainer
       title="文件上传"
-      description="演示通过 POST /v1/demo/files 上传单个文件，取回文件信息并下载"
+      description="演示 POST /v1/demo/files 普通上传与 /v1/demo/files/multipart 分片上传（> 8 MB 自动分片），取回文件信息并下载"
     >
       <Space direction="vertical" size="large" style={{ width: '100%', maxWidth: 640 }}>
         <Upload.Dragger
@@ -108,9 +149,15 @@ export default function FilesPage() {
             点击或拖拽文件到此处上传
           </p>
           <p style={{ margin: '4px 0 0', color: tokens.textPlaceholder, fontSize: 12 }}>
-            仅支持单文件普通上传
+            单文件上传；超过 8 MB 自动切换分片上传
           </p>
         </Upload.Dragger>
+
+        {uploading && progressText ? (
+          <p style={{ margin: 0, color: tokens.textSecondary, fontSize: 12 }} role="status">
+            {progressText}
+          </p>
+        ) : null}
 
         {record ? (
           <Descriptions

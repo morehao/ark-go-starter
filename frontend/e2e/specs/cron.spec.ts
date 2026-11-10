@@ -1,17 +1,24 @@
 import { test, expect } from '../fixtures/base'
+import { listCronTaskRuns } from '../support/api'
+import { descriptionsValue } from '../support/dom'
 
 /**
  * 定时任务页 · 全流程。
  *
- * 页面能力（读 pages/Cron/index.tsx 确认）：分页列表、运行记录抽屉、启停、刷新。
- * 注意两个真实约束：
+ * 页面能力（读 pages/Cron/index.tsx 确认）：分页列表、任务详情抽屉（GET /cron-tasks/:id）、
+ * 运行记录抽屉、启停、刷新；运行记录抽屉内提供两个运维动作：
+ * - 标记陈旧：POST /cron-tasks/:id/runs/mark-stale（body `{ cutoff_seconds }`）
+ * - 清理运行记录：DELETE /cron-tasks/:id/runs（body `{ before_unix }`，经 Popconfirm 二次确认）
+ * 错误文案由 demo-web 的 utils/errorMessage.ts 统一本地化。
+ *
+ * 两个真实约束：
  * 1) 任务定义只能由后端代码 `Scheduler.Register` 注册（gincron 不提供 POST 建任务），
  *    所以 e2e 不造任务，只消费后端 dev 环境注册的示例任务；
- * 2) 页面上**没有** mark-stale / 清理 runs 的按钮（后端有 API、UI 未暴露），这两项归后端 e2e 覆盖，
- *    前端 e2e 只覆盖列表/抽屉/启停/刷新。
+ * 2) 运行记录也没有写接口，因此 mark-stale/cleanup 用「接口侧交叉复核」：
+ *    断言真实请求体契约（cutoff_seconds / before_unix）与 affected 返回，且清理 10 年前的记录不减少数据。
  *
- * 断言稳定性：antd 两字按钮插空格 → 用 /禁\s*用/、/启\s*用/、/刷\s*新/；
- * 抽屉作用域 .ant-drawer（antd v6 关闭后根节点仍在 DOM，用 .ant-drawer-open 判定开关状态）。
+ * 断言稳定性：antd 两字按钮插空格 → 用 /禁\s*用/、/启\s*用/、/刷\s*新/、/详\s*情/；
+ * 抽屉作用域用 .ant-drawer-open（antd v6 关闭后根节点仍在 DOM，用它判定开关状态）。
  */
 async function gotoCron(page: import('@playwright/test').Page) {
   await page.goto('/')
@@ -112,5 +119,122 @@ test.describe('定时任务 · 全流程', () => {
     ])
     expect(((await refreshResp.json()) as { code: number }).code).toBe(0)
     await expect(page.locator('.ant-table-tbody .ant-table-row').first()).toBeVisible()
+  })
+
+  test('任务详情抽屉：GET 任务详情 → Descriptions 渲染任务字段', async ({ page }) => {
+    await gotoCron(page)
+    const firstRow = page.locator('.ant-table-tbody .ant-table-row').first()
+    await expect(firstRow).toBeVisible()
+    const taskName = (await firstRow.locator('td').first().innerText()).trim()
+
+    const [detailResp] = await Promise.all([
+      page.waitForResponse(
+        (r) =>
+          /\/demo\/cron-tasks\/[^/?]+$/.test(r.url()) && r.request().method() === 'GET',
+      ),
+      firstRow.getByRole('button', { name: /详\s*情/ }).click(),
+    ])
+    const body = (await detailResp.json()) as {
+      code: number
+      data: { id: string; name: string; spec: string; task_type: string }
+    }
+    expect(body.code).toBe(0)
+
+    const drawer = page.locator('.ant-drawer-open')
+    await expect(drawer).toBeVisible()
+    await expect(drawer.getByText(`任务详情 · ${taskName}`, { exact: true })).toBeVisible()
+    for (const label of ['任务 ID', '名称', '任务类型', 'Cron 表达式', '状态', '说明']) {
+      await expect(drawer.getByText(label, { exact: true })).toBeVisible()
+    }
+    // 详情内容与接口返回一致（不是列表行里的旧值）
+    await expect(descriptionsValue(drawer, '任务 ID')).toHaveText(body.data.id)
+    await expect(descriptionsValue(drawer, '名称')).toHaveText(taskName)
+    await expect(descriptionsValue(drawer, 'Cron 表达式')).toHaveText(body.data.spec)
+    await expect(descriptionsValue(drawer, '任务类型')).toHaveText(body.data.task_type)
+    await expect(drawer.locator('.ant-tag')).toHaveText(/启用|禁用/)
+
+    await drawer.locator('.ant-drawer-close').click()
+    await expect(page.locator('.ant-drawer-open')).toHaveCount(0)
+  })
+
+  test('标记陈旧：按分钟阈值 → POST mark-stale 契约正确并提示影响条数', async ({ page }) => {
+    await gotoCron(page)
+    const firstRow = page.locator('.ant-table-tbody .ant-table-row').first()
+    await expect(firstRow).toBeVisible()
+
+    const [runsResp] = await Promise.all([
+      page.waitForResponse(
+        (r) => /\/demo\/cron-tasks\/[^/]+\/runs/.test(r.url()) && r.request().method() === 'GET',
+      ),
+      firstRow.getByRole('button', { name: /运行\s*记录/ }).click(),
+    ])
+    expect((await runsResp.json()) as { code: number }).toMatchObject({ code: 0 })
+
+    const drawer = page.locator('.ant-drawer-open')
+    await expect(drawer).toBeVisible()
+    // 抽屉工具栏第一个数字输入框 = 陈旧判定（分钟）
+    await drawer.getByRole('spinbutton').first().fill('1440')
+
+    const [markResp] = await Promise.all([
+      page.waitForResponse(
+        (r) => r.url().endsWith('/runs/mark-stale') && r.request().method() === 'POST',
+      ),
+      drawer.getByRole('button', { name: /标记陈旧/ }).click(),
+    ])
+    const body = (await markResp.json()) as { code: number; data: { affected: number } }
+    expect(body.code).toBe(0)
+    expect(typeof body.data.affected).toBe('number')
+    // 契约：cutoff_seconds 必填且 = 分钟 * 60（gincron markStaleRequest）
+    const reqBody = JSON.parse(markResp.request().postData() ?? '{}') as {
+      cutoff_seconds?: number
+    }
+    expect(reqBody.cutoff_seconds, '请求体必须使用 cutoff_seconds（秒）').toBe(1440 * 60)
+
+    await expect(page.locator('.ant-message')).toContainText(/已标记\s*\d+\s*条陈旧运行记录/)
+  })
+
+  test('清理运行记录：Popconfirm 确认 → DELETE 带 before_unix，且不误删近期数据', async ({ page }) => {
+    const listBody = await gotoCron(page)
+    expect(listBody.total, '后端应注册至少 1 个定时任务').toBeGreaterThan(0)
+    const taskID = (listBody.list[0] as { id: string }).id
+    const before = await listCronTaskRuns(taskID)
+
+    const firstRow = page.locator('.ant-table-tbody .ant-table-row').first()
+    await expect(firstRow).toBeVisible()
+
+    const [runsResp] = await Promise.all([
+      page.waitForResponse(
+        (r) => /\/demo\/cron-tasks\/[^/]+\/runs/.test(r.url()) && r.request().method() === 'GET',
+      ),
+      firstRow.getByRole('button', { name: /运行\s*记录/ }).click(),
+    ])
+    expect((await runsResp.json()) as { code: number }).toMatchObject({ code: 0 })
+
+    const drawer = page.locator('.ant-drawer-open')
+    await expect(drawer).toBeVisible()
+    // 第二个数字输入框 = 清理早于（天前）；填 3650 天保证不会删到任何近期数据
+    await drawer.getByRole('spinbutton').nth(1).fill('3650')
+    await drawer.getByRole('button', { name: /清理运行记录/ }).click()
+
+    const popconfirm = page.locator('.ant-popconfirm')
+    await expect(popconfirm).toBeVisible()
+    const [delResp] = await Promise.all([
+      page.waitForResponse(
+        (r) => r.url().endsWith('/runs') && r.request().method() === 'DELETE',
+      ),
+      popconfirm.getByRole('button', { name: /确\s*定|OK/i }).click(),
+    ])
+    const body = (await delResp.json()) as { code: number; data: { affected: number } }
+    expect(body.code).toBe(0)
+    expect(typeof body.data.affected).toBe('number')
+    // 契约：DELETE 用 JSON body { before_unix }（不是 query 参数）
+    const reqBody = JSON.parse(delResp.request().postData() ?? '{}') as { before_unix?: number }
+    expect(reqBody.before_unix, '请求体必须使用 before_unix（unix 秒）').toBeGreaterThan(0)
+
+    await expect(page.locator('.ant-message')).toContainText(/已清理\s*\d+\s*条运行记录/)
+
+    // 交叉复核：清理 10 年前的边界不会减少现有运行记录
+    const after = await listCronTaskRuns(taskID)
+    expect(after.total, '清理 3650 天前的记录不应删除现有数据').toBe(before.total)
   })
 })

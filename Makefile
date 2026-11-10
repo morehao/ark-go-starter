@@ -39,7 +39,7 @@ PORT              = 8099
 # ============================================================
 # 伪目标
 # ============================================================
-.PHONY: all build build-env clean run lint test test-integration swag codegen \
+.PHONY: all build build-env clean run lint lint-frontend test test-integration swag codegen \
         e2e e2e-backend e2e-frontend e2e-install e2e-deps-check \
         docker-build docker-run check-image \
         list-apps deps tidy update-dep \
@@ -349,6 +349,11 @@ lint:
 		(cd $$mod && golangci-lint run ./...); \
 	done
 
+# 运行前端 ESLint（frontend/apps/* 与 frontend/packages/* 源码；e2e workspace 独立，未纳入）
+lint-frontend:
+	@echo "🔍 正在运行前端 ESLint..."
+	@cd frontend && pnpm lint
+
 # ============================================================
 # 帮助信息
 # ============================================================
@@ -372,6 +377,7 @@ help:
 	@echo "    make e2e-install                       安装前端依赖与 Playwright 浏览器（首次）"
 	@echo "    make e2e-deps-check                    探测本地 PG/Redis 是否就绪"
 	@echo "    make lint                              运行 golangci-lint"
+	@echo "    make lint-frontend                     运行前端 ESLint（frontend/apps + packages）"
 	@echo ""
 	@echo "  依赖管理"
 	@echo "    make deps                              同步 workspace 并更新全部模块依赖"

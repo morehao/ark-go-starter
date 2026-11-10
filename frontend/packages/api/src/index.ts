@@ -1,5 +1,6 @@
 import axios, { type AxiosRequestConfig } from 'axios'
 import type {
+  AffectedResult,
   ApiResponse,
   AsyncTask,
   AsyncTaskListResult,
@@ -10,6 +11,7 @@ import type {
   CronTaskRun,
   CronTaskRunListResult,
   DbCheck,
+  DictIntegrityReport,
   DictItemListResult,
   DictTreeNode,
   DictType,
@@ -216,6 +218,14 @@ export function getDictItems(code: string, params: { includeDisabled?: boolean }
   })
 }
 
+/** 字典树完整性检查 GET /demo/dict-types/{id}/integrity-check（只报告结构性问题，不自动修复） */
+export function checkDictTypeIntegrity(id: string) {
+  return request<DictIntegrityReport>({
+    url: `/demo/dict-types/${id}/integrity-check`,
+    method: 'get',
+  })
+}
+
 /** 字典项树 GET /demo/dict-codes/{code}/tree */
 export function getDictTree(code: string, params: { includeDisabled?: boolean } = {}) {
   const query: Record<string, unknown> = {}
@@ -329,6 +339,34 @@ export function getCronRun(id: string) {
   })
 }
 
+/**
+ * 标记某任务的陈旧 running 运行记录为 failed POST /demo/cron-tasks/{id}/runs/mark-stale。
+ *
+ * 契约（golib v1.34.1 gincron）：body 为 `{ cutoff_seconds }`（必填且 > 0），
+ * 语义是「start_at 早于 now-cutoff 且仍为 running 的记录视为陈旧」。
+ */
+export function markStaleCronTaskRuns(id: string, cutoffSeconds: number) {
+  return request<AffectedResult>({
+    url: `/demo/cron-tasks/${id}/runs/mark-stale`,
+    method: 'post',
+    data: { cutoff_seconds: cutoffSeconds } satisfies { cutoff_seconds: number },
+  })
+}
+
+/**
+ * 清理某任务 before 之前的运行记录 DELETE /demo/cron-tasks/{id}/runs。
+ *
+ * 注意：不是 query 参数 `?before=`，golib 契约要求 JSON body `{ before_unix }`（unix 秒，必填且 > 0），
+ * 缺失时后端返回 "invalid request: ..." 绑定错误。
+ */
+export function cleanupCronTaskRuns(id: string, beforeUnix: number) {
+  return request<AffectedResult>({
+    url: `/demo/cron-tasks/${id}/runs`,
+    method: 'delete',
+    data: { before_unix: beforeUnix } satisfies { before_unix: number },
+  })
+}
+
 // ============================ 异步任务 Async ============================
 
 /** 异步任务分页列表 GET /demo/async-tasks */
@@ -371,6 +409,28 @@ export function getAsyncRun(id: string) {
   return request<AsyncTaskRun>({
     url: `/demo/async-runs/${id}`,
     method: 'get',
+  })
+}
+
+/**
+ * 标记某任务类型的陈旧 processing 运行记录为 failed POST /demo/async-tasks/{type}/runs/mark-stale。
+ *
+ * 契约（golib v1.34.1 ginasync）：body 为 `{ cutoff_seconds }`（必填且 > 0）。
+ */
+export function markStaleAsyncTaskRuns(type: string, cutoffSeconds: number) {
+  return request<AffectedResult>({
+    url: `/demo/async-tasks/${type}/runs/mark-stale`,
+    method: 'post',
+    data: { cutoff_seconds: cutoffSeconds } satisfies { cutoff_seconds: number },
+  })
+}
+
+/** 清理某任务类型 before 之前的运行记录 DELETE /demo/async-tasks/{type}/runs（body `{ before_unix }`） */
+export function cleanupAsyncTaskRuns(type: string, beforeUnix: number) {
+  return request<AffectedResult>({
+    url: `/demo/async-tasks/${type}/runs`,
+    method: 'delete',
+    data: { before_unix: beforeUnix } satisfies { before_unix: number },
   })
 }
 
@@ -421,6 +481,97 @@ export function presignDownload(id: string) {
   return request<PresignURLResp>({
     url: `/demo/files/${id}/presign-url`,
     method: 'post',
+  })
+}
+
+// ---------------------------- 分片上传（multipart） ----------------------------
+//
+// 契约来源：golib biz/gserver/ginupload router.go 的 /files/multipart 子资源。
+// 流程：创建会话 → 逐片取预签名地址并直传 → complete 合并；失败用 abort 清理。
+// 与普通上传的关键差异：create 时必须带**整个文件**的 SHA-256（后端按它去重），
+// 因此调用方需要增量计算摘要，不能一次性 arrayBuffer（见 demo-web Files 页）。
+
+/** 分片上传创建请求体（POST /demo/files/multipart，字段均必填） */
+export interface MultipartCreateReq {
+  // 整个文件的 SHA-256（小写 hex），后端据此做内容去重；同内容已存在时返回 HTTP 409
+  content_hash: string
+  // 文件名
+  name: string
+  // 文件大小（字节）；complete 时后端会与实际合并结果对账，不一致报 size mismatch
+  size: number
+  // MIME 类型（可空，缺省 application/octet-stream）
+  mime_type?: string
+}
+
+/** 分片上传会话（createMultipartUpload 返回） */
+export interface MultipartCreateResp {
+  // 文件 ID；parts/complete/abort 的路径参数都用它
+  file_id: string
+  // 存储侧上传会话 ID（local 驱动为分片目录名，仅诊断用）
+  upload_id: string
+}
+
+/** 单个分片信息：complete 时回传，etag 来自分片 PUT 的响应 */
+export interface MultipartPart {
+  // 分片编号，从 1 开始；complete 时必须严格升序且不重复
+  part_number: number
+  // 分片内容 ETag（local 驱动为内容 MD5，S3 为上传响应 ETag），用分片 PUT 的返回值
+  etag: string
+}
+
+/** 创建分片上传会话 POST /demo/files/multipart */
+export function createMultipartUpload(req: MultipartCreateReq) {
+  return request<MultipartCreateResp>({
+    url: '/demo/files/multipart',
+    method: 'post',
+    data: req,
+  })
+}
+
+/**
+ * 获取单个分片的预签名上传地址 POST /demo/files/multipart/{fileID}/parts。
+ *
+ * 返回的 url/method/headers 必须原样使用：headers 是签名覆盖的头（S3 场景下漏发
+ * 会得到 SignatureDoesNotMatch）。本地驱动的 url 是配置项 base_url 拼出的后端绝对
+ * 地址，浏览器跨源直传会被 CORS 预检拦下；demo-web 侧会把它改写成同源相对路径再
+ * PUT（见 pages/Files/multipart.ts 的 toSameOriginURL 说明）。
+ */
+export function presignUploadPart(fileID: string, partNumber: number) {
+  return request<PresignURLResp>({
+    url: `/demo/files/multipart/${fileID}/parts`,
+    method: 'post',
+    data: { part_number: partNumber },
+  })
+}
+
+/** 完成分片上传（服务端按 parts 顺序合并） POST /demo/files/multipart/{fileID}/complete */
+export function completeMultipartUpload(fileID: string, parts: MultipartPart[]) {
+  return request<FileRecord>({
+    url: `/demo/files/multipart/${fileID}/complete`,
+    method: 'post',
+    data: { parts },
+    // 服务端要把所有分片合并成最终对象，超大文件合并耗时可能超过全局 10s 超时
+    timeout: 120000,
+  })
+}
+
+/**
+ * 取消分片上传并清理已写入的分片 DELETE /demo/files/multipart/{fileID}。
+ * 仅在上传失败/用户取消时调用；complete 成功后会话已被服务端清理，再 abort 会报错。
+ */
+export function abortMultipartUpload(fileID: string) {
+  return request<unknown>({
+    url: `/demo/files/multipart/${fileID}`,
+    method: 'delete',
+  })
+}
+
+/** 按内容哈希检查文件是否已存在（秒传探测） POST /demo/files/check-exist */
+export function checkFileExists(contentHash: string) {
+  return request<{ exists: boolean; file?: FileRecord }>({
+    url: '/demo/files/check-exist',
+    method: 'post',
+    data: { content_hash: contentHash },
   })
 }
 

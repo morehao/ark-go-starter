@@ -145,6 +145,38 @@ export interface DictItemListResult {
   list: DictItem[]
 }
 
+/** 字典树巡检的单条问题（对应 gindict.issueResponse） */
+export interface DictIntegrityIssue {
+  // 出问题的项 ID
+  item_id: string
+  // 出问题的项码值
+  value: string
+  // 问题类型：path_mismatch / level_mismatch / orphan / cycle / level_overflow / type_mismatch
+  kind: string
+  // 问题细节说明（后端英文文案，展示层可原样或本地化）
+  detail: string
+}
+
+/** 字典树完整性检查结果（对应 gindict.integrityResponse） */
+export interface DictIntegrityReport {
+  // 被检查的类型 code
+  type_code: string
+  // 本次检查的项数
+  checked: number
+  // 是否健康（无 issues 且无 orphans）
+  healthy: boolean
+  // 结构性问题列表
+  issues: DictIntegrityIssue[]
+  // parent_id 指向不存在项的项 ID 列表
+  orphans: string[]
+}
+
+/** 运维动作影响行数（对应 gincron/ginasync 的 affectedResponse） */
+export interface AffectedResult {
+  // 受影响（标记/清理）的条数
+  affected: number
+}
+
 /** 新建字典类型请求体 */
 export interface DictTypeCreateReq {
   // 类型编码（必填）

@@ -208,6 +208,11 @@ jobs:
           pnpm install --frozen-lockfile=false
           pnpm --filter @ark-go-starter/e2e exec playwright install --with-deps chromium
 
+      - name: Frontend lint (ESLint)
+        run: |
+          cd frontend
+          pnpm lint
+
       - name: Frontend e2e (Playwright)
         env:
           E2E_WEB_MODE: preview

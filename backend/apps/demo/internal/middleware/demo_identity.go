@@ -1,4 +1,5 @@
-// Package middleware 提供 Gin 中间件，含演示用身份注入。
+// Package middleware 提供 Gin 中间件：引擎级兜底（requestID/panic/404/405，见 engine.go）
+// 与演示用身份注入、OIDC 鉴权。
 package middleware
 
 import (
