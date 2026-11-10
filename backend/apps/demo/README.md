@@ -91,7 +91,10 @@ demo 已把 golib 自带的路由模块挂载到 `/v1/demo` 前缀下，开箱�
 | gincron | 定时任务 | `/cron-tasks`、`/cron-runs` |
 | ginasync | 异步任务 | `/async-tasks`、`/async-runs` |
 
-dev 环境可直接打开 `/v1/demo/docs`（Swagger）或 `/v1/demo/redocs`（ReDoc）查看全部接口。
+dev 环境可直接打开 `/demo/docs/index.html`（Swagger）或 `/demo/redocs`（ReDoc）查看全部接口。
+
+> 注意：Swagger UI 注册在 `/demo/docs/*any`，目录形式 `/demo/docs` 会被 gin 301 到
+> `/demo/docs/`，该路径在 gin-swagger 下返回 404；请直接使用带 `index.html` 的地址。
 
 示例：查询字典类型列表、新建一个字典类型（类型编码 `code` 必填且全表唯一）
 

@@ -179,6 +179,8 @@ github.com/morehao/ark-iam/sdk v0.5.0 h1:avLea19N5u0vq9XsaHZSfjSW/rRrjq0dpzArmvI
 github.com/morehao/ark-iam/sdk v0.5.0/go.mod h1:eY+Qo7zLt5x1N6NlBouvj3BoT+diIc/uUvVBQfxII3M=
 github.com/morehao/golib v1.34.0 h1:UJOA2nBaBiIAbp9CGwzZeRd+GcOQ9yZ/TPwaD9oomP0=
 github.com/morehao/golib v1.34.0/go.mod h1:6FuvO+PCpEsllL1r8ooGyZ1lNzGbZt+ITpwN78afVO8=
+github.com/morehao/golib v1.34.1 h1:d5AzLKPPG7xq/hPQ7I52ZQVCUnN9/8NNP3vZWoKHzN4=
+github.com/morehao/golib v1.34.1/go.mod h1:6FuvO+PCpEsllL1r8ooGyZ1lNzGbZt+ITpwN78afVO8=
 github.com/muhlemmer/gu v0.3.1 h1:7EAqmFrW7n3hETvuAdmFmn4hS8W+z3LgKtrnow+YzNM=
 github.com/muhlemmer/gu v0.3.1/go.mod h1:YHtHR+gxM+bKEIIs7Hmi9sPT3ZDUvTN/i88wQpZkrdM=
 github.com/muhlemmer/httpforwarded v0.1.0 h1:x4DLrzXdliq8mprgUMR0olDvHGkou5BJsK/vWUetyzY=

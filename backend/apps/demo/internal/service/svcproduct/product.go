@@ -18,6 +18,9 @@ import (
 	"gorm.io/gorm"
 )
 
+// defaultPageSize 是分页参数缺失或非正数时的兜底每页条数。
+const defaultPageSize = 10
+
 // ProductSvc 是商品管理服务接口。
 type ProductSvc interface {
 	Create(ctx context.Context, req *dtoproduct.ProductCreateReq) (*dtoproduct.ProductCreateResp, error)
@@ -173,10 +176,24 @@ func (svc *productSvc) Detail(ctx context.Context, req *dtoproduct.ProductDetail
 
 // PageList 分页获取商品管理列表
 func (svc *productSvc) PageList(ctx context.Context, req *dtoproduct.ProductPageListReq) (*dtoproduct.ProductPageListResp, error) {
+	// 分页兜底：gormdao 在 page/pageSize 非正时不加 LIMIT（返回全表），
+	// 而 PageQuery 只校验了 max=1000、没校验下限，客户端传 page=0/负数即可触发全表扫描。
+	// 这里统一归一化，行为对调用方保持"总是分页"。
+	page, pageSize := req.Page, req.PageSize
+	if page <= 0 {
+		page = 1
+	}
+	if pageSize <= 0 {
+		pageSize = defaultPageSize
+	}
+	if pageSize > gormdao.MaxPageSize {
+		pageSize = gormdao.MaxPageSize
+	}
+
 	cond := &dao.ProductCond{
 		BaseCond: &gormdao.BaseCond{
-			Page:     req.Page,
-			PageSize: req.PageSize,
+			Page:     page,
+			PageSize: pageSize,
 			// 分页必须有稳定排序，否则 offset 翻页可能重复/漏行。
 			OrderField: `"id" DESC`,
 		},
@@ -200,6 +217,8 @@ func (svc *productSvc) PageList(ctx context.Context, req *dtoproduct.ProductPage
 			OperatorBaseInfo: gobject.OperatorBaseInfo{
 				CreatedBy: v.CreatedBy,
 				UpdatedBy: v.UpdatedBy,
+				// 列表项与详情保持一致：漏填 CreatedAt 会让前端显示 1970 年。
+				CreatedAt: v.CreatedAt.Unix(),
 				UpdatedAt: v.UpdatedAt.Unix(),
 			},
 		})

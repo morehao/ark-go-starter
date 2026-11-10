@@ -36,7 +36,10 @@ func (ctr *sseCtr) Time(ctx *gin.Context) {
 	ctx.Header("Connection", "keep-alive")
 
 	clientGone := ctx.Stream(func(w io.Writer) bool {
+		// 必须节流：ctx.Stream 的回调里若没有等待，单连接会以百万级/秒的速度写满管道
+		// （实测未节流时 3 秒吐出 ~158 万行，能直接吃满一个核），这里对齐 TimeRaw 的 1s 心跳。
 		_, err := fmt.Fprintf(w, "data: %s\n\n", time.Now().Format(time.DateTime))
+		time.Sleep(time.Second)
 		return err == nil
 	})
 	if clientGone {
