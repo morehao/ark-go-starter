@@ -70,21 +70,27 @@ file_storage:
     base_url: http://127.0.0.1:8099/v1/demo/objects
     sign_secret: demo-sign-secret
 
-# 可选内嵌 ark-iam（形态 2）。生产环境（env: prod）务必显式配置以下安全项，否则 iam.New 会
-# fail-closed 启动失败（见 ark-iam validateNonDevSecurityConfig）：
+# 可选接入 ark-iam（三态 mode）。
+#   mode: disabled  不接入（默认，零副作用）
+#   mode: op        本进程内嵌 OIDC Provider：建库、挂 /iam/*、签发/验签
+#   mode: rp        对接外部 ark-iam：仅本地验签（读 jwks_url/audience），不建库、不挂路由
+# 生产环境（env: prod）当 mode: op 时务必显式配置以下安全项，否则会 fail-closed 启动失败：
 #   - signing_key：OIDC 签名私钥 PEM（RSA/EC），用于签发 id_token / 验签；
 #   - encryption_key：会话/令牌加密密钥（≥32 字节随机串）；
-#   - cookie_secure：SSO 会话 cookie 的 Secure 标志，HTTPS 生产必须 true。
-# enable 置 true 才真正挂载 /iam/* 并对业务接口启用 OIDC 鉴权；置 false 时这一段仅作占位，
-# 零副作用（不建表、不挂路由、业务鉴权回落为「无身份」）。下方占位值务必替换为真实密钥，
-# 切勿把真实私钥提交入库（建议改用环境变量/密钥管理，运行时由部署系统注入）。
+#   - cookie_secure：SSO 会话 cookie 的 Secure 标志，HTTPS 生产必须 true；
+#   - issuer：建议显式设为对外域名（https）。
+# 下方占位值务必替换为真实密钥，切勿把真实私钥提交入库（建议改用环境变量/密钥管理注入）。
+# 兼容旧开关：mode 留空且 enable: true 时按 op 处理（enable 已废弃，建议改用 mode）。
 iam:
-  enable: false               # 是否启用内嵌 IAM（生产按需开启）
-  prefix: /iam                # IAM 挂载路由前缀（须与前端 basePath 一致）
-  dsn: ""                     # IAM 数据库 DSN，空则复用 db_configs 第一个库
-  redis_addr: ""              # IAM Redis 地址，空则复用 redis_config
-  redis_password: ""          # IAM Redis 密码，空则复用 redis_config
-  issuer: ""                  # OIDC issuer，空则按端口推导；生产建议显式设为对外域名（https）
-  signing_key: "REPLACE_WITH_PEM_PRIVATE_KEY"   # 签名私钥 PEM，非 dev 必填
-  encryption_key: "REPLACE_WITH_32_BYTE_RANDOM_SECRET"  # 加密密钥，非 dev 必填
-  cookie_secure: true         # 生产（HTTPS）必须 true
+  mode: disabled              # 接入形态：disabled（默认）| op | rp
+  enable: false               # 旧二态开关（兼容）：mode 为空且为 true 时按 op
+  prefix: /iam                # IAM 挂载路由前缀（op 须与前端 basePath 一致）
+  dsn: ""                     # IAM 数据库 DSN（op），空则复用 db_configs 第一个库
+  redis_addr: ""              # IAM Redis 地址（op），空则复用 redis_config
+  redis_password: ""          # IAM Redis 密码（op），空则复用 redis_config
+  issuer: ""                  # OIDC issuer：op 空则按端口推导；rp 为外部 ark-iam 的 issuer；生产建议显式 https 域名
+  jwks_url: ""                # rp 形态的 JWKS 端点，空则按 issuer 推导
+  audience: ""                # rp 形态需校验的 token aud
+  signing_key: "REPLACE_WITH_PEM_PRIVATE_KEY"   # 签名私钥 PEM（op），非 dev 必填
+  encryption_key: "REPLACE_WITH_32_BYTE_RANDOM_SECRET"  # 加密密钥（op），非 dev 必填
+  cookie_secure: true         # 生产（HTTPS）必须 true（op）

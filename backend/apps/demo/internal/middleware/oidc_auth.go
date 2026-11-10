@@ -10,7 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/morehao/ark-go-starter/pkg/iamlink"
-	"github.com/morehao/ark-iam/sdk/contract"
+	"github.com/morehao/ark-iam/contract"
 	"github.com/morehao/ark-iam/sdk/rp"
 	"github.com/morehao/golib/biz/gcontext"
 	"github.com/morehao/golib/glog"
@@ -35,17 +35,31 @@ type LocalUserEnsurer interface {
 type OIDCAuthOption func(*oidcAuthConfig)
 
 type oidcAuthConfig struct {
-	keySource rp.KeySource
+	// keySource 是验签公钥来源；用 contract.KeySource（框架无关接口）斩断对 sdk 的依赖。
+	// 具体实现（op 形态的 sdk/server、rp 形态的 sdk/rp *Keys）由装配层注入。
+	keySource contract.KeySource
 	issuer    string
+	// audiences 是本应用认可的 aud 集合；非空时验签强制校验 aud（rp 形态安全必需）。
+	audiences []string
 	// skipPaths 是免鉴权白名单（按路径前缀匹配），如 health/docs。
 	skipPaths []string
 	// localUsers 把 IAM string 身份映射为本地 uint 用户ID。
 	localUsers LocalUserEnsurer
 }
 
-// WithOIDCKeySource 注入 OP 公钥来源（内嵌时取 iam.App.KeySource()）。
-func WithOIDCKeySource(source rp.KeySource) OIDCAuthOption {
+// WithOIDCKeySource 注入验签公钥来源（op 形态取 server.App.KeySource()；rp 形态取 rp.*Keys）。
+//
+// 参数类型为 contract.KeySource，op 与 rp 两种实现均满足该接口，调用方直接传入即可。
+func WithOIDCKeySource(source contract.KeySource) OIDCAuthOption {
 	return func(c *oidcAuthConfig) { c.keySource = source }
+}
+
+// WithOIDCAudiences 注入本应用认可的 aud 集合。
+//
+// rp 形态对接外部 ark-iam 时必须设置：不校验 aud 会误接受签发给别的应用的令牌。
+// 设置后验签要求令牌 aud 命中其中之一，不匹配则 401。op 形态（内嵌同进程）可不设。
+func WithOIDCAudiences(audiences ...string) OIDCAuthOption {
+	return func(c *oidcAuthConfig) { c.audiences = append(c.audiences, audiences...) }
 }
 
 // WithOIDCIssuer 注入期望的 OP issuer（配置后强制校验令牌 iss）。
@@ -126,6 +140,10 @@ func buildVerifier(cfg *oidcAuthConfig) *rp.Verifier {
 	opts := []rp.VerifierOption{}
 	if cfg.issuer != "" {
 		opts = append(opts, rp.WithIssuer(cfg.issuer))
+	}
+	// rp 形态对接外部 IAM 必须校验 aud，否则别的应用的令牌会被误接受（安全必需）。
+	if len(cfg.audiences) > 0 {
+		opts = append(opts, rp.WithAudiences(cfg.audiences...))
 	}
 	return rp.NewVerifier(cfg.keySource, opts...)
 }
