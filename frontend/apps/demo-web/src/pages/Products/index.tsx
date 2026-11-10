@@ -186,7 +186,7 @@ export default function ProductsPage() {
         onOk={handleSubmit}
         onCancel={() => setModalOpen(false)}
         confirmLoading={submitting}
-        destroyOnClose
+        forceRender
       >
         <Form form={form} layout="vertical" preserve={false}>
           <Form.Item

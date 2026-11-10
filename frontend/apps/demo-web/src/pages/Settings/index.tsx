@@ -150,7 +150,7 @@ export default function SettingsPage() {
   return (
     <PageContainer
       title="配置中心"
-      description="配置项分页列表，支持新建、编辑与删除，数据来自 /v1/settings"
+      description="配置项分页列表，支持新建、编辑与删除，数据来自 /v1/demo/settings"
       extra={
         <Space>
           <Button onClick={load}>刷新</Button>
@@ -186,7 +186,7 @@ export default function SettingsPage() {
         onOk={handleSubmit}
         onCancel={() => setModalOpen(false)}
         confirmLoading={submitting}
-        destroyOnClose
+        forceRender
       >
         <Form form={form} layout="vertical" preserve={false}>
           <Form.Item

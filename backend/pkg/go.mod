@@ -4,7 +4,7 @@ go 1.27.3
 
 require (
 	github.com/gin-gonic/gin v1.12.0
-	github.com/morehao/golib v1.34.0
+	github.com/morehao/golib v1.34.1
 	github.com/redis/go-redis/v9 v9.23.0
 	github.com/stretchr/testify v1.12.1
 	gorm.io/gorm v1.31.2

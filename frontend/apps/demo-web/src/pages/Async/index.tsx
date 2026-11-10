@@ -120,7 +120,7 @@ export default function AsyncPage() {
   return (
     <PageContainer
       title="异步任务"
-      description="异步任务列表，可启停并查看运行记录，数据来自 /v1/async-tasks"
+      description="异步任务列表，可启停并查看运行记录，数据来自 /v1/demo/async-tasks"
       extra={<Button onClick={load}>刷新</Button>}
     >
       <Table<AsyncTask>

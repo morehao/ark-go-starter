@@ -20,6 +20,25 @@ function renderStatus(status: string) {
   return <Tag color={meta.color}>{meta.text}</Tag>
 }
 
+/**
+ * 计算文件的 SHA-256（小写 hex）。
+ *
+ * 后端 POST /v1/demo/files 的 content_hash 是必填项（ginupload.UploadRequest 上
+ * binding:"required"）；且当传入值恰好是 64 位 hex 时，filestore 会校验它与实际内容一致
+ * （不一致报 content_hash does not match uploaded content）。因此这里必须传真实摘要：
+ * 传空 → content_hash is required；传假值 → 失去去重语义、甚至被拒。
+ *
+ * 限制：crypto.subtle.digest 需要一次性读入整个文件，超大文件会占用等量内存；
+ * 超大文件应改走 /v1/demo/files/multipart 分片上传（按分片流式计算摘要）。
+ */
+async function sha256Hex(file: File): Promise<string> {
+  if (!globalThis.crypto?.subtle) {
+    throw new Error('当前环境不支持 Web Crypto，无法计算文件 sha256（需 https 或 localhost 访问）')
+  }
+  const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer())
+  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('')
+}
+
 export default function FilesPage() {
   const { message } = App.useApp()
   const [record, setRecord] = useState<FileRecord | null>(null)
@@ -30,7 +49,7 @@ export default function FilesPage() {
     const file = options.file as File
     setUploading(true)
     try {
-      const uploaded = await uploadFile(file)
+      const uploaded = await uploadFile(file, await sha256Hex(file))
       // 上传成功返回 file_id，再拉一次详情（详情接口返回 name/mime_type/status）
       const detail = await getFile(uploaded.file_id).catch(() => uploaded)
       setRecord(detail)

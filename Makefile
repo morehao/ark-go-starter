@@ -14,6 +14,14 @@ APP_CONFIG_PATH = /app/config.yaml
 # go命令的环境变量
 GO_ENV = CGO_ENABLED=0 GOPROXY=https://goproxy.cn,direct
 
+# 注意：本项目所有目标都**不执行** `go work sync`。
+# 原因（go 1.27.3 实测）：go.work 只 use 了 ./apps/demo 与 ./pkg，`go work sync` 会把
+# demo/go.mod 里显式 require 的 ark-iam 模块（如 github.com/morehao/ark-iam/pkg）当作
+# 冗余依赖从 go.mod 删掉（且未补进 go.work.sum），随后 go build / go test 直接报
+# "imports ... from implicitly required module"，干净检出下 `make build` / `make test` 必挂。
+# 依赖刷新请改用各模块内的 `go mod tidy` / `go mod download`（见 deps、tidy 目标）。
+# 相关排查记录：.dsh/docs/notes/2026-11-10-go-work-local-modules.md
+
 # ============================================================
 # Docker 相关变量
 # ============================================================
@@ -69,7 +77,6 @@ build:
 	$(call validate_app)
 	@echo "🔨 正在构建应用程序 $(APP)..."
 	@mkdir -p $(BUILD_DIR)
-	@cd backend && go work sync
 	@cd backend && go build -ldflags="-X 'main.BuildVersion=$(VERSION)'" -o output/build/$(BINARY) $(MAIN_DIR)
 	@echo "✅ 构建完成: ./backend/output/build/$(BINARY)"
 
@@ -78,7 +85,6 @@ build-env:
 	$(call validate_app)
 	@echo "🔨 正在为 [$(GO_ENV)] 构建 $(APP)..."
 	@mkdir -p $(BUILD_DIR)
-	@cd backend && go work sync
 	@cd backend && $(GO_ENV) go build -ldflags="-X 'main.BuildVersion=$(VERSION)'" -o output/build/$(BINARY) $(MAIN_DIR)
 	@echo "✅ 构建完成: ./backend/output/build/$(BINARY)"
 
@@ -100,21 +106,18 @@ clean:
 run:
 	$(call validate_app)
 	@echo "🚀 正在运行应用程序 $(APP)..."
-	@cd backend && go work sync
 	@cd backend/apps/$(APP)/cmd && go run .
 
 # 运行单元测试（pkg 公共层 + 指定应用；不含 //go:build integration 的用例）
 test:
 	$(call validate_app)
 	@echo "🧪 正在运行测试..."
-	@cd backend && go work sync
 	@cd backend && go test ./pkg/... ./apps/$(APP)/... -v
 
 # 运行集成测试（需本地 PostgreSQL(5432)/Redis(6379) 就绪）
 test-integration:
 	$(call validate_app)
 	@echo "🔗 正在运行集成测试..."
-	@cd backend && go work sync
 	@cd backend && go test -tags=integration ./pkg/... ./apps/$(APP)/... -v
 
 # ============================================================
@@ -132,7 +135,6 @@ e2e-deps-check:
 e2e-backend:
 	$(call validate_app)
 	@echo "🌐 正在运行后端 e2e（真端口）..."
-	@cd backend && go work sync
 	@cd backend && go test -tags=e2e ./apps/$(APP)/e2e/... -v -count=1
 
 # 前端 Playwright 端到端测试（需后端 8099 已在运行；前端服务由 playwright webServer 自动拉起）
@@ -153,10 +155,9 @@ e2e-install:
 # 依赖管理
 # ============================================================
 
-# 同步 workspace 并更新所有子模块依赖
+# 同步依赖：逐模块 go mod download + tidy（不使用 go work sync，原因见文件头注释）
 deps:
 	@echo "📦 正在下载依赖项..."
-	@cd backend && go work sync
 	@find ./backend -name "go.mod" -not -path "*/vendor/*" | while read modfile; do \
 		dir=$$(dirname $$modfile); \
 		echo "  => $$dir"; \
@@ -171,7 +172,6 @@ tidy:
 		echo "==> Tidy in $$dir"; \
 		(cd $$dir && go mod tidy); \
 	done
-	@cd backend && go work sync
 
 # 升级指定依赖包（仅在引用该包的模块中执行）
 # 用法：make update-dep ARGS="-u github.com/morehao/golib@v0.1.1"
@@ -295,7 +295,6 @@ dev-all:
 	mkdir -p ./log; \
 	echo "🚀 正在启动后端 [$$app] 与前端（后端日志：log/dev-all-backend.log）..."; \
 	before_ports="$$(lsof -nP -iTCP -sTCP:LISTEN 2>/dev/null | awk 'NR>1 {print $$9}' | grep -oE ':[0-9]+$$' | tr -d ':' | sort -u | tr '\n' ' ')"; \
-	( cd backend && go work sync >/dev/null 2>&1 ); \
 	( cd backend/apps/$$app/cmd && go run . ) > ./log/dev-all-backend.log 2>&1 & \
 	backend_pid=$$!; \
 	trap 'echo ""; echo "🛑 正在停止后端 [$$app]..."; kill $$backend_pid 2>/dev/null; wait $$backend_pid 2>/dev/null; echo "✅ 已停止"; exit 0' INT TERM; \
