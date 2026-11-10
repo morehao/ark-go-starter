@@ -282,7 +282,8 @@ check-image:
 # 前端开发
 # ============================================================
 
-# 同时启动后端与前端开发服务（后端后台运行、前端前台日志；Ctrl+C 一并停止）
+# 同时启动后端与前端开发服务（后端后台运行、verbose 日志写入 log/dev-all-backend.log；
+# 前端前台输出；前端就绪后打印明确的访问地址，Ctrl+C 一并停止）
 # 用法：make dev-all [APP=demo]
 dev-all:
 	@app="$(APP)"; app=$${app:-demo}; \
@@ -291,12 +292,34 @@ dev-all:
 		echo "   可用的应用程序：$$(ls ./backend/apps 2>/dev/null | tr '\n' ' ')"; \
 		exit 1; \
 	fi; \
-	echo "🚀 正在启动后端 [$$app] 与前端（默认 http://localhost:3000，被占用时以 Vite 输出为准）..."; \
+	mkdir -p ./log; \
+	echo "🚀 正在启动后端 [$$app] 与前端（后端日志：log/dev-all-backend.log）..."; \
+	before_ports="$$(lsof -nP -iTCP -sTCP:LISTEN 2>/dev/null | awk 'NR>1 {print $$9}' | grep -oE ':[0-9]+$$' | tr -d ':' | sort -u | tr '\n' ' ')"; \
 	( cd backend && go work sync >/dev/null 2>&1 ); \
-	( cd backend/apps/$$app/cmd && go run . ) & \
+	( cd backend/apps/$$app/cmd && go run . ) > ./log/dev-all-backend.log 2>&1 & \
 	backend_pid=$$!; \
 	trap 'echo ""; echo "🛑 正在停止后端 [$$app]..."; kill $$backend_pid 2>/dev/null; wait $$backend_pid 2>/dev/null; echo "✅ 已停止"; exit 0' INT TERM; \
+	( for _ in $$(seq 1 120); do \
+		for p in 3000 3001 3002 3003 3004 3005 3006 3007 3008 3009 3010; do \
+			if echo " $$before_ports " | grep -q " $$p "; then \
+				continue; \
+			fi; \
+			if nc -z -w 1 127.0.0.1 $$p >/dev/null 2>&1 || nc -z -w 1 ::1 $$p >/dev/null 2>&1; then \
+				echo ""; \
+				echo "=============================================="; \
+				echo "  🌐 前端访问地址: http://localhost:$$p"; \
+				echo "  🔌 后端接口:     http://localhost:8099"; \
+				echo "  📄 后端日志:     log/dev-all-backend.log"; \
+				echo "=============================================="; \
+				echo ""; \
+				exit 0; \
+			fi; \
+		done; \
+		sleep 1; \
+	done ) & \
+	watcher_pid=$$!; \
 	( cd frontend && pnpm dev ); \
+	kill $$watcher_pid 2>/dev/null; \
 	kill $$backend_pid 2>/dev/null; wait $$backend_pid 2>/dev/null; \
 	echo "✅ 前后端开发服务已全部停止"
 
