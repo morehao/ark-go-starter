@@ -1,6 +1,6 @@
-import { createHash } from 'node:crypto'
+import { createHash, randomBytes } from 'node:crypto'
 import { test, expect } from '../fixtures/base'
-import { deleteFile, checkFileExists, serveFile } from '../support/api'
+import { API_BASE, deleteFile, checkFileExists, serveFile } from '../support/api'
 
 /**
  * 文件上传页 · 全流程（上传 → 展示文件信息 → 下载 → 删除，含重名/秒传探测）。
@@ -28,6 +28,30 @@ interface UploadResp {
 /** 计算内容 sha256（与页面 sha256Hex 等价），用于 check-exist 断言。 */
 function sha256Hex(content: string): string {
   return createHash('sha256').update(content).digest('hex')
+}
+
+/** 计算二进制内容的 sha256，用于与后端记录的 content_hash / 直出内容对账。 */
+function sha256Buffer(buffer: Buffer): string {
+  return createHash('sha256').update(buffer).digest('hex')
+}
+
+/** 与页面阈值一致：> 8 MiB 走分片上传；9 MiB 文件配合 8 MiB 分片正好两片。 */
+const BIG_FILE_BYTES = 9 * 1024 * 1024
+
+/** 判断某个响应是否为「第 N 片」的预签名请求（按请求体 part_number 区分）。 */
+function isPresignPartResponse(
+  response: import('@playwright/test').Response,
+  partNumber: number,
+): boolean {
+  const path = new URL(response.url()).pathname
+  if (response.request().method() !== 'POST' || !path.endsWith('/parts')) return false
+  const postData = response.request().postData()
+  if (!postData) return false
+  try {
+    return (JSON.parse(postData) as { part_number?: number }).part_number === partNumber
+  } catch {
+    return false
+  }
 }
 
 /** 进入文件上传页。 */
@@ -178,5 +202,154 @@ test.describe('文件上传 · 全流程', () => {
     const served = await serveFile(after.file!.file_id)
     expect(served.status).toBe(200)
     expect(served.text).toBe(content)
+  })
+
+  test('超大文件（9 MB）走分片上传：create → parts → 分片直传 → complete，内容与 content_hash 一致', async ({
+    page,
+    request,
+  }) => {
+    await gotoFiles(page)
+
+    const fileName = `${FILE_PREFIX}-big-${Date.now()}.bin`
+    // 随机内容保证跨轮次唯一：同 content_hash 会命中后端去重（create 返回 409）
+    const content = randomBytes(BIG_FILE_BYTES)
+    const contentHash = sha256Buffer(content)
+
+    // 记录所有分片 PUT 响应：既断言数量，也断言直传走的是同源地址（跨源预签名 host 会被 CORS 拦）
+    const putResponses: import('@playwright/test').Response[] = []
+    page.on('response', (response) => {
+      if (response.request().method() !== 'PUT') return
+      if (!new URL(response.url()).pathname.includes('/v1/demo/objects/')) return
+      putResponses.push(response)
+    })
+
+    // 三个业务接口 + 两片预签名：先挂好等待，再触发上传，避免漏掉事件
+    const createRespPromise = page.waitForResponse((r) => {
+      const path = new URL(r.url()).pathname
+      return r.request().method() === 'POST' && path.endsWith('/v1/demo/files/multipart')
+    })
+    const part1RespPromise = page.waitForResponse((r) => isPresignPartResponse(r, 1))
+    const part2RespPromise = page.waitForResponse((r) => isPresignPartResponse(r, 2))
+    const completeRespPromise = page.waitForResponse((r) => {
+      const path = new URL(r.url()).pathname
+      return (
+        r.request().method() === 'POST' &&
+        /\/v1\/demo\/files\/multipart\/[^/]+\/complete$/.test(path)
+      )
+    })
+
+    await page.locator('input[type="file"]').setInputFiles({
+      name: fileName,
+      mimeType: 'application/octet-stream',
+      buffer: content,
+    })
+
+    // ① 创建会话
+    const createBody = (await (await createRespPromise).json()) as {
+      code: number
+      msg: string
+      data?: { file_id?: string; upload_id?: string }
+    }
+    expect(createBody.code, `创建分片会话失败：${createBody.msg}`).toBe(0)
+    const fileID = createBody.data?.file_id
+    expect(fileID, '创建会话必须返回 file_id').toBeTruthy()
+    uploadedFileIDs.push(fileID!)
+
+    // ② 两片预签名：都返回可直传的 PUT 地址
+    for (const [partNumber, respPromise] of [
+      [1, part1RespPromise],
+      [2, part2RespPromise],
+    ] as const) {
+      const body = (await (await respPromise).json()) as {
+        code: number
+        msg: string
+        data?: { url?: string; method?: string }
+      }
+      expect(body.code, `第 ${partNumber} 片预签名失败：${body.msg}`).toBe(0)
+      expect(body.data?.url, `第 ${partNumber} 片必须返回预签名 URL`).toBeTruthy()
+      expect(body.data?.method).toBe('PUT')
+    }
+
+    // ③ 分片直传：9 MiB + 8 MiB 分片 = 两片，且必须经同源 /v1 代理（不能直连 8099）
+    await expect.poll(() => putResponses.length, { timeout: 15_000 }).toBe(2)
+    const origin = new URL(page.url()).origin
+    for (const response of putResponses) {
+      expect(response.status()).toBe(200)
+      expect(
+        new URL(response.url()).origin,
+        '分片直传必须走同源 /v1 代理（跨源会被 CORS 预检拦截）',
+      ).toBe(origin)
+    }
+
+    // ④ complete：合并后返回的记录必须与创建会话是同一个 file_id
+    const completeBody = (await (await completeRespPromise).json()) as UploadResp
+    expect(completeBody.code, `合并分片失败：${completeBody.msg}`).toBe(0)
+    expect(completeBody.data?.file_id).toBe(fileID)
+    expect(completeBody.data?.status).toBe('completed')
+    expect(completeBody.data?.name).toBe(fileName)
+
+    // UI：成功提示 + 文件信息面板
+    await expect(page.getByText(/上传成功/)).toBeVisible()
+    await expect(page.getByText('文件信息', { exact: true })).toBeVisible()
+    await expect(page.getByText(fileName, { exact: true })).toBeVisible()
+    await expect(page.getByText('已完成', { exact: true })).toBeVisible()
+
+    // 后端记录的 content_hash / size 必须与客户端增量摘要一致（增量哈希正确性护栏）
+    const detailResp = await request.get(`${API_BASE}/v1/demo/files/${fileID}`)
+    expect(detailResp.status()).toBe(200)
+    const detail = (await detailResp.json()) as {
+      code: number
+      data?: { content_hash?: string; size?: number; status?: string }
+    }
+    expect(detail.code).toBe(0)
+    expect(detail.data?.status).toBe('completed')
+    expect(detail.data?.size).toBe(BIG_FILE_BYTES)
+    expect(detail.data?.content_hash, 'content_hash 必须等于整个文件的 SHA-256').toBe(contentHash)
+
+    // 合并后的对象字节必须与上传内容逐字节一致（分片顺序/拼接正确性）
+    const served = await request.get(`${API_BASE}/v1/demo/files/${fileID}/serve`)
+    expect(served.status()).toBe(200)
+    const servedBytes = await served.body()
+    expect(servedBytes.length).toBe(BIG_FILE_BYTES)
+    expect(sha256Buffer(servedBytes)).toBe(contentHash)
+  })
+
+  test('分片直传失败：清理已创建的分片会话（abort）并提示错误', async ({ page }) => {
+    await gotoFiles(page)
+
+    const fileName = `${FILE_PREFIX}-abort-${Date.now()}.bin`
+    // 只拦截对象直传端点的 PUT（模拟网络失败）；创建/预签名/abort 等业务接口不受影响
+    await page.route('**/v1/demo/objects/**', (route) => route.abort('failed'))
+
+    const createRespPromise = page.waitForResponse((r) => {
+      const path = new URL(r.url()).pathname
+      return r.request().method() === 'POST' && path.endsWith('/v1/demo/files/multipart')
+    })
+    const abortRespPromise = page.waitForResponse((r) => {
+      const path = new URL(r.url()).pathname
+      return r.request().method() === 'DELETE' && /\/v1\/demo\/files\/multipart\/[^/]+$/.test(path)
+    })
+
+    await page.locator('input[type="file"]').setInputFiles({
+      name: fileName,
+      mimeType: 'application/octet-stream',
+      buffer: randomBytes(BIG_FILE_BYTES),
+    })
+
+    // 直传失败前会话已创建，失败后必须以 DELETE /files/multipart/{id} 清理（不留下半截分片）
+    const createBody = (await (await createRespPromise).json()) as {
+      code: number
+      data?: { file_id?: string }
+    }
+    const fileID = createBody.data?.file_id
+    expect(fileID, '直传失败前应已创建分片会话').toBeTruthy()
+    uploadedFileIDs.push(fileID!)
+
+    await expect(page.locator('.ant-message-error')).toBeVisible()
+    const abortResp = await abortRespPromise
+    expect(abortResp.status()).toBe(200)
+    expect(((await abortResp.json()) as { code: number }).code).toBe(0)
+    // 失败不应展示文件信息面板
+    await expect(page.getByText('文件信息', { exact: true })).toHaveCount(0)
   })
 })

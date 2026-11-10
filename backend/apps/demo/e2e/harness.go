@@ -35,6 +35,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/morehao/ark-go-starter/demo"
 	"github.com/morehao/ark-go-starter/demo/config"
+	"github.com/morehao/ark-go-starter/demo/internal/middleware"
 	"github.com/morehao/ark-go-starter/pkg/dbclient"
 	"github.com/morehao/ark-go-starter/pkg/testsetup"
 	"github.com/morehao/golib/dict"
@@ -57,9 +58,10 @@ func configPath(t *testing.T) string {
 
 // apiResp 是统一的接口响应包装。
 type apiResp struct {
-	Code int             `json:"code"`
-	Msg  string          `json:"msg"`
-	Data json.RawMessage `json:"data"`
+	Code      int             `json:"code"`
+	RequestID string          `json:"requestID"`
+	Msg       string          `json:"msg"`
+	Data      json.RawMessage `json:"data"`
 }
 
 // httpClient 是所有 e2e 请求共用的客户端：统一超时，避免服务端异常时测试挂死。
@@ -88,7 +90,9 @@ func startServer(t *testing.T) (baseURL string, shutdown func()) {
 
 	gin.SetMode(gin.TestMode)
 	engine := gin.New()
-	engine.Use(gin.Recovery())
+	// 与 cmd/main.go 共用同一份引擎级装配（requestID / panic 500 / 404 / 405 JSON envelope），
+	// 否则 404/405/requestID 这类引擎级行为只有真实进程覆盖，e2e 测不到。
+	middleware.SetupEngine(engine, demo.AppName)
 	demo.Routers(engine)
 
 	ln, err := (&net.ListenConfig{}).Listen(context.Background(), "tcp", "127.0.0.1:0")

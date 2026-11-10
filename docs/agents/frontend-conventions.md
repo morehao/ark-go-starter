@@ -44,6 +44,7 @@ import { AppShell, PageContainer, tokens } from '@ark-go-starter/ui'
 | 启动开发服务 | `pnpm dev` | `make dev-frontend` |
 | 构建 | `pnpm build` | — |
 | 类型检查 | `pnpm typecheck` | — |
+| ESLint | `pnpm lint`（修复：`pnpm lint:fix`） | `make lint-frontend` |
 | 前后端一起起 | — | `make dev-all APP=demo` |
 | 停止前端服务 | — | `make stop-frontend` |
 
@@ -70,7 +71,8 @@ import { AppShell, PageContainer, tokens } from '@ark-go-starter/ui'
 2. 颜色/圆角/间距全部取 `tokens` 或 `theme.useToken()`，无裸值；
 3. 列表页按「搜索区 → Table → Modal/Drawer」顺序组织，列宽与 `scroll.x` 对齐；
 4. 没有新增 `.css` 文件、没有 pill 形按钮、卡片无阴影；
-5. 跑一次 `pnpm typecheck` 确认无未使用变量与类型错误。
+5. 跑一次 `pnpm typecheck` 确认无未使用变量与类型错误；
+6. 跑一次 `pnpm lint`（或根目录 `make lint-frontend`），必须 0 error。
 
 ## 已知空白（与 DESIGN.md `Known Gaps` 一致）
 

@@ -61,6 +61,19 @@ make lint
 golangci-lint run ./... --disable-all -E golint,errcheck,staticcheck
 ```
 
+前端 ESLint（flat config：[`frontend/eslint.config.mjs`](../../frontend/eslint.config.mjs)，覆盖 `frontend/apps/*` 与 `frontend/packages/*` 源码）：
+
+```bash
+# 根目录等价命令
+make lint-frontend
+
+# 或在 frontend/ 目录内直接跑（自动修复用 pnpm lint:fix）
+cd frontend && pnpm lint
+```
+
+> 提交前自检口径：前端 `pnpm lint` 必须 **0 error**；当前基线另有 7 条 `react-hooks` warning（`set-state-in-effect` /
+> `static-components`，属既有页面写法，已显式降级为 warn 并在配置注释里记录收紧条件）。
+
 > **安装 golangci-lint（v2，勿用 `go install`）**
 >
 > 本仓库 `.golangci.yml` 是 **v2 schema**，必须用 golangci-lint **v2**（`golangci-lint --version` 应 ≥ 2）。

@@ -7,12 +7,13 @@ import {
   Popconfirm,
   Select,
   Space,
+  Switch,
   Table,
   Tag,
   App,
   type TableProps,
 } from 'antd'
-import { PageContainer } from '@ark-go-starter/ui'
+import { PageContainer, tokens } from '@ark-go-starter/ui'
 import {
   createSetting,
   deleteSetting,
@@ -20,8 +21,18 @@ import {
   updateSetting,
 } from '@ark-go-starter/api'
 import type { Setting, SettingCreateReq } from '@ark-go-starter/types'
+import { localizeError } from '../../utils/errorMessage'
 
 const VALUE_TYPES = ['json', 'toml', 'yaml', 'string', 'int', 'bool', 'float']
+
+/** 分组筛选输入框宽度（与 DESIGN.md 搜索区一致） */
+const SEARCH_WIDTH = 240
+
+/** 状态筛选项：空值表示不过滤 */
+const STATUS_OPTIONS = [
+  { label: '启用', value: 'enabled' },
+  { label: '禁用', value: 'disabled' },
+]
 
 /** 状态 Tag 语义色：enabled→success，其余→default */
 function StatusTag({ status }: { status: string }) {
@@ -32,6 +43,16 @@ function StatusTag({ status }: { status: string }) {
   )
 }
 
+/** 加密模式文案：encrypted→加密，plain→明文；未知值原样展示 */
+function encryptionLabel(mode?: string): string {
+  if (mode === 'encrypted') return '加密（encrypted）'
+  if (mode === 'plain') return '明文（plain）'
+  return mode || '-'
+}
+
+/** 新建/编辑弹窗表单值：encrypted 仅新建时可填 */
+type SettingFormValues = SettingCreateReq
+
 export default function SettingsPage() {
   const { message } = App.useApp()
   const [data, setData] = useState<Setting[]>([])
@@ -40,27 +61,57 @@ export default function SettingsPage() {
   const [pageSize, setPageSize] = useState(10)
   const [loading, setLoading] = useState(false)
 
+  // 筛选：分组精确匹配（后端 SettingCond.Group 走 Eq），状态精确匹配
+  const [groupInput, setGroupInput] = useState('')
+  const [groupFilter, setGroupFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined)
+
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<Setting | null>(null)
   const [submitting, setSubmitting] = useState(false)
-  const [form] = Form.useForm<SettingCreateReq>()
+  const [form] = Form.useForm<SettingFormValues>()
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await getSettings({ page, pageSize })
+      const res = await getSettings({
+        page,
+        pageSize,
+        ...(groupFilter ? { group: groupFilter } : {}),
+        ...(statusFilter ? { status: statusFilter } : {}),
+      })
       setData(res.list ?? [])
       setTotal(res.total ?? 0)
     } catch (e) {
-      message.error(e instanceof Error ? e.message : '加载配置项失败')
+      message.error(localizeError(e, '加载配置项失败'))
     } finally {
       setLoading(false)
     }
-  }, [page, pageSize, message])
+  }, [page, pageSize, groupFilter, statusFilter, message])
 
   useEffect(() => {
     load()
   }, [load])
+
+  /** 应用分组筛选（Input.Search 回车/点搜索图标触发），页码回到第 1 页 */
+  const applyGroupFilter = (value: string) => {
+    setPage(1)
+    setGroupFilter(value.trim())
+  }
+
+  /** 应用状态筛选，页码回到第 1 页 */
+  const applyStatusFilter = (value?: string) => {
+    setPage(1)
+    setStatusFilter(value)
+  }
+
+  /** 清空全部筛选条件 */
+  const resetFilters = () => {
+    setGroupInput('')
+    setPage(1)
+    setGroupFilter('')
+    setStatusFilter(undefined)
+  }
 
   const openCreate = () => {
     setEditing(null)
@@ -81,9 +132,15 @@ export default function SettingsPage() {
   }
 
   const handleSubmit = async () => {
+    let values: SettingFormValues
     try {
-      const values = await form.validateFields()
-      setSubmitting(true)
+      values = await form.validateFields()
+    } catch {
+      // 表单校验失败由 Form.Item 自身提示，无需额外 message
+      return
+    }
+    setSubmitting(true)
+    try {
       if (editing) {
         await updateSetting(editing.id, {
           value: values.value,
@@ -97,7 +154,7 @@ export default function SettingsPage() {
       setModalOpen(false)
       load()
     } catch (e) {
-      if (e instanceof Error) message.error(e.message)
+      message.error(localizeError(e, editing ? '更新配置项失败' : '创建配置项失败'))
     } finally {
       setSubmitting(false)
     }
@@ -109,7 +166,7 @@ export default function SettingsPage() {
       message.success('删除成功')
       load()
     } catch (e) {
-      message.error(e instanceof Error ? e.message : '删除失败')
+      message.error(localizeError(e, '删除失败'))
     }
   }
 
@@ -118,6 +175,17 @@ export default function SettingsPage() {
     { title: '键名', dataIndex: 'key', key: 'key', width: 180, ellipsis: true },
     { title: '值类型', dataIndex: 'value_type', key: 'value_type', width: 110 },
     { title: '值', dataIndex: 'value', key: 'value', width: 200, ellipsis: true },
+    {
+      title: '加密模式',
+      dataIndex: 'encryption_mode',
+      key: 'encryption_mode',
+      width: 150,
+      render: (v: string) => (
+        <span style={{ color: v === 'encrypted' ? tokens.text : tokens.textSecondary }}>
+          {encryptionLabel(v)}
+        </span>
+      ),
+    },
     {
       title: '状态',
       dataIndex: 'status',
@@ -150,7 +218,7 @@ export default function SettingsPage() {
   return (
     <PageContainer
       title="配置中心"
-      description="配置项分页列表，支持新建、编辑与删除，数据来自 /v1/demo/settings"
+      description="配置项分页列表，支持分组/状态筛选、新建（可加密存储）、编辑与删除，数据来自 /v1/demo/settings"
       extra={
         <Space>
           <Button onClick={load}>刷新</Button>
@@ -160,10 +228,30 @@ export default function SettingsPage() {
         </Space>
       }
     >
+      <Space wrap size="middle" style={{ marginBottom: 16 }}>
+        <Input.Search
+          allowClear
+          placeholder="按分组筛选（精确匹配）"
+          style={{ width: SEARCH_WIDTH }}
+          value={groupInput}
+          onChange={(e) => setGroupInput(e.target.value)}
+          onSearch={applyGroupFilter}
+        />
+        <Select
+          allowClear
+          placeholder="按状态筛选"
+          style={{ width: 160 }}
+          value={statusFilter}
+          options={STATUS_OPTIONS}
+          onChange={(v) => applyStatusFilter(v)}
+        />
+        <Button onClick={resetFilters}>重置</Button>
+      </Space>
+
       <Table<Setting>
         rowKey="id"
         tableLayout="fixed"
-        scroll={{ x: 900 }}
+        scroll={{ x: 1050 }}
         columns={columns}
         dataSource={data}
         loading={loading}
@@ -213,6 +301,17 @@ export default function SettingsPage() {
           >
             <Input.TextArea rows={3} placeholder="请输入配置值" />
           </Form.Item>
+          {!editing ? (
+            <Form.Item
+              name="encrypted"
+              label="加密存储"
+              valuePropName="checked"
+              initialValue={false}
+              extra="开启后配置值加密落库，列表加密模式显示为 encrypted"
+            >
+              <Switch />
+            </Form.Item>
+          ) : null}
           <Form.Item name="description" label="描述">
             <Input placeholder="请输入描述" />
           </Form.Item>

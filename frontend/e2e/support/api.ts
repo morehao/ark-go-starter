@@ -164,6 +164,20 @@ export async function cleanupE2EDicts(): Promise<void> {
   await Promise.all(targets.map((t) => deleteDictType(t.id, true).catch(() => undefined)))
 }
 
+/** 字典树巡检结果（对应 gindict.integrityResponse），供 UI 断言交叉复核。 */
+export interface DictIntegrityReport {
+  type_code: string
+  checked: number
+  healthy: boolean
+  issues: Array<{ item_id: string; value: string; kind: string; detail: string }>
+  orphans: string[]
+}
+
+/** 调完整性检查接口，用于复核 UI 抽屉里展示的数字。 */
+export async function checkDictTypeIntegrityAPI(id: string): Promise<DictIntegrityReport> {
+  return callOK<DictIntegrityReport>('GET', `/v1/demo/dict-types/${id}/integrity-check`)
+}
+
 // ============================ 配置中心 Setting ============================
 
 export interface SettingRec {
@@ -183,6 +197,10 @@ export interface SettingCreateReq {
   value_type?: string
   value: string
   description?: string
+  // 是否加密落库（开启后响应 encryption_mode=encrypted）
+  encrypted?: boolean
+  // 状态，默认 enabled；传 disabled 可构造禁用项
+  status?: string
 }
 
 /** 新建配置项（同 group+key 会 upsert，改值），返回列表中的完整记录。 */
@@ -219,6 +237,78 @@ export async function cleanupE2ESettings(prefix = 'e2e-'): Promise<void> {
   const { list } = await listSettings(1, 100)
   const targets = list.filter((s) => s.group.startsWith(prefix) || s.key.startsWith(prefix))
   await Promise.all(targets.map((s) => deleteSettingAPI(s.id).catch(() => undefined)))
+}
+
+// ============================ 定时任务 Cron / 异步任务 Async ============================
+// 任务定义只能由后端代码注册（无 POST 建任务接口），因此这里只提供运行记录读取，
+// 用于交叉复核 UI 上的 mark-stale / cleanup 动作没有误删或误标数据。
+
+export interface CronTaskRunRec {
+  id: string
+  task_id: string
+  start_at: number
+  end_at?: number | null
+  status: string
+}
+
+export interface AsyncTaskRunRec {
+  id: string
+  task_type: string
+  queue: string
+  status: string
+}
+
+export interface CronTaskRec {
+  id: string
+  name: string
+  spec: string
+  status: string
+}
+
+export interface AsyncTaskRec {
+  id: string
+  name: string
+  status: string
+}
+
+/** 定时任务分页列表（任务由后端代码注册，这里只读以拿到 task id）。 */
+export async function listCronTasks(): Promise<{ list: CronTaskRec[]; total: number }> {
+  return callOK<{ list: CronTaskRec[]; total: number }>(
+    'GET',
+    '/v1/demo/cron-tasks?page=1&page_size=100',
+  )
+}
+
+/** 异步任务分页列表（同上，只读）。 */
+export async function listAsyncTasks(): Promise<{ list: AsyncTaskRec[]; total: number }> {
+  return callOK<{ list: AsyncTaskRec[]; total: number }>(
+    'GET',
+    '/v1/demo/async-tasks?page=1&page_size=100',
+  )
+}
+
+/** 定时任务运行记录分页列表。 */
+export async function listCronTaskRuns(
+  taskId: string,
+  page = 1,
+  pageSize = 100,
+): Promise<{ list: CronTaskRunRec[]; total: number }> {
+  return callOK<{ list: CronTaskRunRec[]; total: number }>(
+    'GET',
+    `/v1/demo/cron-tasks/${taskId}/runs?page=${page}&page_size=${pageSize}`,
+  )
+}
+
+/** 异步任务运行记录分页列表。 */
+export async function listAsyncTaskRuns(
+  type: string,
+  page = 1,
+  pageSize = 100,
+): Promise<{ list: AsyncTaskRunRec[]; total: number }> {
+  return callOK<{ list: AsyncTaskRunRec[]; total: number }>(
+    'GET',
+    `/v1/demo/async-tasks/${type}/runs?page=${page}&page_size=${pageSize}`,
+  )
 }
 
 // ============================ 文件 Files ============================

@@ -9,10 +9,11 @@ import {
 /**
  * 配置中心页 · 全流程。
  *
- * UI 实际能力（读 pages/Settings/index.tsx 确认）：分页列表、新建（Modal 表单）、编辑（值/描述可改，
- * 分组/键名/值类型 disabled）、删除（Popconfirm 二次确认）、刷新。
- * 该页**没有**分组/状态筛选控件、也没有加密项展示（后端 Setting 有 encryption_mode，UI 未渲染），
- * 这些在后端 e2e 覆盖，前端侧只在报告里记录为 UI 缺口。
+ * UI 实际能力（读 pages/Settings/index.tsx 确认）：分页列表、分组/状态筛选
+ * （GET /settings?group=&status=&page=&page_size=，group 为精确匹配）、新建（Modal 表单，可开加密存储）、
+ * 编辑（值/描述可改，分组/键名/值类型 disabled）、删除（Popconfirm 二次确认）、刷新；
+ * 列表新增「加密模式」列展示 encryption_mode（plain/encrypted）。
+ * 错误文案由 demo-web 的 utils/errorMessage.ts 统一本地化（本页暂无稳定触发后端错误的用例）。
  *
  * 断言稳定性要点：antd 两字按钮会插空格（「确 定」「删 除」）→ 统一用 /确\s*定|OK/i 与 /删\s*除/；
  * Modal/Popconfirm 用 .ant-modal/.ant-popconfirm 或 getByRole('dialog') 限定作用域，避免 strict mode。
@@ -84,6 +85,8 @@ test.describe('配置中心 · 全流程', () => {
     await expect(row).toContainText('json')
     await expect(row).toContainText('{"enabled":true}')
     await expect(row.locator('.ant-tag')).toHaveText('启用')
+    // 新增「加密模式」列：默认明文落库 → plain
+    await expect(row).toContainText('plain')
     // 注意：表格没有「描述」列，描述只能在接口侧断言（见下）
 
     // 接口侧复核落库（顺带拿到 id 供兜底清理）
@@ -237,5 +240,125 @@ test.describe('配置中心 · 全流程', () => {
     const edited = list.find((s) => s.id === created.id)
     expect(edited?.value).toBe('v2-updated')
     expect(edited?.description, '描述更新应落库（表格无描述列，接口侧断言）').toBe('new-desc')
+  })
+
+  test('分组筛选：输入分组 → 请求带 group 参数 → 只剩该分组行', async ({ page }) => {
+    const groupA = uniqueName(`${PREFIX}-grp`)
+    const groupB = uniqueName(`${PREFIX}-grp`)
+    await createSettingAPI({ group: groupA, key: `${groupA}-key`, value: 'v-a' })
+    await createSettingAPI({ group: groupB, key: `${groupB}-key`, value: 'v-b' })
+
+    await gotoSettings(page)
+    await expect(rowOf(page, groupA)).toBeVisible()
+    await expect(rowOf(page, groupB)).toBeVisible()
+
+    const search = page.getByPlaceholder('按分组筛选（精确匹配）')
+    await search.fill(groupA)
+    const [filterResp] = await Promise.all([
+      page.waitForResponse((r) => {
+        const u = r.url()
+        return (
+          u.includes('/demo/settings') &&
+          r.request().method() === 'GET' &&
+          u.includes(`group=${groupA}`)
+        )
+      }),
+      search.press('Enter'),
+    ])
+    const body = (await filterResp.json()) as {
+      code: number
+      data: { list: Array<{ group: string }>; total: number }
+    }
+    expect(body.code).toBe(0)
+    expect(body.data.total, '该分组只有 1 条 e2e 数据').toBe(1)
+    expect(body.data.list.every((s) => s.group === groupA)).toBeTruthy()
+
+    await expect(rowOf(page, groupA)).toBeVisible()
+    await expect(rowOf(page, groupB)).toHaveCount(0)
+
+    // 重置后两条都回来
+    const [resetResp] = await Promise.all([
+      page.waitForResponse(
+        (r) => r.url().includes('/demo/settings') && r.request().method() === 'GET',
+      ),
+      page.getByRole('button', { name: /重\s*置/ }).click(),
+    ])
+    expect((await resetResp.json()) as { code: number }).toMatchObject({ code: 0 })
+    await expect(rowOf(page, groupA)).toBeVisible()
+    await expect(rowOf(page, groupB)).toBeVisible()
+  })
+
+  test('状态筛选：选择禁用 → 请求带 status=disabled → 只展示禁用项', async ({ page }) => {
+    const groupOn = uniqueName(`${PREFIX}-on`)
+    const groupOff = uniqueName(`${PREFIX}-off`)
+    await createSettingAPI({ group: groupOn, key: `${groupOn}-key`, value: 'v-on' })
+    await createSettingAPI({
+      group: groupOff,
+      key: `${groupOff}-key`,
+      value: 'v-off',
+      status: 'disabled',
+    })
+
+    await gotoSettings(page)
+    await expect(rowOf(page, groupOn)).toBeVisible()
+    await expect(rowOf(page, groupOff).locator('.ant-tag')).toHaveText('禁用')
+
+    // 筛选区是页面内容卡里的第一个 Space（含分组搜索框），据此限定状态 Select，避免命中 Modal 内的 Select
+    const filterBar = page
+      .locator('.ant-space')
+      .filter({ has: page.getByPlaceholder('按分组筛选（精确匹配）') })
+    await filterBar.locator('.ant-select').click()
+    const [filterResp] = await Promise.all([
+      page.waitForResponse((r) => {
+        const u = r.url()
+        return (
+          u.includes('/demo/settings') &&
+          r.request().method() === 'GET' &&
+          u.includes('status=disabled')
+        )
+      }),
+      page.locator('.ant-select-dropdown:visible').getByText('禁用', { exact: true }).click(),
+    ])
+    const body = (await filterResp.json()) as {
+      code: number
+      data: { list: Array<{ status: string }> }
+    }
+    expect(body.code).toBe(0)
+    expect(body.data.list.every((s) => s.status === 'disabled')).toBeTruthy()
+
+    await expect(rowOf(page, groupOff)).toBeVisible()
+    await expect(rowOf(page, groupOn)).toHaveCount(0)
+  })
+
+  test('加密模式：新建时开启加密存储 → 行展示 加密（encrypted）', async ({ page }) => {
+    const group = uniqueName(PREFIX)
+    const key = `${group}-key`
+
+    await gotoSettings(page)
+    await page.getByRole('button', { name: /新建配置/ }).click()
+    const modal = page.getByRole('dialog')
+    await modal.getByPlaceholder('请输入分组').fill(group)
+    await modal.getByPlaceholder('请输入键名').fill(key)
+    await modal.getByPlaceholder('请输入配置值').fill('secret-value')
+    // 开启「加密存储」开关（默认关闭）
+    await modal.getByRole('switch').click()
+
+    const [createResp] = await Promise.all([
+      page.waitForResponse(
+        (r) => r.url().includes('/demo/settings') && r.request().method() === 'POST',
+      ),
+      modal.getByRole('button', { name: /确\s*定|OK/i }).click(),
+    ])
+    expect((await createResp.json()) as { code: number }).toMatchObject({ code: 0 })
+    await expect(modal).toBeHidden()
+    await expect(page.locator('.ant-message')).toContainText('创建成功')
+
+    const row = rowOf(page, group)
+    await expect(row).toBeVisible()
+    await expect(row).toContainText('加密（encrypted）')
+
+    const { list } = await listSettings(1, 100)
+    const saved = list.find((s) => s.group === group && s.key === key)
+    expect(saved?.encryption_mode, '加密开关应落库为 encrypted').toBe('encrypted')
   })
 })

@@ -4,14 +4,11 @@ package main
 import (
 	"context"
 	"fmt"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/morehao/ark-go-starter/demo"
 	"github.com/morehao/ark-go-starter/demo/config"
-	"github.com/morehao/ark-go-starter/pkg/code"
-	"github.com/morehao/golib/biz/gcontext/gincontext"
-	"github.com/morehao/golib/gconstant"
+	"github.com/morehao/ark-go-starter/demo/internal/middleware"
 	"github.com/morehao/golib/glog"
 )
 
@@ -33,17 +30,9 @@ func main() {
 	defer shutdownComponents()
 
 	engine := gin.New()
-	// 统一错误出口：
-	//   1) panic 也要回 JSON envelope（gin 默认 Recovery 返回 500 空 body，客户端无法统一解析）；
-	//   2) 未命中路由返回 JSON 404，而不是 text/plain "404 page not found"。
-	engine.Use(gin.CustomRecovery(func(c *gin.Context, recovered any) {
-		glog.Errorf(context.Background(), "[%s] panic recovered, method:%s path:%s panic:%v",
-			demo.AppName, c.Request.Method, c.Request.URL.Path, recovered)
-		gincontext.FailWithStatus(c, http.StatusInternalServerError, code.GetError(gconstant.SystemErrorErr))
-	}))
-	engine.NoRoute(func(c *gin.Context) {
-		gincontext.FailWithStatus(c, http.StatusNotFound, code.GetError(code.RouteNotFoundError))
-	})
+	// 统一错误出口（requestID / panic 500 / 404 / 405 JSON envelope）与对应访问日志，
+	// 与 e2e 的引擎装配共用同一份实现，避免测试链路与真实链路分叉。
+	middleware.SetupEngine(engine, demo.AppName)
 	// 默认 gin 信任任意代理，client.address 直接取 X-Forwarded-For 的客户端可控值：
 	// 审计日志、按 IP 限流/封禁都能被一个请求头绕过（启动日志里的 "You trusted all proxies" 警告）。
 	// 这里显式关闭信任（ClientIP 回落为 TCP 对端地址）。若部署在自有网关/负载均衡之后，

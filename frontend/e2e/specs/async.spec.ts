@@ -1,16 +1,23 @@
 import { test, expect } from '../fixtures/base'
+import { listAsyncTaskRuns } from '../support/api'
 
 /**
  * 异步任务页 · 全流程。
  *
- * 页面能力（读 pages/Async/index.tsx 确认）：分页列表、运行记录抽屉、启停、刷新。
+ * 页面能力（读 pages/Async/index.tsx 确认）：分页列表、运行记录抽屉、启停、刷新；
+ * 运行记录抽屉内提供两个运维动作（按 :type 维度）：
+ * - 标记陈旧：POST /async-tasks/:type/runs/mark-stale（body `{ cutoff_seconds }`）
+ * - 清理运行记录：DELETE /async-tasks/:type/runs（body `{ before_unix }`，经 Popconfirm 二次确认）
+ * 错误文案由 demo-web 的 utils/errorMessage.ts 统一本地化。
+ *
  * 与定时任务一致的两个真实约束：
  * 1) 任务类型只能由后端代码 `Server.Register` 注册（ginasync 不提供 POST 建任务），e2e 只消费
  *    dev 环境注册的示例任务类型；
- * 2) 页面没有 mark-stale / 清理 runs 按钮（后端有 API、UI 未暴露），归后端 e2e 覆盖。
- * 注意异步任务按 `:type` 维度操作，页面用 record.id 作为 type 传给后端（PATCH /async-tasks/{type}/status）。
+ * 2) 运行记录没有写接口，mark-stale/cleanup 断言真实请求体契约 + affected 返回，
+ *    并用「清理 10 年前」的边界交叉复核不会减少现有数据。
+ * 注意异步任务按 `:type` 维度操作，页面用 record.id 作为 type 传给后端。
  *
- * 断言稳定性：antd 两字按钮插空格 → /禁\s*用/、/启\s*用/、/刷\s*新/；抽屉用 .ant-drawer 限定。
+ * 断言稳定性：antd 两字按钮插空格 → /禁\s*用/、/启\s*用/、/刷\s*新/；抽屉用 .ant-drawer-open 限定。
  */
 async function gotoAsync(page: import('@playwright/test').Page) {
   await page.goto('/')
@@ -109,5 +116,83 @@ test.describe('异步任务 · 全流程', () => {
     ])
     expect(((await refreshResp.json()) as { code: number }).code).toBe(0)
     await expect(page.locator('.ant-table-tbody .ant-table-row').first()).toBeVisible()
+  })
+
+  test('标记陈旧：按分钟阈值 → POST mark-stale 契约正确并提示影响条数', async ({ page }) => {
+    await gotoAsync(page)
+    const firstRow = page.locator('.ant-table-tbody .ant-table-row').first()
+    await expect(firstRow).toBeVisible()
+
+    const [runsResp] = await Promise.all([
+      page.waitForResponse(
+        (r) => /\/demo\/async-tasks\/[^/]+\/runs/.test(r.url()) && r.request().method() === 'GET',
+      ),
+      firstRow.getByRole('button', { name: /运行\s*记录/ }).click(),
+    ])
+    expect(((await runsResp.json()) as { code: number }).code).toBe(0)
+
+    const drawer = page.locator('.ant-drawer-open')
+    await expect(drawer).toBeVisible()
+    // 抽屉工具栏第一个数字输入框 = 陈旧判定（分钟）
+    await drawer.getByRole('spinbutton').first().fill('1440')
+
+    const [markResp] = await Promise.all([
+      page.waitForResponse(
+        (r) => r.url().endsWith('/runs/mark-stale') && r.request().method() === 'POST',
+      ),
+      drawer.getByRole('button', { name: /标记陈旧/ }).click(),
+    ])
+    const body = (await markResp.json()) as { code: number; data: { affected: number } }
+    expect(body.code).toBe(0)
+    expect(typeof body.data.affected).toBe('number')
+    const reqBody = JSON.parse(markResp.request().postData() ?? '{}') as {
+      cutoff_seconds?: number
+    }
+    expect(reqBody.cutoff_seconds, '请求体必须使用 cutoff_seconds（秒）').toBe(1440 * 60)
+
+    await expect(page.locator('.ant-message')).toContainText(/已标记\s*\d+\s*条陈旧运行记录/)
+  })
+
+  test('清理运行记录：Popconfirm 确认 → DELETE 带 before_unix，且不误删近期数据', async ({ page }) => {
+    const listBody = await gotoAsync(page)
+    expect(listBody.total, '后端应注册至少 1 个异步任务类型').toBeGreaterThan(0)
+    const type = (listBody.list[0] as { id: string }).id
+    const before = await listAsyncTaskRuns(type)
+
+    const firstRow = page.locator('.ant-table-tbody .ant-table-row').first()
+    await expect(firstRow).toBeVisible()
+
+    const [runsResp] = await Promise.all([
+      page.waitForResponse(
+        (r) => /\/demo\/async-tasks\/[^/]+\/runs/.test(r.url()) && r.request().method() === 'GET',
+      ),
+      firstRow.getByRole('button', { name: /运行\s*记录/ }).click(),
+    ])
+    expect(((await runsResp.json()) as { code: number }).code).toBe(0)
+
+    const drawer = page.locator('.ant-drawer-open')
+    await expect(drawer).toBeVisible()
+    // 第二个数字输入框 = 清理早于（天前）；填 3650 天保证不会删到任何近期数据
+    await drawer.getByRole('spinbutton').nth(1).fill('3650')
+    await drawer.getByRole('button', { name: /清理运行记录/ }).click()
+
+    const popconfirm = page.locator('.ant-popconfirm')
+    await expect(popconfirm).toBeVisible()
+    const [delResp] = await Promise.all([
+      page.waitForResponse(
+        (r) => r.url().endsWith('/runs') && r.request().method() === 'DELETE',
+      ),
+      popconfirm.getByRole('button', { name: /确\s*定|OK/i }).click(),
+    ])
+    const body = (await delResp.json()) as { code: number; data: { affected: number } }
+    expect(body.code).toBe(0)
+    expect(typeof body.data.affected).toBe('number')
+    const reqBody = JSON.parse(delResp.request().postData() ?? '{}') as { before_unix?: number }
+    expect(reqBody.before_unix, '请求体必须使用 before_unix（unix 秒）').toBeGreaterThan(0)
+
+    await expect(page.locator('.ant-message')).toContainText(/已清理\s*\d+\s*条运行记录/)
+
+    const after = await listAsyncTaskRuns(type)
+    expect(after.total, '清理 3650 天前的记录不应删除现有数据').toBe(before.total)
   })
 })
