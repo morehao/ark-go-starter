@@ -44,8 +44,8 @@ func TestSetupIAMDisabledHasNoSideEffects(t *testing.T) {
 			assert.Nil(t, closer, "disabled 应返回 nil closer（零副作用）")
 			assert.Nil(t, demo.CurrentIAM(), "disabled 不应有 IAM 运行时")
 
-			// /iam/install、/iam/config.json、/iam/oidc 等 IAM 路由均不应存在（404）。
-			for _, path := range []string{"/iam/install", "/iam/config.json", "/iam/oidc"} {
+			// /iam/install/status、/iam/config.json、/iam/oidc 等 IAM 路由均不应存在（404）。
+			for _, path := range []string{"/iam/install/status", "/iam/config.json", "/iam/oidc"} {
 				rec := httptest.NewRecorder()
 				engine.ServeHTTP(rec, httptest.NewRequestWithContext(context.Background(), http.MethodGet, path, nil))
 				assert.Equal(t, http.StatusNotFound, rec.Code, "disabled 时 %s 应 404", path)

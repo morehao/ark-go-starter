@@ -65,7 +65,9 @@ func TestSetupIAMOPMountsRoutes(t *testing.T) {
 	require.NotNil(t, rt, "op 应设置 IAM 运行时")
 	assert.NotNil(t, rt.KeySource(), "op 形态必须产出非空 KeySource（供本地验签）")
 
-	for _, path := range []string{"/iam/install", "/iam/config.json"} {
+	// /install 域的公开只读入口是 /install/status（v0.5.0 起不再有裸 /install 路由）；
+	// /config.json 由 MountConfig 提供。二者都应可达（非 404）。
+	for _, path := range []string{"/iam/install/status", "/iam/config.json"} {
 		rec := httptest.NewRecorder()
 		engine.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
 		assert.NotEqual(t, http.StatusNotFound, rec.Code, "%s 应可达（非 404）", path)
@@ -143,7 +145,7 @@ func TestSetupIAMRPMockJWKS(t *testing.T) {
 	assert.NotNil(t, pub)
 
 	// rp 不挂任何 /iam/* 路由（不建库、不 Mount）。
-	for _, path := range []string{"/iam/install", "/iam/config.json", "/iam/oidc"} {
+	for _, path := range []string{"/iam/install/status", "/iam/config.json", "/iam/oidc"} {
 		rec := httptest.NewRecorder()
 		engine.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
 		assert.Equal(t, http.StatusNotFound, rec.Code, "rp 时 %s 不应挂载", path)
