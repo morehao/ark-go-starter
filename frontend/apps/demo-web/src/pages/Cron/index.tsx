@@ -124,7 +124,7 @@ export default function CronPage() {
   return (
     <PageContainer
       title="定时任务"
-      description="定时任务列表，可启停并查看运行记录，数据来自 /v1/cron-tasks"
+      description="定时任务列表，可启停并查看运行记录，数据来自 /v1/demo/cron-tasks"
       extra={<Button onClick={load}>刷新</Button>}
     >
       <Table<CronTask>

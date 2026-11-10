@@ -159,7 +159,7 @@ export default function DictsPage() {
   return (
     <PageContainer
       title="数据字典"
-      description="字典类型分页列表，可查看字典项、启停与删除，数据来自 /v1/dict-types"
+      description="字典类型分页列表，可查看字典项、启停与删除，数据来自 /v1/demo/dict-types"
       extra={<Button onClick={load}>刷新</Button>}
     >
       <Table<DictType>

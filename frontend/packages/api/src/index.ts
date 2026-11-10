@@ -161,67 +161,67 @@ export function deleteProduct(id: number) {
 
 // ============================ 数据字典 Dict ============================
 
-/** 字典类型分页列表 GET /dict-types */
+/** 字典类型分页列表 GET /demo/dict-types */
 export function getDictTypes(params: PageQuery & { code?: string; status?: string } = {}) {
   return request<DictTypeListResult>({
-    url: '/dict-types',
+    url: '/demo/dict-types',
     method: 'get',
     params: withPaging(params),
   })
 }
 
-/** 新建字典类型 POST /dict-types */
+/** 新建字典类型 POST /demo/dict-types */
 export function createDictType(body: DictTypeCreateReq) {
   return request<DictType>({
-    url: '/dict-types',
+    url: '/demo/dict-types',
     method: 'post',
     data: body,
   })
 }
 
-/** 更新字典类型 PUT /dict-types/{id} */
+/** 更新字典类型 PUT /demo/dict-types/{id} */
 export function updateDictType(id: string, body: DictTypeUpdateReq) {
   return request<unknown>({
-    url: `/dict-types/${id}`,
+    url: `/demo/dict-types/${id}`,
     method: 'put',
     data: body,
   })
 }
 
-/** 删除字典类型 DELETE /dict-types/{id} */
+/** 删除字典类型 DELETE /demo/dict-types/{id} */
 export function deleteDictType(id: string) {
   return request<unknown>({
-    url: `/dict-types/${id}`,
+    url: `/demo/dict-types/${id}`,
     method: 'delete',
   })
 }
 
-/** 启停字典类型 PATCH /dict-types/{id}/status */
+/** 启停字典类型 PATCH /demo/dict-types/{id}/status */
 export function updateDictTypeStatus(id: string, status: string) {
   return request<unknown>({
-    url: `/dict-types/${id}/status`,
+    url: `/demo/dict-types/${id}/status`,
     method: 'patch',
     data: { status } satisfies StatusUpdateReq,
   })
 }
 
-/** 字典项列表 GET /dict-codes/{code}/items */
+/** 字典项列表 GET /demo/dict-codes/{code}/items */
 export function getDictItems(code: string, params: { includeDisabled?: boolean } = {}) {
   const query: Record<string, unknown> = {}
   if (params.includeDisabled !== undefined) query.include_disabled = params.includeDisabled
   return request<DictItemListResult>({
-    url: `/dict-codes/${code}/items`,
+    url: `/demo/dict-codes/${code}/items`,
     method: 'get',
     params: query,
   })
 }
 
-/** 字典项树 GET /dict-codes/{code}/tree */
+/** 字典项树 GET /demo/dict-codes/{code}/tree */
 export function getDictTree(code: string, params: { includeDisabled?: boolean } = {}) {
   const query: Record<string, unknown> = {}
   if (params.includeDisabled !== undefined) query.include_disabled = params.includeDisabled
   return request<{ list: DictTreeNode[] }>({
-    url: `/dict-codes/${code}/tree`,
+    url: `/demo/dict-codes/${code}/tree`,
     method: 'get',
     params: query,
   })
@@ -229,53 +229,53 @@ export function getDictTree(code: string, params: { includeDisabled?: boolean } 
 
 // ============================ 配置中心 Setting ============================
 
-/** 配置项分页列表 GET /settings */
+/** 配置项分页列表 GET /demo/settings */
 export function getSettings(
   params: PageQuery & { group?: string; key?: string; valueType?: string; status?: string } = {},
 ) {
   const { page, pageSize, valueType, ...rest } = params
   return request<SettingListResult>({
-    url: '/settings',
+    url: '/demo/settings',
     method: 'get',
     params: { ...rest, ...(valueType !== undefined ? { value_type: valueType } : {}), ...toPageQuery({ page, pageSize }) },
   })
 }
 
-/** 新建配置项 POST /settings */
+/** 新建配置项 POST /demo/settings */
 export function createSetting(body: SettingCreateReq) {
   return request<Setting>({
-    url: '/settings',
+    url: '/demo/settings',
     method: 'post',
     data: body,
   })
 }
 
-/** 更新配置项 PUT /settings/{id} */
+/** 更新配置项 PUT /demo/settings/{id} */
 export function updateSetting(id: string, body: SettingUpdateReq) {
   return request<unknown>({
-    url: `/settings/${id}`,
+    url: `/demo/settings/${id}`,
     method: 'put',
     data: body,
   })
 }
 
-/** 删除配置项 DELETE /settings/{id} */
+/** 删除配置项 DELETE /demo/settings/{id} */
 export function deleteSetting(id: string) {
   return request<unknown>({
-    url: `/settings/${id}`,
+    url: `/demo/settings/${id}`,
     method: 'delete',
   })
 }
 
 // ============================ 定时任务 Cron ============================
 
-/** 定时任务分页列表 GET /cron-tasks */
+/** 定时任务分页列表 GET /demo/cron-tasks */
 export function getCronTasks(
   params: PageQuery & { taskType?: string; status?: string; bizType?: string; bizID?: string } = {},
 ) {
   const { page, pageSize, taskType, bizType, bizID, ...rest } = params
   return request<CronTaskListResult>({
-    url: '/cron-tasks',
+    url: '/demo/cron-tasks',
     method: 'get',
     params: {
       ...rest,
@@ -287,104 +287,115 @@ export function getCronTasks(
   })
 }
 
-/** 定时任务详情 GET /cron-tasks/{id} */
+/** 定时任务详情 GET /demo/cron-tasks/{id} */
 export function getCronTask(id: string) {
   return request<CronTask>({
-    url: `/cron-tasks/${id}`,
+    url: `/demo/cron-tasks/${id}`,
     method: 'get',
   })
 }
 
-/** 启停定时任务 PATCH /cron-tasks/{id}/status */
+/** 启停定时任务 PATCH /demo/cron-tasks/{id}/status */
 export function updateCronTaskStatus(id: string, status: string) {
   return request<unknown>({
-    url: `/cron-tasks/${id}/status`,
+    url: `/demo/cron-tasks/${id}/status`,
     method: 'patch',
     data: { status } satisfies StatusUpdateReq,
   })
 }
 
-/** 删除定时任务 DELETE /cron-tasks/{id} */
+/** 删除定时任务 DELETE /demo/cron-tasks/{id} */
 export function deleteCronTask(id: string) {
   return request<unknown>({
-    url: `/cron-tasks/${id}`,
+    url: `/demo/cron-tasks/${id}`,
     method: 'delete',
   })
 }
 
-/** 定时任务运行记录分页列表 GET /cron-tasks/{id}/runs */
+/** 定时任务运行记录分页列表 GET /demo/cron-tasks/{id}/runs */
 export function getCronTaskRuns(id: string, params: PageQuery & { status?: string } = {}) {
   return request<CronTaskRunListResult>({
-    url: `/cron-tasks/${id}/runs`,
+    url: `/demo/cron-tasks/${id}/runs`,
     method: 'get',
     params: withPaging(params),
   })
 }
 
-/** 定时任务运行记录详情 GET /cron-runs/{id} */
+/** 定时任务运行记录详情 GET /demo/cron-runs/{id} */
 export function getCronRun(id: string) {
   return request<CronTaskRun>({
-    url: `/cron-runs/${id}`,
+    url: `/demo/cron-runs/${id}`,
     method: 'get',
   })
 }
 
 // ============================ 异步任务 Async ============================
 
-/** 异步任务分页列表 GET /async-tasks */
+/** 异步任务分页列表 GET /demo/async-tasks */
 export function getAsyncTasks(params: PageQuery & { status?: string } = {}) {
   return request<AsyncTaskListResult>({
-    url: '/async-tasks',
+    url: '/demo/async-tasks',
     method: 'get',
     params: withPaging(params),
   })
 }
 
-/** 异步任务详情（按类型） GET /async-tasks/{type} */
+/** 异步任务详情（按类型） GET /demo/async-tasks/{type} */
 export function getAsyncTask(type: string) {
   return request<AsyncTask>({
-    url: `/async-tasks/${type}`,
+    url: `/demo/async-tasks/${type}`,
     method: 'get',
   })
 }
 
-/** 启停异步任务 PATCH /async-tasks/{type}/status */
+/** 启停异步任务 PATCH /demo/async-tasks/{type}/status */
 export function updateAsyncTaskStatus(type: string, status: string) {
   return request<unknown>({
-    url: `/async-tasks/${type}/status`,
+    url: `/demo/async-tasks/${type}/status`,
     method: 'patch',
     data: { status } satisfies StatusUpdateReq,
   })
 }
 
-/** 异步任务运行记录分页列表 GET /async-tasks/{type}/runs */
+/** 异步任务运行记录分页列表 GET /demo/async-tasks/{type}/runs */
 export function getAsyncTaskRuns(type: string, params: PageQuery & { queue?: string; status?: string } = {}) {
   return request<AsyncTaskRunListResult>({
-    url: `/async-tasks/${type}/runs`,
+    url: `/demo/async-tasks/${type}/runs`,
     method: 'get',
     params: withPaging(params),
   })
 }
 
-/** 异步任务运行记录详情 GET /async-runs/{id} */
+/** 异步任务运行记录详情 GET /demo/async-runs/{id} */
 export function getAsyncRun(id: string) {
   return request<AsyncTaskRun>({
-    url: `/async-runs/${id}`,
+    url: `/demo/async-runs/${id}`,
     method: 'get',
   })
 }
 
 // ============================ 文件上传 Files ============================
 
-/** 上传单个文件 POST /demo/files（multipart，字段 file / content_hash） */
-export function uploadFile(file: File, contentHash?: string) {
+/**
+ * 上传单个文件 POST /demo/files（multipart，字段 file / content_hash）。
+ *
+ * contentHash 必填：后端 UploadRequest 上是 binding:"required"，缺失时接口稳定返回
+ * {"code":-1,"msg":"content_hash is required"}；而且当传入值恰好是 64 位 hex 时，
+ * filestore 会校验它与实际内容一致（不一致返回 content hash mismatch）。
+ * 因此调用方必须传真实 SHA-256（见 demo-web 的 Files 页 sha256Hex）。
+ *
+ * 单独放宽超时（全局 10s 对大文件不够）：上传超时会让浏览器中断请求，
+ * 后端可能已落盘但前端拿不到结果，形成"看起来失败、实际成功"的脏状态。
+ */
+export function uploadFile(file: File, contentHash: string) {
   const form = new FormData()
   form.append('file', file)
-  if (contentHash) form.append('content_hash', contentHash)
+  form.append('content_hash', contentHash)
   return request<FileRecord>({
     url: '/demo/files',
     method: 'post',
     data: form,
+    timeout: 120000,
     // Content-Type 交给浏览器自动生成（含 multipart boundary），此处不手动设置
   })
 }
