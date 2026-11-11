@@ -5,6 +5,9 @@ on:
     branches: [main, master, develop, dev]
   pull_request:
     branches: [main, master, develop, dev]
+  # E2E job 最慢（后端真端口 + Playwright，约数分钟），已从 push/PR 自动触发中移除，
+  # 仅在此手动触发时运行（e2e job 带 if 门控）。日常 PR 不再等待 E2E。
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -129,6 +132,8 @@ jobs:
 
   e2e:
     name: E2E
+    # 仅手动触发（workflow_dispatch）时运行；push/PR 自动触发不再跑 E2E（太慢）。
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     services:
