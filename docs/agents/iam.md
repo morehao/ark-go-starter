@@ -312,6 +312,18 @@ export type IAMMode = 'disabled' | 'op' | 'rp'
 
 **op 本地联调**：`config.yaml` 设 `iam.mode: op`（或旧 `iam.enable: true`），`BOOTSTRAP_TOKEN=xxx make run APP=demo`，走 `/iam/install` 初始化管理员 → 建 client → 前端登录。联调完还原 `mode: disabled`。
 
+**本地默认账号（仅本机 dev 库，非项目内置）**：
+
+> ark-iam **不内置任何默认口令**。下表是本仓库**本地开发库**为方便调试而重置的临时账号，存在于数据库 `iam_person` 表，**不随代码发布**，换库/清库/重建后即失效。生产环境绝不可沿用。
+
+| 用户名 | 密码 | 邮箱 | 手机 |
+|--------|------|------|------|
+| `admin` | `Admin@123456` | admin@example.com | 13800000000 |
+
+- 前端登录地址：`http://localhost:3000`（op 模式下自动跳 `/iam/login` 账密页）。
+- 忘记密码：无法从库反查（bcrypt 存储），需重置 `iam_person.password_encrypted`（bcrypt cost 10）或清库重走 `/iam/install`。
+- 若库中尚无任何账号：先走 `/iam/install` 初始化（见下一节），初始密码由初始化者自设。
+
 **/install 初始化**（op，需引导令牌，头 `X-Bootstrap-Token`，值取环境变量 `BOOTSTRAP_TOKEN` 或配置 `install.bootstrapToken`）：
 
 ```bash

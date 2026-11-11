@@ -419,6 +419,56 @@ export interface FileRecord {
   status: string
 }
 
+/** 文件完整详情（对应 ginupload.fileDetailResponse，GET /demo/files/{id}） */
+export interface FileDetail {
+  // 文件 ID
+  file_id: string
+  // 内容哈希（SHA-256，小写 hex）
+  content_hash: string
+  // 文件名
+  name: string
+  // 文件大小（字节）
+  size: number
+  // MIME 类型
+  mime_type: string
+  // 存储 URI
+  storage_uri: string
+  // 上传会话 ID（仅分片上传时有值）
+  upload_id?: string
+  // 文件状态：pending/uploading/completed/failed/aborted
+  status: string
+  // 创建时间（RFC3339）
+  created_at: string
+  // 更新时间（RFC3339）
+  updated_at: string
+}
+
+/** 单个已上传分片信息（对应 ginupload.presignedPartResponse） */
+export interface MultipartPartInfo {
+  // 分片编号（从 1 开始）
+  part_number: number
+  // 分片 ETag
+  etag: string
+}
+
+/** 分片列举结果（对应 ginupload.listPartsResponse，GET /demo/files/{id}/parts） */
+export interface ListPartsResp {
+  // 已上传分片列表
+  parts: MultipartPartInfo[]
+  // 是否被后端单页上限截断
+  is_truncated: boolean
+  // 下一页游标（is_truncated 为 true 时用于继续列举）
+  next_part_number_marker?: number
+}
+
+/** 按内容哈希查重结果（对应 ginupload.checkExistResponse） */
+export interface CheckExistResp {
+  // 内容是否已存在
+  exists: boolean
+  // 命中时的文件记录
+  file?: FileRecord
+}
+
 /** 下载地址响应（对应 ginupload.presignURLResponse） */
 export interface PresignURLResp {
   // 预签名 URL

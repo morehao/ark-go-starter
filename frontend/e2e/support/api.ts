@@ -348,3 +348,92 @@ export async function serveFile(
     text: await resp.text(),
   }
 }
+
+/** 文件完整详情（GET /files/{id}，业务码非 0 时抛错）。 */
+export interface FileDetailRec {
+  file_id: string
+  content_hash: string
+  name: string
+  size: number
+  mime_type: string
+  storage_uri: string
+  upload_id?: string
+  status: string
+  created_at: string
+  updated_at: string
+}
+
+/** 拉取文件完整详情。 */
+export async function getFileDetail(id: string): Promise<FileDetailRec> {
+  return callOK<FileDetailRec>('GET', `/v1/demo/files/${id}`)
+}
+
+/** 获取下载预签名地址（POST /files/{id}/presign-url）。 */
+export async function presignFile(
+  id: string,
+): Promise<{ url: string; method: string; expires_in: number }> {
+  return callOK<{ url: string; method: string; expires_in: number }>(
+    'POST',
+    `/v1/demo/files/${id}/presign-url`,
+  )
+}
+
+/** 列举分片会话已上传分片（GET /files/{id}/parts）。 */
+export async function listFileParts(
+  id: string,
+  query: { maxParts?: number; partNumberMarker?: number } = {},
+): Promise<{
+  parts: Array<{ part_number: number; etag: string }>
+  is_truncated: boolean
+  next_part_number_marker?: number
+}> {
+  const search = new URLSearchParams()
+  if (query.maxParts !== undefined) search.set('max_parts', String(query.maxParts))
+  if (query.partNumberMarker !== undefined) {
+    search.set('part_number_marker', String(query.partNumberMarker))
+  }
+  const qs = search.toString()
+  return callOK(`GET`, `/v1/demo/files/${id}/parts${qs ? `?${qs}` : ''}`)
+}
+
+/** 以 query 形式拉取文件内容（GET /files/serve?file_id= 或 ?storage_uri=）。 */
+export async function serveFileByQuery(
+  query: { fileId?: string; storageUri?: string },
+): Promise<{ status: number; text: string }> {
+  const search = new URLSearchParams()
+  if (query.fileId) search.set('file_id', query.fileId)
+  if (query.storageUri) search.set('storage_uri', query.storageUri)
+  const resp = await fetch(`${API_BASE}/v1/demo/files/serve?${search.toString()}`)
+  return { status: resp.status, text: await resp.text() }
+}
+
+/** 以 query 形式取 302 重定向（GET /files/redirect?file_id=），返回状态码与 Location。 */
+export async function redirectFileByQuery(
+  query: { fileId?: string; storageUri?: string },
+): Promise<{ status: number; location: string }> {
+  const search = new URLSearchParams()
+  if (query.fileId) search.set('file_id', query.fileId)
+  if (query.storageUri) search.set('storage_uri', query.storageUri)
+  const resp = await fetch(`${API_BASE}/v1/demo/files/redirect?${search.toString()}`, {
+    redirect: 'manual',
+  })
+  return { status: resp.status, location: resp.headers.get('location') ?? '' }
+}
+
+/** 通过 REST 直接上传一份文本文件（multipart），返回文件记录；用于造数。 */
+export async function uploadFileDirect(
+  name: string,
+  content: Buffer,
+  contentHash: string,
+): Promise<FileExistFile> {
+  const form = new FormData()
+  // 用 Uint8Array 视图构造 Blob，避免 Node Buffer<ArrayBufferLike> 与 BlobPart 的类型不兼容
+  form.append('file', new Blob([new Uint8Array(content)]), name)
+  form.append('content_hash', contentHash)
+  const resp = await fetch(`${API_BASE}/v1/demo/files`, { method: 'POST', body: form })
+  const text = await resp.text()
+  if (!resp.ok) throw new Error(`upload -> HTTP ${resp.status}: ${text}`)
+  const body = JSON.parse(text) as ApiResp<FileExistFile>
+  if (body.code !== 0) throw new Error(`upload -> code=${body.code}: ${body.msg}`)
+  return body.data
+}

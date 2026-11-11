@@ -68,9 +68,13 @@ async function uploadViaUI(
   content: string,
 ): Promise<UploadResp> {
   const [uploadResp] = await Promise.all([
-    page.waitForResponse(
-      (r) => r.url().includes('/v1/demo/files') && r.request().method() === 'POST',
-    ),
+    page.waitForResponse((r) => {
+      // 精确匹配普通上传端点 POST /v1/demo/files（pathname 恰好以 /v1/demo/files 结尾）。
+      // 注意：页面在小文件上传前会先发 POST /v1/demo/files/check-exist 做秒传探测，
+      // 二者 URL 都含 /v1/demo/files；若用 includes() 会把 check-exist 响应误当上传响应。
+      const path = new URL(r.url()).pathname
+      return r.request().method() === 'POST' && path.endsWith('/v1/demo/files')
+    }),
     page.locator('input[type="file"]').setInputFiles({
       name: fileName,
       mimeType: 'text/plain',
@@ -79,7 +83,7 @@ async function uploadViaUI(
   ])
   const body = (await uploadResp.json()) as UploadResp
   expect(body.code, `上传接口返回业务错误：${body.msg}`).toBe(0)
-  await expect(page.getByText('上传成功')).toBeVisible()
+  await expect(page.getByText('上传成功').first()).toBeVisible()
   return body
 }
 
@@ -108,12 +112,12 @@ test.describe('文件上传 · 全流程', () => {
     await expect(page.getByText(fileName, { exact: true })).toBeVisible()
     await expect(page.getByText('已完成', { exact: true })).toBeVisible()
     // 详情拉取完成后下载按钮可见（file_id → GET 详情链路通）
-    await expect(page.getByRole('button', { name: /下\s*载/ })).toBeVisible()
+    await expect(page.getByRole('button', { name: '下 载', exact: true })).toBeVisible()
 
     // 下载：UI 点击触发浏览器 download 事件，文件名应与上传文件名一致
     const [download] = await Promise.all([
       page.waitForEvent('download'),
-      page.getByRole('button', { name: /下\s*载/ }).click(),
+      page.getByRole('button', { name: '下 载', exact: true }).click(),
     ])
     expect(download.suggestedFilename()).toBe(fileName)
     expect(download.url()).toContain(`/v1/demo/files/${fileID}/serve`)
@@ -289,7 +293,7 @@ test.describe('文件上传 · 全流程', () => {
     expect(completeBody.data?.name).toBe(fileName)
 
     // UI：成功提示 + 文件信息面板
-    await expect(page.getByText(/上传成功/)).toBeVisible()
+    await expect(page.getByText(/上传成功/).first()).toBeVisible()
     await expect(page.getByText('文件信息', { exact: true })).toBeVisible()
     await expect(page.getByText(fileName, { exact: true })).toBeVisible()
     await expect(page.getByText('已完成', { exact: true })).toBeVisible()
