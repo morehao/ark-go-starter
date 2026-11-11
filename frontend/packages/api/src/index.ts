@@ -18,7 +18,10 @@ import type {
   DictTypeCreateReq,
   DictTypeListResult,
   DictTypeUpdateReq,
+  CheckExistResp,
+  FileDetail,
   FileRecord,
+  ListPartsResp,
   PageQuery,
   PageResult,
   PresignURLResp,
@@ -460,12 +463,71 @@ export function uploadFile(file: File, contentHash: string) {
   })
 }
 
-/** 文件详情 GET /demo/files/{id} */
+/** 文件记录（上传成功后返回的窄字段） GET /demo/files/{id} 的旧调用点保留 */
 export function getFile(id: string) {
   return request<FileRecord>({
     url: `/demo/files/${id}`,
     method: 'get',
   })
+}
+
+/** 文件完整详情 GET /demo/files/{id}（含 content_hash/size/storage_uri/时间等全量字段） */
+export function getFileDetail(id: string) {
+  return request<FileDetail>({
+    url: `/demo/files/${id}`,
+    method: 'get',
+  })
+}
+
+/**
+ * 列举分片会话已上传分片 GET /demo/files/{id}/parts。
+ * 仅分片上传（> 8 MB）产生的文件有意义；普通上传/已合并后可能为空或报错，属正常。
+ * maxParts / partNumberMarker 为可选分页参数（后端 snake_case）。
+ */
+export function listFileParts(
+  id: string,
+  params: { maxParts?: number; partNumberMarker?: number } = {},
+) {
+  const query: Record<string, unknown> = {}
+  if (params.maxParts !== undefined) query.max_parts = params.maxParts
+  if (params.partNumberMarker !== undefined) query.part_number_marker = params.partNumberMarker
+  return request<ListPartsResp>({
+    url: `/demo/files/${id}/parts`,
+    method: 'get',
+    params: query,
+  })
+}
+
+// ---------------------------- serve / redirect URL 拼装 ----------------------------
+//
+// 这几条不是业务 JSON 接口，而是「浏览器直接导航/下载」的端点（serve 直出文件流、redirect 302 跳转）。
+// 因此不做 axios 请求，只拼出同源相对路径交给 <a download> / window.open。
+// query 形式兼容 file_id 或 storage_uri（见 ginupload getFileQueryRequest）。
+
+/** serve 直出（路径参数） URL：GET /demo/files/{id}/serve（仅 local 驱动有效） */
+export function serveFileURL(id: string): string {
+  return `/v1/demo/files/${id}/serve`
+}
+
+/** redirect 302（路径参数） URL：GET /demo/files/{id}/redirect */
+export function redirectFileURL(id: string): string {
+  return `/v1/demo/files/${id}/redirect`
+}
+
+/** serve 直出（query 形式） URL：GET /demo/files/serve?file_id= 或 ?storage_uri= */
+export function serveFileURLByQuery(q: { fileId?: string; storageUri?: string }): string {
+  const search = new URLSearchParams()
+  if (q.fileId) search.set('file_id', q.fileId)
+  if (q.storageUri) search.set('storage_uri', q.storageUri)
+  return `/v1/demo/files/serve?${search.toString()}`
+}
+
+/** redirect 302（query 形式） URL：GET /demo/files/redirect?file_id= 或 ?storage_uri= */
+export function redirectFileURLByQuery(q: { fileId?: string; storageUri?: string }): string {
+  const search = new URLSearchParams()
+  if (q.fileId) search.set('file_id', q.fileId)
+  if (q.storageUri) search.set('storage_uri', q.storageUri)
+  return `/v1/demo/files/redirect?${search.toString()}`
 }
 
 /** 删除文件 DELETE /demo/files/{id} */
@@ -568,7 +630,7 @@ export function abortMultipartUpload(fileID: string) {
 
 /** 按内容哈希检查文件是否已存在（秒传探测） POST /demo/files/check-exist */
 export function checkFileExists(contentHash: string) {
-  return request<{ exists: boolean; file?: FileRecord }>({
+  return request<CheckExistResp>({
     url: '/demo/files/check-exist',
     method: 'post',
     data: { content_hash: contentHash },
