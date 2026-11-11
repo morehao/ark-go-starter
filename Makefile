@@ -43,7 +43,7 @@ PORT              = 8099
         e2e e2e-backend e2e-frontend e2e-install e2e-deps-check \
         docker-build docker-run check-image \
         list-apps deps tidy update-dep \
-        dev-all dev-frontend stop-frontend help
+        dev-all dev-frontend stop-frontend stop-dev help
 
 # ============================================================
 # 通用入口：清理、依赖、构建并运行
@@ -282,10 +282,28 @@ check-image:
 # 前端开发
 # ============================================================
 
+# 停止本地开发进程：后端（go run / 编译产物 exe/cmd）、前端 vite/pnpm，以及占用
+# 8099（后端）与 3000-3010（前端可能漂移的端口段）的残留进程。幂等，无进程时安全退出。
+# 供 dev-all 每次启动前自动清理，避免重复启动导致 8099 端口冲突 panic 或前端端口漂移。
+stop-dev:
+	@echo "🧹 启动前清理既有开发进程..."; \
+	pkill -KILL -f "go run \." 2>/dev/null; \
+	pkill -KILL -f "exe/cmd" 2>/dev/null; \
+	pkill -KILL -f "make dev-all" 2>/dev/null; \
+	pkill -KILL -f "vite" 2>/dev/null; \
+	pkill -KILL -f "pnpm --filter @ark-go-starter/demo-web dev" 2>/dev/null; \
+	for p in 8099 3000 3001 3002 3003 3004 3005 3006 3007 3008 3009 3010; do \
+		pids="$$(lsof -tiTCP:$$p -sTCP:LISTEN 2>/dev/null)"; \
+		if [ -n "$$pids" ]; then kill -KILL $$pids 2>/dev/null; fi; \
+	done; \
+	sleep 1; \
+	echo "✅ 清理完成"
+
 # 同时启动后端与前端开发服务（后端后台运行、verbose 日志写入 log/dev-all-backend.log；
 # 前端前台输出；前端就绪后打印明确的访问地址，Ctrl+C 一并停止）
 # 用法：make dev-all [APP=demo]
-dev-all:
+# 注意：启动前会先调用 stop-dev 杀掉既有的后端/前端进程，保证端口干净再启动。
+dev-all: stop-dev
 	@app="$(APP)"; app=$${app:-demo}; \
 	if [ ! -d "./backend/apps/$$app" ]; then \
 		echo "❌ 应用程序 '$$app' 不存在于 ./backend/apps 目录下"; \
@@ -393,9 +411,10 @@ help:
 	@echo "    make docker-run   APP=<名称> [PORT=N]  运行容器（镜像不存在时自动构建）"
 	@echo ""
 	@echo "  前端"
-	@echo "    make dev-all       [APP=<名称>]        同时启动前后端（Ctrl+C 一并停止）"
+	@echo "    make dev-all       [APP=<名称>]        同时启动前后端（启动前先清理旧进程，Ctrl+C 一并停止）"
 	@echo "    make dev-frontend                      启动前端开发服务"
 	@echo "    make stop-frontend                     停止前端开发服务（本地测试）"
+	@echo "    make stop-dev                          停止本地开发进程（后端+前端+端口残留，幂等）"
 	@echo ""
 	@echo "  其他"
 	@echo "    make list-apps                         列出所有可用的应用程序"

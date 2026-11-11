@@ -104,7 +104,7 @@ async:
 #   mode: rp        对接外部 ark-iam：仅本地验签（读 jwks_url/audience），不建库、不挂路由
 # 兼容旧开关：mode 留空且 enable: true 时按 op 处理（enable 已废弃，建议改用 mode）。
 iam:
-  mode: disabled              # 接入形态：disabled（默认）| op | rp
+  mode: op                    # 接入形态：disabled（默认）| op | rp
   enable: false               # 旧二态开关（兼容）：mode 为空且为 true 时按 op
   prefix: /iam                # IAM 挂载路由前缀（op 须与前端 basePath 一致）
   dsn: ""                     # IAM 数据库 DSN（op），空则复用 db_configs 第一个库
@@ -116,3 +116,13 @@ iam:
   signing_key: ""             # 签名私钥 PEM（op），非 dev 必填
   encryption_key: ""          # 加密密钥（op），非 dev 必填
   cookie_secure: false        # SSO cookie Secure（op），生产（HTTPS）必须 true
+  # 内置控制台 platform_admin_web 的 OAuth 回调白名单（完整 URL，可多个）。
+  # 留空则用 ark-iam 内置缺省（仅 http://localhost:4001/auth/callback）。vite 端口被占会自动退到 3001，
+  # 故这里显式列出 3000/3001，避免「redirect_uri is missing in the client configuration」。
+  redirect_uris:
+    - "http://localhost:3000/auth/callback"
+    - "http://localhost:3001/auth/callback"
+    - "http://localhost:4001/auth/callback"
+  # 前端应用基址：op 下用于拼内嵌登录页 `{frontend_url}/iam/login`。
+  # 前后端分离部署（后端 8099、前端 3000）必须配置，否则登录页会被导向 8099 而 404。
+  frontend_url: "http://localhost:3000"
