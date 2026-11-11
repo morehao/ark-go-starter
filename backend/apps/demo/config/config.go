@@ -98,6 +98,15 @@ type IAMConfig struct {
 	SigningKey    string `yaml:"signing_key"`    // 签名私钥（PEM），非 dev 必填（op）
 	EncryptionKey string `yaml:"encryption_key"` // 加密密钥，非 dev 必填（op）
 	CookieSecure  bool   `yaml:"cookie_secure"`  // SSO 会话 cookie 的 Secure 标志，生产（HTTPS）必须 true（op）
+	// RedirectURIs 是内置控制台 platform_admin_web 的 OAuth 回调白名单（完整 URL，可多个），
+	// op 形态下写入该 client 的 redirect_uris（seed 时生效；已初始化的库需手动更新库或清库重建）。
+	// 留空则沿用 ark-iam 内置缺省（本地开发默认 http://localhost:4001/auth/callback）。
+	RedirectURIs []string `yaml:"redirect_uris"`
+	// FrontendURL 是前端应用基址（如 http://localhost:3000），op 形态下用于拼内嵌登录页地址
+	// `{frontend_url}{prefix}/login`。前后端分离部署时**必须**配置，否则登录页会被导向 OP
+	// 自身的 host（后端端口），而登录页 SPA 实际由前端提供，导致 /iam/login 404。
+	// 留空则回退用 issuer 的 host（同源部署场景）。
+	FrontendURL string `yaml:"frontend_url"`
 }
 
 // EffectiveMode 返回归一化（小写、去空白）后的接入形态。

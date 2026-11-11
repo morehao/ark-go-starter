@@ -220,23 +220,37 @@ func buildRawConfig(issuer string, cfg config.IAMConfig) *pkgconfig.Config {
 	// FrontendLoginURL 是内嵌登录页地址：SSO 无会话时 `/iam/oidc/sso-login` 会 302 到
 	// `{FrontendLoginURL}?authRequestID=...`。**必须显式设置**且带挂载前缀（登录页 SPA 在前端
 	// `@morehao/ark-iam-react` 包提供，挂载在 `{prefix}/login`）；留空会导致 Location 退化成
-	// 相对地址、丢失 authRequestID。由 issuer（`{scheme}://{host}{prefix}/oidc`）推导 origin + `{prefix}/login`。
-	raw.OIDC.FrontendLoginURL = loginURLFromIssuer(issuer, cfg.GetPrefix())
+	// 相对地址、丢失 authRequestID。
+	// 优先用显式配置的前端基址（前后端分离部署，登录页在前端端口）；未配置时回退 issuer 的 host
+	// （同源部署）。见 loginURL。
+	raw.OIDC.FrontendLoginURL = loginURL(cfg.FrontendURL, issuer, cfg.GetPrefix())
 	raw.OIDC.CookieSecure = cfg.CookieSecure
 	raw.OIDC.SigningPrivateKeyPEM = cfg.SigningKey
 	raw.OIDC.EncryptionKey = cfg.EncryptionKey
+	// 内置控制台 platform_admin_web 的回调白名单：显式配置时覆盖 ark-iam 内置缺省（本地 4001），
+	// 让不同端口启动的前端（如 vite 自动退到 3001）也能命中。留空则保持 ark-iam 缺省不动。
+	if len(cfg.RedirectURIs) > 0 {
+		raw.OIDC.Consoles.PlatformAdminWeb.RedirectURIs = cfg.RedirectURIs
+	}
 	return raw
 }
 
-// loginURLFromIssuer 由 OP issuer 与挂载前缀推导内嵌登录页地址
-// `{origin}{prefix}/login`（与 config.json 的 loginPath 一致）。
-// issuer 形如 `http://localhost:8099/iam/oidc`；issuer 非法时回退 `issuerOrigin + prefix + /login`。
-func loginURLFromIssuer(issuer, prefix string) string {
+// loginURL 计算内嵌登录页地址 `{base}{prefix}/login`（与 config.json 的 loginPath 一致）。
+//
+// base 取值优先级：
+//  1. frontendURL 显式配置的前端基址（前后端分离部署，登录页 SPA 由前端提供，如 http://localhost:3000）；
+//  2. 空则回退 issuer 的 origin（同源部署，OP 与前端同端口）。
+//
+// issuer 形如 `http://localhost:8099/iam/oidc`。
+func loginURL(frontendURL, issuer, prefix string) string {
 	p := prefix
 	if p == "" || p == "/" {
 		p = ""
 	} else {
 		p = "/" + strings.Trim(p, "/")
+	}
+	if base := strings.TrimRight(strings.TrimSpace(frontendURL), "/"); base != "" {
+		return base + p + "/login"
 	}
 	if u, err := url.Parse(issuer); err == nil && u.Scheme != "" && u.Host != "" {
 		return u.Scheme + "://" + u.Host + p + "/login"
