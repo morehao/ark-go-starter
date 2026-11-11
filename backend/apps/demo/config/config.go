@@ -41,9 +41,19 @@ type Config struct {
 	RedisConfig dbredis.RedisConfig       `yaml:"redis_config"`
 	Client      Client                    `yaml:"client"`
 	FileStorage FileStorage               `yaml:"file_storage"`
-	Cron        gcron.Config              `yaml:"cron"`  // 定时任务配置
-	Async       AsyncConfig               `yaml:"async"` // 异步任务配置
-	IAM         IAMConfig                 `yaml:"iam"`   // 内嵌 IAM 配置
+	Cron        gcron.Config              `yaml:"cron"`    // 定时任务配置
+	Async       AsyncConfig               `yaml:"async"`   // 异步任务配置
+	IAM         IAMConfig                 `yaml:"iam"`     // 内嵌 IAM 配置
+	Install     InstallConfig             `yaml:"install"` // 首次初始化引导配置（op）
+}
+
+// InstallConfig 是首次初始化引导（POST /iam/install/initialize）的配置。
+//
+// BootstrapToken 是该写接口的门禁令牌（等价于「创建平台管理员」的权限）。
+// 生效优先级：环境变量 BOOTSTRAP_TOKEN > 本配置项。仅用于 dev，生产必须用环境变量/密钥管理
+// 覆盖并移除；初始化完成后即可作废。见 docs/agents/quickstart.md。
+type InstallConfig struct {
+	BootstrapToken string `yaml:"bootstrapToken"` // 引导令牌（env BOOTSTRAP_TOKEN 优先）
 }
 
 // AsyncConfig 是异步任务（golib/gasync）的配置。

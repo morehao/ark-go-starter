@@ -1,5 +1,32 @@
 [English](./README.md) | [简体中文](./README.zh.md)
 
+# 快速开始
+
+clone 之后**一条命令**把前后端跑起来（仅 dev）：
+
+```bash
+# 有 Docker（推荐）：自动起 PostgreSQL + Redis，建库建表、初始化 IAM，再起后端(:8099) 与前端(:3000)
+make quickstart
+
+# 无 Docker：复用本机已在运行的 PostgreSQL(5432) / Redis(6379)
+make quickstart-local
+```
+
+然后打开 **http://localhost:3000**，会自动跳到登录页；用命令终端打印的账号密码登录
+（dev 缺省：`admin` / `Adm1n@Strong!Pass`，可用 `IAM_ADMIN_USER` / `IAM_ADMIN_PASS` 覆盖）。
+命令幂等，可重复执行不报错、不重置数据。
+
+验证全流程（登录 → 商品 CRUD → 字典 → 文件上传 → 异步 → 定时）：
+
+```bash
+make quickstart-verify IAM_ADMIN_USER=admin IAM_ADMIN_PASS='你的密码'
+```
+
+> 完整说明（操作清单、常见坑、手动分步、安全须知）见
+> [docs/agents/quickstart.md](./docs/agents/quickstart.md)。
+
+---
+
 # 项目简介
 `ark-go-starter` 是一个前后端一体的 Go Web 全栈工程实践项目：后端基于 [Gin](https://github.com/gin-gonic/gin) + GORM（Go workspace 多模块），前端基于 React + Vite + Ant Design（pnpm monorepo），提供分层清晰、可维护、可扩展的多应用服务结构。
 # 项目特点

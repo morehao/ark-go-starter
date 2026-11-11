@@ -1,5 +1,33 @@
 [English](./README.md) | [简体中文](./README.zh.md)
 
+# Quick Start
+
+Get the full stack running from a fresh clone in **one command** (dev only):
+
+```bash
+# With Docker (recommended): auto-starts PostgreSQL + Redis, creates DB/tables,
+# initializes IAM, then launches backend (:8099) and frontend (:3000).
+make quickstart
+
+# Without Docker: reuse your local PostgreSQL(5432) / Redis(6379).
+make quickstart-local
+```
+
+Then open **http://localhost:3000** — you'll be redirected to the login page; log in with the
+credentials printed by the command (dev default: `admin` / `Adm1n@Strong!Pass`, overridable via
+`IAM_ADMIN_USER` / `IAM_ADMIN_PASS`). The command is idempotent and safe to re-run.
+
+Verify the whole flow (login → product CRUD → dict → file upload → async → cron) with:
+
+```bash
+make quickstart-verify IAM_ADMIN_USER=admin IAM_ADMIN_PASS='<your password>'
+```
+
+> Full details (operation checklist, troubleshooting, manual steps, security notes):
+> [docs/agents/quickstart.md](./docs/agents/quickstart.md).
+
+---
+
 # Project Overview
 
 `ark-go-starter` is a full-stack Go Web engineering practice project. The backend is based on [Gin](https://github.com/gin-gonic/gin) + GORM (Go workspace multi-module), and the frontend is based on React + Vite + Ant Design (pnpm monorepo). It provides a layered, maintainable, and scalable structure with frontend (React) and backend (Go) separated.

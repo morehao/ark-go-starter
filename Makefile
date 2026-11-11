@@ -43,7 +43,8 @@ PORT              = 8099
         e2e e2e-backend e2e-frontend e2e-install e2e-deps-check \
         docker-build docker-run check-image \
         list-apps deps tidy update-dep \
-        dev-all dev-frontend stop-frontend stop-dev help
+        dev-all dev-frontend stop-frontend stop-dev \
+        quickstart quickstart-local quickstart-verify help
 
 # ============================================================
 # 通用入口：清理、依赖、构建并运行
@@ -279,6 +280,35 @@ check-image:
 	fi
 
 # ============================================================
+# 一键跑通（clone 即用）
+# ============================================================
+
+# 一键跑通（有 Docker）：自动起 PG/Redis → 建库建表 → IAM 初始化 → 起前后端。
+# 幂等，可重复执行不报错；端口被占自动降级复用外部依赖。
+# 用法：make quickstart [APP=demo] [IAM_ADMIN_USER=admin IAM_ADMIN_PASS=***]
+quickstart:
+	@bash scripts/quickstart.sh
+
+# 一键跑通（无 Docker / 复用本机已就绪的 PG 5432 与 Redis 6379）
+quickstart-local:
+	@SKIP_DEPS=1 bash scripts/quickstart.sh
+
+# 一键跑通验收：对已在运行的环境跑 IAM 登录全流程 e2e。
+# quickstart 以 op 模式启动（登录强制），故这里跑的是「未登录→跳登录页→账密登录→回跳
+# 业务页→带 token 调受保护接口」这条主链路（specs/iam-login.spec.ts），它同时验证登录门后
+# 的商品管理页与受保护接口可用。其余业务页（商品/字典/文件/异步/定时）的细粒度回归在
+# `make e2e`（iam.mode=disabled 的 OFF 全量）中覆盖。
+# 前置：先 make quickstart 把后端 8099 / 前端 3000 起好且 IAM 已初始化。
+# 用法：make quickstart-verify [IAM_ADMIN_USER=admin IAM_ADMIN_PASS=***]
+quickstart-verify:
+	@echo "🎭 运行 quickstart 验收 e2e（E2E_IAM=1 · iam-login 主链路）..."
+	@cd frontend/e2e && \
+		E2E_IAM=1 \
+		E2E_IAM_ADMIN_USER="$${IAM_ADMIN_USER:-admin}" \
+		E2E_IAM_ADMIN_PASS="$${IAM_ADMIN_PASS:-Adm1n@Strong!Pass}" \
+		pnpm exec playwright test specs/iam-login.spec.ts
+
+# ============================================================
 # 前端开发
 # ============================================================
 
@@ -415,6 +445,11 @@ help:
 	@echo "    make dev-frontend                      启动前端开发服务"
 	@echo "    make stop-frontend                     停止前端开发服务（本地测试）"
 	@echo "    make stop-dev                          停止本地开发进程（后端+前端+端口残留，幂等）"
+	@echo ""
+	@echo "  一键跑通（clone 即用，仅 dev）"
+	@echo "    make quickstart                        有 Docker：自动起 PG/Redis + 建表 + 初始化 IAM + 起前后端"
+	@echo "    make quickstart-local                  无 Docker：复用本机 PG(5432)/Redis(6379)"
+	@echo "    make quickstart-verify                 对运行中的环境跑 e2e 验收（E2E_IAM=1）"
 	@echo ""
 	@echo "  其他"
 	@echo "    make list-apps                         列出所有可用的应用程序"

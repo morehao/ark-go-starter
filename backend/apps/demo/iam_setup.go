@@ -227,6 +227,10 @@ func buildRawConfig(issuer string, cfg config.IAMConfig) *pkgconfig.Config {
 	raw.OIDC.CookieSecure = cfg.CookieSecure
 	raw.OIDC.SigningPrivateKeyPEM = cfg.SigningKey
 	raw.OIDC.EncryptionKey = cfg.EncryptionKey
+	// 引导令牌透传给 OP：CheckBootstrapToken 读取的 config.Conf 正是这份 Raw
+	// （apps/auth 在 Mount 时 authconfig.Set(raw)），故必须在此设值，否则 config 里的
+	// install.bootstrapToken 不会生效、只有 env BOOTSTRAP_TOKEN 可用。
+	raw.Install.BootstrapToken = config.Conf.Install.BootstrapToken
 	// 内置控制台 platform_admin_web 的回调白名单：显式配置时覆盖 ark-iam 内置缺省（本地 4001），
 	// 让不同端口启动的前端（如 vite 自动退到 3001）也能命中。留空则保持 ark-iam 缺省不动。
 	if len(cfg.RedirectURIs) > 0 {
