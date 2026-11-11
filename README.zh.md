@@ -40,7 +40,7 @@ make quickstart-verify IAM_ADMIN_USER=admin IAM_ADMIN_PASS='你的密码'
 - Docker 支持： 提供基础的`Dockerfile`，实现容器化部署
 - 丰富的`Makefile`工具链：支持`make`命令快速构建、运行、代码生成、接口文档生成、docker 部署、前端启动等基础操作。
 - 逐渐丰富的`golib`库：对常用组件封装，使用更友好。
-- 可选账号认证（ark-iam 三态）：由 `iam.mode` 决定——`disabled`（默认，不接入）、`op`（本进程内嵌 OIDC Provider，本项目自身就是 IAM）、`rp`（对接外部 ark-iam，本地验签），详见 [docs/agents/iam.md](./docs/agents/iam.md)。
+- 可选账号认证（ark-iam 三态）：由 `iam.mode` 决定——`disabled`（不接入）、`op`（本进程内嵌 OIDC Provider，本项目自身就是 IAM）、`rp`（对接外部 ark-iam，本地验签）。**仓库自带的 dev 配置（`backend/apps/demo/config/config.yaml`）为 `op`，即登录强制**（quickstart 会打印管理员账号密码）；自带 prod 配置为 `disabled`，`mode` 留空时也回落为 `disabled`。详见 [docs/agents/iam.md](./docs/agents/iam.md)。
 
 # 项目结构
 

@@ -6,11 +6,16 @@
 > 依赖版本：`sdk v0.5.0` / `contract v0.1.0` / `pkg v0.4.0`（均已发布到 Go proxy）。
 
 本模板支持**可选接入** [ark-iam](https://github.com/morehao/ark-iam) 账号认证体系。是否接入、以什么形态接入，
-完全由 `config.yaml` 的 `iam.mode` 决定（默认 `disabled` 不接入，对业务零副作用）。接入形态有三种：
+完全由 `config.yaml` 的 `iam.mode` 决定（`mode` 留空时回落为 `disabled`，对业务零副作用）。接入形态有三种：
 
-- **disabled**：不接入，dev 演示身份（默认）。
+- **disabled**：不接入，dev 演示身份。
 - **op**：本进程内嵌 OIDC Provider——**本项目自己就是 IAM**。
 - **rp**：对接外部 ark-iam 服务，本进程只做本地验签（Relying Party）。
+
+> ⚠️ **注意区分「选项默认」与「仓库自带配置」**：`mode` 留空时的回落值是 `disabled`，但
+> **仓库自带的 dev 配置 `backend/apps/demo/config/config.yaml` 显式写的是 `mode: op`（登录强制）**，
+> 自带的 prod 配置 `config.prod.yaml` 才是 `disabled`。所以按 quickstart 跑起来时，浏览器会强制
+> 跳 `/iam/login`（用 quickstart 打印的账号密码登录），而不是免登录。
 
 ---
 

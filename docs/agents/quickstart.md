@@ -12,11 +12,14 @@
 
 ## 0. 你需要准备什么
 
-- **Go** 1.24+（仓库当前 workspace 用 1.27.3 开发，`go 1.27.3` 指令；低于此版本可能需调整）
-- **Node** 20+ 与 **pnpm** 9+（前端用 pnpm workspace）
+- **Go** **1.27.3+**（`backend/go.work` 与各 `go.mod` 均为 `go 1.27.3` 指令，无 `toolchain` 行；低于此版本 `go work`/构建会直接报 `requires go >= 1.27.3`）
+- **Node** **≥26** 与 **pnpm** **12**（`frontend/package.json` 的 `engines.node >=26`、`packageManager: pnpm@12.10.1`，`.nvmrc` 为 26.13.0；Node 20/22 会因引擎校验导致 `pnpm install` 失败）
 - 依赖二选一：
   - **有 Docker（推荐）**：无需自备 PG/Redis，`make quickstart` 会自动拉起。
   - **无 Docker**：自备本机 **PostgreSQL(5432)** 与 **Redis(6379)**，用 `make quickstart-local`。
+    - ⚠️ **本机 PG 账号须与配置对齐**：默认走 `postgres` / 密码 `123456` / 库 `demo`（即 `config.yaml` 的 DSN）。
+      若你本机 PG 密码不是 `123456`，需在启动前用环境变量覆盖（`DB_USER` / `DB_PASS` / `DB_NAME`），
+      否则建库建表会因 `psql` 认证失败而中断。Redis 需**无密码**（与 `redis_config.password` 为空一致）。
 
 > 首次运行会自动执行 `pnpm install` / `go mod download`（需要联网），稍慢属正常。
 
@@ -104,9 +107,13 @@ make quickstart-verify IAM_ADMIN_USER=admin IAM_ADMIN_PASS='你的密码'
 - **初始化报 401/`tokenRequired`**：引导令牌不一致。令牌优先级「环境变量 `BOOTSTRAP_TOKEN`
   > `config.yaml` 的 `install.bootstrapToken`」，quickstart 会把 config 里的值通过环境变量
   注入后端，前后端需一致。
-- **端口被占**：quickstart 自动降级复用；若要彻底重来，`make stop-dev` 清理残留进程。
+- **端口被占（5432/6379）**：quickstart 会探测到端口已被占用并**跳过起容器、直接复用现有实例**
+  （等价 `make quickstart-local`）。注意此时用的是**你本机那个 PG/Redis**，而非 compose 里的
+  PG16 —— 若本机 PG **密码不是 `123456`**（或版本差异导致迁移不兼容），建库建表会因认证失败中断；
+  此时用 `DB_USER`/`DB_PASS`/`DB_NAME` 覆盖为你的实际账号，或先 `make stop-dev`、停掉本机 PG/Redis
+  再让 quickstart 自己起容器。若要彻底重来，`make stop-dev` 清理残留进程。
 - **本机无 psql**：quickstart 会通过 `docker exec` 调用 PG 容器里的 psql 执行 SQL；也可用
-  `PG_CONTAINER=<容器名>` 指定容器。
+  `PG_CONTAINER=<容器名>` 指定容器。若既无 psql 也无任何 postgres 容器，脚本会直接报错退出。
 - **忘记管理员密码**：口令以 bcrypt 存储无法反查。开发期最简单是靠 quickstart 的幂等跳过，
   或清库（`DROP DATABASE demo`）后重跑 `make quickstart` 重新初始化。
 
