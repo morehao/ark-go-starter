@@ -110,7 +110,11 @@ iam:
   dsn: ""                     # IAM 数据库 DSN（op），空则复用 db_configs 第一个库
   redis_addr: ""              # IAM Redis 地址（op），空则复用 redis_config
   redis_password: ""          # IAM Redis 密码（op），空则复用 redis_config
-  issuer: ""                  # OIDC issuer：op 空则按端口推导；rp 为外部 ark-iam 的 issuer
+  # OIDC issuer：op 空则按「后端端口」推导成 http://localhost:8099/iam/oidc，会导致登录时
+  # 浏览器被导航到后端端口（8099）的 /iam/login（noRoute），绕不过前端 vite 的 GET bypass，
+  # 登录页渲染不出来。这里显式指向前端 origin(:3000)，让登录页 / SSO / discovery 全部同源到
+  # localhost:3000（经 vite 的 /iam 代理转发到后端）。rp 形态则为外部 ark-iam 的 issuer。
+  issuer: "http://localhost:3000/iam/oidc"
   jwks_url: ""                # rp 形态的 JWKS 端点，空则按 issuer 推导
   audience: ""                # rp 形态需校验的 token aud
   signing_key: ""             # 签名私钥 PEM（op），非 dev 必填
@@ -126,3 +130,10 @@ iam:
   # 前端应用基址：op 下用于拼内嵌登录页 `{frontend_url}/iam/login`。
   # 前后端分离部署（后端 8099、前端 3000）必须配置，否则登录页会被导向 8099 而 404。
   frontend_url: "http://localhost:3000"
+
+# 首次初始化引导（/iam/install/initialize）相关配置。
+# 该令牌等价于「创建平台管理员」的权限：**仅用于 dev**，生产必须改用环境变量
+# BOOTSTRAP_TOKEN 或密钥管理覆盖，且初始化完成后移除。env BOOTSTRAP_TOKEN 优先于本项。
+# make quickstart 会把它作为 X-Bootstrap-Token 自动初始化；手跑时也可 `BOOTSTRAP_TOKEN=xxx make run`。
+install:
+  bootstrapToken: "dev-bootstrap-token"

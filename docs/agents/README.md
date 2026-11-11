@@ -8,6 +8,7 @@
 
 | 文档 | 内容 | 何时阅读 |
 |------|------|----------|
+| [quickstart.md](./quickstart.md) | clone 即用一键跑通（`make quickstart`）、全流程操作清单、常见坑 | **第一次跑起项目时** |
 | [project-overview.md](./project-overview.md) | 项目定位、多模块目录结构、应用与端口 | 初次接触代码库 |
 | [commands.md](./commands.md) | 构建 / 运行 / 测试 / Lint / 代码生成 / Swagger / Docker 命令 | 需要执行命令时 |
 | [backend-conventions.md](./backend-conventions.md) | 后端分层结构、命名、注释（DTO 字段 / SQL 字段 comment）、模型字段类型（PostgreSQL）、常量、Import 排序、接口与依赖注入、错误处理、事务、Controller 返回 | 编写后端代码前 |

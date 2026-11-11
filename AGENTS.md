@@ -7,6 +7,7 @@
 
 | 主题 | 文档 | 何时读 |
 |------|------|--------|
+| 快速开始（clone 即用） | [docs/agents/quickstart.md](./docs/agents/quickstart.md) | **第一次把项目跑起来** |
 | 项目概述与目录结构 | [docs/agents/project-overview.md](./docs/agents/project-overview.md) | 初次接触代码库 |
 | 命令大全 | [docs/agents/commands.md](./docs/agents/commands.md) | 构建 / 运行 / 测试 / 生成代码 |
 | 后端代码规范 | [docs/agents/backend-conventions.md](./docs/agents/backend-conventions.md) | **写后端代码前必读** |
