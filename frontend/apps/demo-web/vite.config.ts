@@ -42,6 +42,18 @@ export default defineConfig({
       },
       // 内嵌 IAM（mode=op）托管在 /iam（/iam/config.json、/iam/oidc、/iam/install、内嵌登录页等）。
       // 仅 op 模式需要；rp 模式前端直连外部 VITE_OIDC_ISSUER，无需本站 /iam 代理（保留无害）。
+      //
+      // 注意：vite 的 proxy 用对象 key 前缀匹配（plain key 走 `url.startsWith(key)`），并按
+      // Object.keys 的**插入顺序**逐条命中（第一个命中即止），不会自动「长 key 优先」。
+      // 因此 `/iam/login` 的 GET-only bypass 必须排在更宽泛的 `/iam` 之前，否则会被 `/iam` 抢先代理。
+      //
+      // GET /iam/login 是浏览器导航（OP 把用户送回 SPA 账密页），应返回 index.html 由前端渲染；
+      // 而 POST /iam/oidc/login（登录提交）等非 GET 请求仍须代理到后端，故 bypass 只对 GET 生效。
+      '/iam/login': {
+        target: 'http://localhost:8099',
+        changeOrigin: true,
+        bypass: (req) => (req.method === 'GET' ? '/index.html' : undefined),
+      },
       '/iam': {
         target: 'http://localhost:8099',
         changeOrigin: true,

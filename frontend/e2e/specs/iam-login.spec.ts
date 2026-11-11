@@ -34,7 +34,8 @@ test.describe('内嵌 IAM 登录（浏览器级）', () => {
     await expect(page.getByPlaceholder('请输入用户名')).toBeVisible({ timeout: 10_000 })
     await page.getByPlaceholder('请输入用户名').fill(ADMIN_USER)
     await page.getByPlaceholder('请输入密码').fill(ADMIN_PASS)
-    await page.getByRole('button', { name: '登录' }).click()
+    // antd 会在两个汉字的按钮文案中间插入空格（渲染为「登 录」），故用正则匹配。
+    await page.getByRole('button', { name: /登\s*录/ }).click()
 
     // 3. 登录成功回跳 demo 应用（origin localhost:3000，路径回到业务页，不再是 /iam/login）。
     await expect(page).toHaveURL(/^http:\/\/localhost:3000\//, { timeout: 20_000 })
