@@ -45,7 +45,7 @@ make quickstart-verify IAM_ADMIN_USER=admin IAM_ADMIN_PASS='<your password>'
 * **Docker Support**: Includes a basic `Dockerfile` for containerized deployment.
 * **Makefile Toolchain**: Provides a rich set of make commands to simplify code build, run, generation, Swagger docs, Docker deployment, and frontend startup.
 * **Growing Golib Library**: Common utility components are abstracted and reusable via the [golib](https://github.com/morehao/golib) package.
-* **Optional Account Auth (ark-iam, three modes)**: Choose via `iam.mode` — `disabled` (default, no auth), `op` (embed an OIDC Provider in this process — this project *is* the IAM), or `rp` (delegate to an external ark-iam, local verify only). See [docs/agents/iam.md](./docs/agents/iam.md).
+* **Optional Account Auth (ark-iam, three modes)**: Choose via `iam.mode` — `disabled` (no auth), `op` (embed an OIDC Provider in this process — this project *is* the IAM), or `rp` (delegate to an external ark-iam, local verify only). **The shipped dev config (`backend/apps/demo/config/config.yaml`) uses `op`, so login is enforced** (quickstart prints the admin credentials); the shipped prod config uses `disabled`, and an empty `mode` also falls back to `disabled`. See [docs/agents/iam.md](./docs/agents/iam.md).
 
 ---
 

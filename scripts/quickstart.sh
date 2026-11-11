@@ -19,6 +19,10 @@
 #   IAM_ADMIN_EMAIL        管理员邮箱（默认 admin@example.com，与 phone 至少一项）
 #   BOOTSTRAP_TOKEN        引导令牌（默认取 config.yaml 的 install.bootstrapToken）
 #   FRONTEND_PORT/HOST     打印用（默认 3000 / localhost）
+#   DB_USER/DB_PASS/DB_NAME  连接本机 PG 执行建库建表用的账号（默认 postgres / 123456 / demo）。
+#                          走 quickstart-local 复用本机 PG 时，若密码不是 123456，用这三个变量覆盖即可：
+#                          脚本会自动生成一份改写 DSN 的配置并通过 APP_CONFIG_PATH 注入后端，无需手改 config.yaml。
+#                          （若你已自行指定 APP_CONFIG_PATH，则原样透传、不生成覆盖。）
 #
 # 安全边界：本脚本只在 dev 使用。BOOTSTRAP_TOKEN 与管理员口令均来自环境变量或 dev 缺省，
 # 不写死进 config；config 里的 dev-bootstrap-token 仅为本地便捷，生产必须覆盖。
@@ -34,8 +38,8 @@ PG_HOST="127.0.0.1"
 PG_PORT="5432"
 REDIS_PORT="6379"
 DB_NAME="${DB_NAME:-demo}"
-DB_USER="postgres"
-DB_PASS="123456"
+DB_USER="${DB_USER:-postgres}"
+DB_PASS="${DB_PASS:-123456}"
 BACKEND_PORT="8099"
 FRONTEND_HOST="${FRONTEND_HOST:-localhost}"
 FRONTEND_PORT="${FRONTEND_PORT:-3000}"
@@ -180,6 +184,31 @@ ensure_app_deps() {
     | while read -r m; do ( cd "$REPO_ROOT/backend/$m" 2>/dev/null && go mod download >/dev/null 2>&1 ) || true; done ) || true
 }
 
+# ---- 生成配置覆盖（DB 账号与 config.yaml 对齐）---------------------------
+# config.yaml 的 DSN 写死为 postgres:123456@.../demo；若用户用 DB_USER/DB_PASS/DB_NAME 覆盖，
+# 应用仍会按 config.yaml 连库导致不一致。这里在需要时生成一份覆盖 config，通过 APP_CONFIG_PATH 注入。
+# 仅在 (DB_USER,DB_PASS,DB_NAME) != (postgres,123456,demo) 且用户未自行指定 APP_CONFIG_PATH 时生成。
+prepare_config_override() {
+  if [ -n "${APP_CONFIG_PATH:-}" ]; then
+    say "检测到外部 APP_CONFIG_PATH，跳过 DB 账号覆盖生成（复用用户配置）"
+    return 0
+  fi
+  if [ "$DB_USER" = "postgres" ] && [ "$DB_PASS" = "123456" ] && [ "$DB_NAME" = "demo" ]; then
+    return 0  # 与 config.yaml 默认一致，无需覆盖
+  fi
+  local base="$REPO_ROOT/backend/apps/${APP}/config/config.yaml"
+  [ -f "$base" ] || die "找不到基础配置：$base"
+  local out="$REPO_ROOT/log/quickstart-config.${APP}.yaml"
+  mkdir -p "$REPO_ROOT/log"
+  # 仅替换 db_configs 里那条 postgres DSN 的 userinfo@host:port/db 段（保留 ?sslmode=... 等参数）。
+  # DSN 形如：postgres://postgres:123456@127.0.0.1:5432/demo?sslmode=...&TimeZone=...
+  local dsn="postgres://${DB_USER}:${DB_PASS}@${PG_HOST}:${PG_PORT}/${DB_NAME}"
+  local host_re="${PG_HOST//./\\.}"
+  sed -E "s#postgres://[^/@]*@${host_re}:${PG_PORT}/[^\"?]+#${dsn}#" "$base" > "$out"
+  APP_CONFIG_PATH="$out"
+  say "已生成 DB 账号覆盖配置：$out（user=$DB_USER db=$DB_NAME）"
+}
+
 # ---- 起后端（后台）并等待 /iam/install/status ----------------------------
 start_backend() {
   say "启动后端（8099）…"
@@ -265,6 +294,7 @@ main() {
   ensure_app_deps
   ensure_db
   run_sql
+  prepare_config_override
   start_backend
   init_iam
 
