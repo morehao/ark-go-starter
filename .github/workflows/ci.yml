@@ -46,8 +46,25 @@ jobs:
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
 
+      # P5-T4：contracts-verify 里的 Go client 生成物校验需 go toolchain（go install oapi-codegen@v2.4.1）。
+      # 版本取仓库 go.work / go.mod 的 1.27.4。
+      - name: Set up Go (for contracts-verify)
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.work
+          cache-dependency-path: |
+            go.work.sum
+
       - name: Install deps
         run: pnpm install --frozen-lockfile
+
+      # P5-T4：契约校验（spec 合法 + Go/TS 生成物与 spec 一致）。改 spec 不重生成生成物 → 此步红。
+      # verify 脚本内：Redocly 2.77.0 校验 + oapi-codegen v2.4.1 重生成 diff + openapi-typescript 7.13.0 重生成 diff。
+      # 预装 pin 版本的 oapi-codegen（CI GOBIN 在 PATH；脚本内仍有 go install 兜底）。
+      - name: Install oapi-codegen (pinned)
+        run: go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.4.1
+      - name: Contracts verify
+        run: make contracts-verify
 
       # 计算 Nx affected 的 base/head：
       #  - PR：base = origin/<base_ref>（与目标分支的 merge-base 由 nx 自动求），head = HEAD

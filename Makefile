@@ -46,7 +46,7 @@ PORT              = 8099
 # 伪目标
 # ============================================================
 .PHONY: all build build-env clean run lint lint-frontend test test-integration swag codegen \
-        e2e e2e-backend e2e-frontend e2e-install e2e-deps-check \
+        e2e e2e-backend e2e-frontend e2e-install e2e-deps-check contracts-verify \
         docker-build docker-run check-image \
         list-apps deps tidy update-dep \
         dev-all dev-frontend stop-frontend stop-dev \
@@ -411,6 +411,14 @@ lint-frontend:
 	@pnpm lint
 
 # ============================================================
+# 契约校验（P5 试点）
+# ============================================================
+# 校验 contracts/openapi spec 合法性 + 生成物（libs/go/client、libs/ts/api-client）与 spec 一致。
+# 任一不一致即 exit 非 0（CI 阻断）。详见 contracts/verify.sh 头部说明。
+contracts-verify:
+	@bash contracts/verify.sh
+
+# ============================================================
 # 帮助信息
 # ============================================================
 help:
@@ -434,6 +442,7 @@ help:
 	@echo "    make e2e-deps-check                    探测本地 PG/Redis 是否就绪"
 	@echo "    make lint                              运行 golangci-lint"
 	@echo "    make lint-frontend                     运行前端 ESLint（apps/web + libs/ts）"
+	@echo "    make contracts-verify                  契约校验（spec 合法 + Go/TS 生成物与 spec 一致）"
 	@echo ""
 	@echo "  依赖管理"
 	@echo "    make deps                              同步 workspace 并更新全部模块依赖"
