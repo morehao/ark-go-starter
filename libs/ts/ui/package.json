@@ -9,12 +9,12 @@
     "build": "tsc --noEmit"
   },
   "dependencies": {
-    "antd": "^6.7.0",
-    "react": "^19.3.1"
+    "antd": "catalog:",
+    "react": "catalog:"
   },
   "devDependencies": {
     "@ark-go-starter/tsconfig": "workspace:*",
-    "@types/react": "^19.3.0",
-    "typescript": "^5.5.0"
+    "@types/react": "catalog:",
+    "typescript": "catalog:"
   }
 }
