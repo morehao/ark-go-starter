@@ -1,4 +1,4 @@
-module github.com/morehao/ark-go-starter/libs/go
+module github.com/morehao/ark-go-starter/pkg
 
 go 1.27.4
 

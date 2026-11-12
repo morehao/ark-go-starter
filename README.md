@@ -36,12 +36,12 @@ make quickstart-verify IAM_ADMIN_USER=admin IAM_ADMIN_PASS='<your password>'
 
 # Features
 
-* **Clear Project Structure**: Inspired by [project-layout](https://github.com/golang-standards/project-layout), follows layered architecture principles. Monorepo layout: `apps/` (applications: `apps/api` Go backend, `apps/web` React frontend), `libs/` (`libs/go` shared Go layer, `libs/ts` shared frontend packages), `tests/e2e`, `tools/`, `infra/`, organized for team collaboration and long-term maintenance.
+* **Clear Project Structure**: Inspired by [project-layout](https://github.com/golang-standards/project-layout), follows layered architecture principles. Monorepo layout: `apps/` (applications: `apps/api` Go backend, `apps/web` React frontend), `packages/` (shared frontend packages), `pkg/` (shared Go layer), `tests/e2e`, `tools/`, `infra/`, organized for team collaboration and long-term maintenance.
 * **Common Component Integration**: Includes built-in examples for PostgreSQL and Redis (Elasticsearch integration has been removed — PostgreSQL is the sole target DB).
 * **Full Link Logging**: Provides a custom logging package `glog` based on `zap`, supporting full trace ID propagation across PostgreSQL, Redis, and HTTP calls.
 * **Code Generation Tool**: Comes with a command-line tool `gocli` that can generate standardized code (including model, dao, object, dto, code, service, controller, router layers) based on config.
 * **Swagger API Documentation**: Automatically generate interactive API docs using `swaggo` for easier frontend-backend collaboration and testing.
-* **Frontend Monorepo**: Shared `libs/ts/` (tsconfig/types/api/ui) via pnpm workspace; the business app lives in `apps/web`.
+* **Frontend Monorepo**: Shared `packages/` (tsconfig/types/api/ui) via pnpm workspace; the business app lives in `apps/web`.
 * **Docker Support**: Includes a basic `Dockerfile` for containerized deployment.
 * **Makefile Toolchain**: Provides a rich set of make commands to simplify code build, run, generation, Swagger docs, Docker deployment, and frontend startup.
 * **Growing Golib Library**: Common utility components are abstracted and reusable via the [golib](https://github.com/morehao/golib) package.
@@ -67,9 +67,8 @@ Follows [project-layout](https://github.com/golang-standards/project-layout). Cu
 │   │   ├── internal            # controller / dto / router / service / middleware
 │   │   └── object              # Base objects
 │   └── web                     # React frontend app (Vite + React + AntD, :3000)
-├── libs
-│   ├── go                      # Shared Go layer (code / dbclient / testsetup / token / ginhelper / iamlink / operator)
-│   └── ts                      # Shared frontend packages (api / types / ui / tsconfig)
+├── packages                    # Shared frontend packages (api / api-client / types / ui / tsconfig)
+├── pkg                         # Shared Go layer (code / dbclient / testsetup / token / ginhelper / iamlink / operator)
 ├── tests
 │   └── e2e                     # E2E tests (Playwright specs + A4 golden)
 ├── tools                       # Scripts & SQL (quickstart.sh, sql/table_init.sql)

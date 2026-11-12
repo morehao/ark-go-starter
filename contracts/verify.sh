@@ -4,13 +4,13 @@
 #
 # 校验三件事（任一失败即 exit 非 0，阻断 CI）：
 #   1) spec 合法性：@redocly/cli lint contracts/openapi/openapi.json（0 error 即过）
-#   2) Go client 一致：从 spec 派生 3.0.3 → oapi-codegen 重新生成到临时文件 → 与 libs/go/client/client.gen.go diff
-#   3) TS schema 一致：openapi-typescript 从 spec 重新生成到临时文件 → 与 libs/ts/api-client/src/schema.ts diff
+#   2) Go client 一致：从 spec 派生 3.0.3 → oapi-codegen 重新生成到临时文件 → 与 pkg/client/client.gen.go diff
+#   3) TS schema 一致：openapi-typescript 从 spec 重新生成到临时文件 → 与 packages/api-client/src/schema.ts diff
 #
 # 工具版本（pin，保证可复现）：
 #   - @redocly/cli        2.77.0   （npx --yes @redocly/cli@2.77.0）
 #   - oapi-codegen        v2.4.1   （go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.4.1）
-#   - openapi-typescript  v7.13.0  （来自 libs/ts/api-client/node_modules，pnpm install 后提供；缺失则 npx 兜底）
+#   - openapi-typescript  v7.13.0  （来自 packages/api-client/node_modules，pnpm install 后提供；缺失则 npx 兜底）
 #
 # 环境变量（可选，未设则用默认）：
 #   GOCACHE / GOMODCACHE   可指向 .dsh/tmp 隔离（沙箱下避免写 ~/.gvm）；CI 用默认即可
@@ -26,9 +26,9 @@ cd "$REPO_ROOT"
 
 SPEC="contracts/openapi/openapi.json"
 REDOCLY_CONFIG="contracts/openapi/redocly.yaml"
-GO_GEN="libs/go/client/client.gen.go"
-GO_GEN_CONFIG="libs/go/client/oapi-codegen.yaml"
-TS_SCHEMA="libs/ts/api-client/src/schema.ts"
+GO_GEN="pkg/client/client.gen.go"
+GO_GEN_CONFIG="pkg/client/oapi-codegen.yaml"
+TS_SCHEMA="packages/api-client/src/schema.ts"
 
 REDOCLY_VERSION="2.77.0"
 OAPI_CODEGEN_VERSION="v2.4.1"
@@ -80,13 +80,13 @@ sed "s#^output: .*#output: $TMP/client.gen.go#" "$GO_GEN_CONFIG" > "$TMP/oapi-co
 "$OAPI_CODEGEN" --config "$TMP/oapi-codegen.tmp.yaml" "$TMP/spec-3.0.json" >/dev/null 2>&1 \
   || die "oapi-codegen 生成失败"
 if ! diff -u "$GO_GEN" "$TMP/client.gen.go"; then
-  die "Go client 生成物与 spec 不一致：请重跑生成并提交（见 libs/go/client/oapi-codegen.yaml 用法）"
+  die "Go client 生成物与 spec 不一致：请重跑生成并提交（见 pkg/client/oapi-codegen.yaml 用法）"
 fi
 ok "Go client 一致（${GO_GEN}）"
 
 # ---- 3) TS schema 一致性（openapi-typescript）-----------------------------
 say "3/3 校验 TS schema 生成物一致（openapi-typescript ${OPENAPI_TS_VERSION}）…"
-OTS_BIN="libs/ts/api-client/node_modules/.bin/openapi-typescript"
+OTS_BIN="packages/api-client/node_modules/.bin/openapi-typescript"
 if [ -x "$OTS_BIN" ]; then
   OTS_CMD=("$OTS_BIN")
 else
@@ -96,7 +96,7 @@ fi
 "${OTS_CMD[@]}" "$SPEC" -o "$TMP/schema.gen.ts" >/dev/null 2>&1 \
   || die "openapi-typescript 生成失败"
 if ! diff -u "$TS_SCHEMA" "$TMP/schema.gen.ts"; then
-  die "TS schema 生成物与 spec 不一致：请重跑生成并提交（pnpm -C libs/ts/api-client run generate）"
+  die "TS schema 生成物与 spec 不一致：请重跑生成并提交（pnpm -C packages/api-client run generate）"
 fi
 ok "TS schema 一致（${TS_SCHEMA}）"
 

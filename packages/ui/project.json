@@ -1,8 +1,8 @@
 {
-  "name": "ts-api-client",
+  "name": "ts-ui",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "projectType": "library",
-  "sourceRoot": "libs/ts/api-client",
+  "sourceRoot": "packages/ui",
   "tags": [
     "type:lib",
     "lang:ts"
@@ -12,7 +12,7 @@
       "executor": "nx:run-commands",
       "options": {
         "command": "tsc --noEmit -p tsconfig.json",
-        "cwd": "libs/ts/api-client"
+        "cwd": "packages/ui"
       },
       "cache": true
     },
@@ -20,17 +20,9 @@
       "executor": "nx:run-commands",
       "options": {
         "command": "tsc --noEmit -p tsconfig.json",
-        "cwd": "libs/ts/api-client"
+        "cwd": "packages/ui"
       },
       "cache": true
-    },
-    "generate": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "openapi-typescript ../../../contracts/openapi/openapi.json -o src/schema.ts",
-        "cwd": "libs/ts/api-client"
-      },
-      "cache": false
     }
   }
 }

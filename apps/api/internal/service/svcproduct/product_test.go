@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/morehao/ark-go-starter/apps/api/internal/dto/dtoproduct"
-	"github.com/morehao/ark-go-starter/libs/go/testsetup"
+	"github.com/morehao/ark-go-starter/pkg/testsetup"
 	"github.com/morehao/golib/gutil"
 	"github.com/stretchr/testify/assert"
 )

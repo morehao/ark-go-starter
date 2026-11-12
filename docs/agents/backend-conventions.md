@@ -2,11 +2,11 @@
 
 > 上级入口：[AGENTS.md](../../AGENTS.md)　·　文档中心：[docs/agents/README.md](./README.md)
 
-适用于仓库内所有 Go 代码：应用在 `apps/api`（逻辑标识 `demo`），公共层在 `libs/go`。
+适用于仓库内所有 Go 代码：应用在 `apps/api`（逻辑标识 `demo`），公共层在 `pkg`。
 
 ## 项目结构（后端）
 
-> 迁移后布局（P2）：Go workspace 在仓库根 `go.work`，`use ./apps/api ./libs/go`。
+> 迁移后布局（P2）：Go workspace 在仓库根 `go.work`，`use ./apps/api ./pkg`。
 
 ```
 apps/api/                     # Demo 应用（逻辑标识 demo），Go 服务 :8099
@@ -22,7 +22,7 @@ apps/api/                     # Demo 应用（逻辑标识 demo），Go 服务 :
 ├── client/                   # 外部客户端
 ├── object/                   # 基础对象
 └── config/                   # 配置（config.yaml / config.prod.yaml / config.test.yaml；code_gen.yaml 为 gocli 代码生成配置）
-libs/go/                      # 公共包（跨应用共享）
+pkg/                      # 公共包（跨应用共享）
 ```
 
 ## 命名规范
@@ -245,7 +245,7 @@ var StatusTextMap = map[string]string{
 
 1. 标准库 (`fmt`, `strings`, `time`...)
 2. 第三方库 (`github.com/gin-gonic/gin`, `github.com/stretchr/testify`...)
-3. 项目内部包 (`github.com/morehao/ark-go-starter/apps/api/...`, `github.com/morehao/ark-go-starter/libs/go/...`)
+3. 项目内部包 (`github.com/morehao/ark-go-starter/apps/api/...`, `github.com/morehao/ark-go-starter/pkg/...`)
 4. 关联库 (`github.com/morehao/golib/...`)
 
 ```go
@@ -256,7 +256,7 @@ import (
     "github.com/stretchr/testify"
 
     "github.com/morehao/ark-go-starter/apps/api/internal/dto/dtouser"
-    "github.com/morehao/ark-go-starter/libs/go/code"
+    "github.com/morehao/ark-go-starter/pkg/code"
     "github.com/morehao/golib/glog"
 )
 ```
@@ -294,7 +294,7 @@ func NewUserSvc() UserSvc {
 
 ## 错误处理
 
-- 使用统一的错误码包 `github.com/morehao/ark-go-starter/libs/go/code`
+- 使用统一的错误码包 `github.com/morehao/ark-go-starter/pkg/code`
 - 业务错误通过 `code.GetError(code.XXXError)` 返回
 - 错误日志使用 `glog.Errorf(ctx, "[module.Method] msg, err:%v", err)`
 
@@ -383,8 +383,8 @@ make lint           # golangci-lint run，必须 0 issues
 make test APP=demo  # 单元测试（无需 DB/Redis）
 ```
 
-- `make test` 覆盖 `libs/go` + 指定应用；依赖 DB/Redis 的集成测试单独用 `make test-integration APP=demo`；
-- 在仓库根按模块分别检查（`libs/go` 与 `apps/api`），见 [commands.md](./commands.md#lint-和代码检查)。
+- `make test` 覆盖 `pkg` + 指定应用；依赖 DB/Redis 的集成测试单独用 `make test-integration APP=demo`；
+- 在仓库根按模块分别检查（`pkg` 与 `apps/api`），见 [commands.md](./commands.md#lint-和代码检查)。
 
 ## 相关文档
 

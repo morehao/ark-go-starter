@@ -5,7 +5,7 @@
 ## 约定
 
 - 测试文件放在同包或 `_test` 包中，**文件名与被测源文件同名**（`user.go` → `user_test.go`），不要按函数名命名
-- 使用 `libs/go/testsetup` 初始化测试环境：`testsetup.Initialize(testsetup.AppNameDemo)` / `testsetup.Close(testsetup.AppNameDemo)`；需要带身份的 ctx 用 `testsetup.NewContext(...)`。详见 [libs/go/testsetup/README.md](../../libs/go/testsetup/README.md)
+- 使用 `pkg/testsetup` 初始化测试环境：`testsetup.Initialize(testsetup.AppNameDemo)` / `testsetup.Close(testsetup.AppNameDemo)`；需要带身份的 ctx 用 `testsetup.NewContext(...)`。详见 [pkg/testsetup/README.md](../../pkg/testsetup/README.md)
 - 使用标准库 `testing` 包和 `testify`（`assert` / `require`）
 
 ```go
@@ -107,9 +107,9 @@ make test APP=demo
 # 集成测试（需本地 PostgreSQL(5432)/Redis(6379)）
 make test-integration APP=demo
 
-# 在仓库根按模块单独跑（apps/api 与 libs/go 各自为独立 module）
-cd libs/go && go test -race ./...
-cd libs/go && go test -race -tags=integration ./...
+# 在仓库根按模块单独跑（apps/api 与 pkg 各自为独立 module）
+cd pkg && go test -race ./...
+cd pkg && go test -race -tags=integration ./...
 
 # 运行单个测试函数
 go test ./apps/api/internal/service/svcproduct -run TestGeneratePassword -v

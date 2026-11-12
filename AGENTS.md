@@ -21,7 +21,7 @@
 
 ## 项目概述
 
-`ark-go-starter` 是前后端一体的全栈工程实践项目，采用 monorepo（`apps/` + `libs/` + `contracts/`）布局：后端 Gin + GORM（Go workspace 多模块，根 `go.work` 管理 `apps/api` 与 `libs/go`），前端 React + Vite + Ant Design（pnpm monorepo，根 `pnpm-workspace.yaml` 管理 `apps/web` 与 `libs/ts/*`）。任务编排用 Nx（`nx.json`）。
+`ark-go-starter` 是前后端一体的全栈工程实践项目，采用 monorepo（`apps/` + `packages/` + `pkg/` + `contracts/`）布局：后端 Gin + GORM（Go workspace 多模块，根 `go.work` 管理 `apps/api` 与 `pkg`），前端 React + Vite + Ant Design（pnpm monorepo，根 `pnpm-workspace.yaml` 管理 `apps/web` 与 `packages/*`）。任务编排用 Nx（`nx.json`）。
 
 ### 双 apps 语义（重要）
 
@@ -36,18 +36,17 @@ ark-go-starter/
 ├── apps/
 │   ├── api/                 # Go 后端应用（Gin，:8099；逻辑名 demo→目录 api）
 │   └── web/                 # React 前端应用（Vite，:3000，代理 /v1 → http://localhost:8099）
-├── libs/
-│   ├── go/                  # Go 公共层（code/dbclient/testsetup/token/ginhelper/iamlink/operator/client）
-│   └── ts/                  # 前端共享包（api/types/ui/tsconfig/api-client）
+├── packages/                # 前端共享包（api/api-client/types/ui/tsconfig），pnpm workspace 成员
+├── pkg/                     # Go 公共层（code/dbclient/testsetup/token/ginhelper/iamlink/operator/client）
 ├── contracts/               # 契约平面（单一事实源）：openapi/openapi.json + verify.sh（生成物一致性校验）
 ├── tests/
 │   └── e2e/                 # 端到端测试（前端 Playwright specs + A4 golden）
 ├── tools/                   # 脚本与 SQL（quickstart.sh、sql/table_init.sql）
 ├── infra/                   # 容器与编排（docker/api.Dockerfile、compose/dev.yml）
 ├── docs/                    # 文档（agents/ 开发规范、design-language.md 设计语言事实源）
-├── go.work                  # 根 Go workspace（use ./apps/api ./libs/go）
+├── go.work                  # 根 Go workspace（use ./apps/api ./pkg）
 ├── package.json             # 根前端 workspace 清单
-├── pnpm-workspace.yaml      # 根 pnpm workspace 定义（apps/web、libs/ts/*、tests/e2e）
+├── pnpm-workspace.yaml      # 根 pnpm workspace 定义（apps/web、packages/*、tests/e2e）
 ├── nx.json                  # Nx 编排配置（project graph / target cache / tags 边界）
 ├── tsconfig.base.json       # 前端共享 TS 基配置
 ├── Makefile                 # 根 Makefile（后端 + 前端 + 契约命令）
@@ -87,9 +86,9 @@ ark-go-starter/
 | 依赖图 | `pnpm exec nx graph` |
 | 跑全部构建 / 类型检查 | `pnpm exec nx run-many -t build` / `pnpm exec nx run-many -t typecheck` |
 | 受影响项目 | `pnpm exec nx show projects --affected` |
-| 只构建受影响 | `pnpm exec nx affected -t build`（改 `libs/ts/ui` 只跑 ui+web，不跑 Go） |
+| 只构建受影响 | `pnpm exec nx affected -t build`（改 `packages/ui` 只跑 ui+web，不跑 Go） |
 
-> 注意：Go 命令由 Makefile 统一在仓库根调度（`go.work` 在根，`use ./apps/api ./libs/go`，无需再 `cd backend`）。**默认测试不依赖外部服务**：连库用例已用 `//go:build integration` 隔离，`make test` 无需 PostgreSQL/Redis；跑集成测试用 `make test-integration`。本项目不连接 Elasticsearch。
+> 注意：Go 命令由 Makefile 统一在仓库根调度（`go.work` 在根，`use ./apps/api ./pkg`，无需再 `cd backend`）。**默认测试不依赖外部服务**：连库用例已用 `//go:build integration` 隔离，`make test` 无需 PostgreSQL/Redis；跑集成测试用 `make test-integration`。本项目不连接 Elasticsearch。
 > `golangci-lint` 需 **v2**（匹配 `.golangci.yml` v2 schema）：**勿 `go install`、勿裸 `brew install golangci-lint`**（formula 依赖 Homebrew go，会劫持 gvm 的 `go`），用 `brew install --ignore-dependencies golangci-lint`；详见 [commands.md](./docs/agents/commands.md#lint-和代码检查)。
 > 完整命令与说明见 [commands.md](./docs/agents/commands.md) 与根 `make help`。
 
@@ -98,12 +97,12 @@ ark-go-starter/
 1. **禁止硬编码字典字符串**：表名、枚举、字典值一律定义为常量；表名/模型枚举放 `model/*.go`，前端专用状态映射放 `internal/constant/`。详见 [backend-conventions.md](./docs/agents/backend-conventions.md#常量定义规范)。
 2. **分层与命名**：`controller/ctrxxx`（`ctr` 前缀）、`service/svcxxx`（`svc` 前缀）、`dto/dtoxxx`（`dto` 前缀）；文件名小写下划线；接口用 `UserSvc` 风格，构造函数 `NewXxxSvc()` 注入，并加 `var _ UserSvc = (*userSvc)(nil)` 编译期检查；**缩略词全大写**（`APIKey`/`OIDC`/`URL`，不是 `ApiKey`/`Oidc`/`Url`）。详见 [backend-conventions.md](./docs/agents/backend-conventions.md#命名规范)。
 3. **Import 排序**：标准库 → 第三方库 → 项目内部包 → `github.com/morehao/golib/*`，顺序分组、无空行分隔。详见 [backend-conventions.md](./docs/agents/backend-conventions.md#import-排序)。
-4. **错误处理**：业务错误统一 `code.GetError(code.XXXError)`（`libs/go/code`）；日志用 `glog.Errorf(ctx, "[module.Method] msg, err:%v", err)`。详见 [backend-conventions.md](./docs/agents/backend-conventions.md#错误处理)。
+4. **错误处理**：业务错误统一 `code.GetError(code.XXXError)`（`pkg/code`）；日志用 `glog.Errorf(ctx, "[module.Method] msg, err:%v", err)`。详见 [backend-conventions.md](./docs/agents/backend-conventions.md#错误处理)。
 5. **事务**：使用 `dbclient` 封装的 `Transaction(func(tx *gorm.DB) error {...})`，不要自行开事务。详见 [backend-conventions.md](./docs/agents/backend-conventions.md#事务处理)。
 6. **Controller 返回**：统一走 `gincontext`，绑定失败 `gincontext.Fail(ctx, err)`，成功 `gincontext.Success(ctx, res)`。详见 [backend-conventions.md](./docs/agents/backend-conventions.md#controller-返回模式)。
 7. **路由**：`/{版本}/{app}/{资源复数}`，RESTful + HTTP 方法，如 `GET /v1/demo/products`；路径参数 `:xxxID`；**层级不超过 4 层**。详见 [api-conventions.md](./docs/agents/api-conventions.md)。
 8. **Swagger**：新增接口需补 `@Tags/@Summary/@Param/@Success/@Router` 注解，并执行 `make swag APP=demo`。详见 [api-conventions.md](./docs/agents/api-conventions.md#swagger-文档)。
-9. **测试**：同包或 `_test` 包，用 `testsetup.Initialize(testsetup.AppNameDemo)` 初始化环境（基于 `libs/go/testsetup`，详见 [libs/go/testsetup/README.md](./libs/go/testsetup/README.md)），标准库 `testing` + `testify`；**依赖 DB/Redis/外网的用例必须加 `//go:build integration`**（否则 `go test ./...` 在无库环境全红）；错误断言用 `assert.NoError` 而非 `assert.Nil`。详见 [testing.md](./docs/agents/testing.md#集成测试必须隔离硬性要求)。
+9. **测试**：同包或 `_test` 包，用 `testsetup.Initialize(testsetup.AppNameDemo)` 初始化环境（基于 `pkg/testsetup`，详见 [pkg/testsetup/README.md](./pkg/testsetup/README.md)），标准库 `testing` + `testify`；**依赖 DB/Redis/外网的用例必须加 `//go:build integration`**（否则 `go test ./...` 在无库环境全红）；错误断言用 `assert.NoError` 而非 `assert.Nil`。详见 [testing.md](./docs/agents/testing.md#集成测试必须隔离硬性要求)。
 10. **工具链**：数据库 GORM + PostgreSQL（**唯一目标库**；DDL 见 `tools/sql/table_init.sql`，model tag 禁写其它方言类型）。缓存 Redis，日志 golib/glog，链路 OpenTelemetry。详见 [toolchain.md](./docs/agents/toolchain.md) 与 [模型字段类型规范](./docs/agents/backend-conventions.md#模型字段类型规范postgresql)。
 11. **前端**：`main.tsx` 必须用 `AppShell` 包裹，管理页用 `PageContainer`；颜色/圆角/间距一律取 `@ark-go-starter/ui` 的 `tokens` 或 antd token，**禁止裸色值**；卡片无阴影、Table 必须 `tableLayout="fixed"` + 显式列宽。详见 [frontend-conventions.md](./docs/agents/frontend-conventions.md)；设计值事实源是 [docs/design-language.md](./docs/design-language.md)（改 `theme.ts` tokens 与它必须同步）。
 12. **注释**：每个包必须有 `// Package xxx` 注释，每个导出符号必须有以符号名开头的 godoc；`internal/dto/` 下结构体字段必须有行内中文注释；DDL 字段必须有行尾 `--` 注释 + `COMMENT ON COLUMN`（两份保持一致）。详见 [backend-conventions.md](./docs/agents/backend-conventions.md#注释规范)。

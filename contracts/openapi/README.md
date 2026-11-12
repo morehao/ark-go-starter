@@ -1,6 +1,6 @@
 # contracts/openapi — HTTP 契约单一事实源（P5 试点）
 
-本目录是 HTTP 契约的**单一事实源**（OpenAPI）。约束（Q6 定案）：**任何模块不得 `import contracts`**；契约只以「生成物」进入 `libs`（TS 客户端 / Go client），契约源文件本身只被工具读取与校验。
+本目录是 HTTP 契约的**单一事实源**（OpenAPI）。约束（Q6 定案）：**任何模块不得 `import contracts`**；契约只以「生成物」进入 `packages/`（TS 客户端）与 `pkg/`（Go client），契约源文件本身只被工具读取与校验。
 
 ## 当前内容（P5-T1 试点）
 
@@ -32,6 +32,6 @@ npx @redocly/cli@latest lint contracts/openapi/openapi.json              # → W
 
 ## 后续（P5-T2 / P5-T3）
 
-- P5-T2（R2）：`libs/ts/api-client` 由本目录生成物替换（保留 `legacy/` 一个周期）。
-- P5-T3（R1）：`libs/go/client` 生成 + `apps/api` 接入。
+- P5-T2（R2）：`packages/api-client` 由本目录生成物替换（保留 `legacy/` 一个周期）。
+- P5-T3（R1）：`pkg/client` 生成 + `apps/api` 接入。
 - P5-T4（R3）：`make contracts-verify` 进 CI（生成物 diff 即阻断）。

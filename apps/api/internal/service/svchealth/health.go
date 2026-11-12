@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/morehao/ark-go-starter/apps/api/internal/dto/dtohealth"
-	"github.com/morehao/ark-go-starter/libs/go/dbclient"
+	"github.com/morehao/ark-go-starter/pkg/dbclient"
 	"github.com/morehao/golib/glog"
 	"gorm.io/gorm"
 )

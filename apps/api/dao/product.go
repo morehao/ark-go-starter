@@ -3,7 +3,7 @@ package dao
 
 import (
 	"github.com/morehao/ark-go-starter/apps/api/model"
-	"github.com/morehao/ark-go-starter/libs/go/dbclient"
+	"github.com/morehao/ark-go-starter/pkg/dbclient"
 	"github.com/morehao/golib/dbaccess/gormdao"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"

@@ -1,5 +1,5 @@
 /**
- * libs/ts/api-client —— P5-T2 契约驱动生成的 TS 客户端（试点）。
+ * packages/api-client —— P5-T2 契约驱动生成的 TS 客户端（试点）。
  *
  * 结构：
  *   - `schema.ts` 由 openapi-typescript 从 `contracts/openapi/openapi.json` **自动生成**（勿手改）。

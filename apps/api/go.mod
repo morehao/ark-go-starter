@@ -107,12 +107,12 @@ require (
 )
 
 // pkg 是同一个仓库内的本地模块，只在 go.work 之外（如 CI 单模块构建）才需要这行 replace。
-replace github.com/morehao/ark-go-starter/libs/go => ../../libs/go
+replace github.com/morehao/ark-go-starter/pkg => ../../pkg
 
 require (
 	github.com/gin-gonic/gin v1.12.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
-	github.com/morehao/ark-go-starter/libs/go v0.0.0-00010101000000-000000000000
+	github.com/morehao/ark-go-starter/pkg v0.0.0-00010101000000-000000000000
 	github.com/morehao/ark-iam/contract v0.1.0
 	github.com/morehao/ark-iam/pkg v0.4.0
 	github.com/morehao/ark-iam/sdk v0.5.0

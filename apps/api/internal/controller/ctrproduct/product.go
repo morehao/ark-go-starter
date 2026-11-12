@@ -5,7 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/morehao/ark-go-starter/apps/api/internal/dto/dtoproduct"
 	"github.com/morehao/ark-go-starter/apps/api/internal/service/svcproduct"
-	"github.com/morehao/ark-go-starter/libs/go/ginhelper"
+	"github.com/morehao/ark-go-starter/pkg/ginhelper"
 	"github.com/morehao/golib/biz/gcontext/gincontext"
 )
 

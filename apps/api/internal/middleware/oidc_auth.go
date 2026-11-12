@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/morehao/ark-go-starter/libs/go/iamlink"
+	"github.com/morehao/ark-go-starter/pkg/iamlink"
 	"github.com/morehao/ark-iam/contract"
 	"github.com/morehao/ark-iam/sdk/rp"
 	"github.com/morehao/golib/biz/gcontext"

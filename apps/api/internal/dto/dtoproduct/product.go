@@ -3,7 +3,7 @@ package dtoproduct
 
 import (
 	"github.com/morehao/ark-go-starter/apps/api/object/objproduct"
-	"github.com/morehao/ark-go-starter/libs/go/operator"
+	"github.com/morehao/ark-go-starter/pkg/operator"
 	"github.com/morehao/golib/biz/gobject"
 )
 

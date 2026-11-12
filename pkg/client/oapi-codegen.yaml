@@ -1,14 +1,14 @@
-# oapi-codegen 生成配置（libs/go/client）
+# oapi-codegen 生成配置（pkg/client）
 #
 # 用法（P5-T3 试点，可复现）：
 #   # 1) 从 contracts/openapi/openapi.json（OpenAPI 3.1）派生一份 3.0.3（oapi-codegen 目前对 3.1 支持不完整，会告警）
 #   #    jq '.openapi="3.0.3"' contracts/openapi/openapi.json > /tmp/pilot-3.0.json
 #   # 2) 生成
-#   oapi-codegen --config libs/go/client/oapi-codegen.yaml /tmp/pilot-3.0.json
+#   oapi-codegen --config pkg/client/oapi-codegen.yaml /tmp/pilot-3.0.json
 #
-# 说明：contracts 只作生成源，本产物 (client.gen.go) 是唯一被 apps/libs 依赖的生成物（Q6：不得 import contracts）。
+# 说明：contracts 只作生成源，本产物 (client.gen.go) 是唯一被 apps/ 与 pkg/ 依赖的生成物（Q6：不得 import contracts）。
 package: client
-output: libs/go/client/client.gen.go
+output: pkg/client/client.gen.go
 generate:
   models: true
   client: true
