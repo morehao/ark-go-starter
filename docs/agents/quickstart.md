@@ -125,7 +125,7 @@ make quickstart-verify IAM_ADMIN_USER=admin IAM_ADMIN_PASS='你的密码'
 
 ```bash
 # 1) 起依赖（或自备本机 PG/Redis）
-docker compose -f docker-compose.dev.yml up -d
+docker compose -f infra/compose/dev.yml up -d
 
 # 2) 建库建表
 docker exec -i ark-go-starter-postgres psql -U postgres -c 'CREATE DATABASE demo'   # 已存在可忽略

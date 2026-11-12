@@ -238,7 +238,7 @@ biz_iam_user_map
 
 ```ts
 export type IAMMode = 'disabled' | 'op' | 'rp'
-// 判定顺序：VITE_IAM_MODE 显式优先 → op 探测 /iam/config.json 可达 → rp 直连 VITE_OIDC_ISSUER → disabled
+// 判定顺序：VITE_IAM_MODE 显式优先 → VITE_IAM_ENABLE 兼容（op/disabled）→ 设了 VITE_OIDC_ISSUER 则 rp → 探测 /iam/config.json 可达则 op → disabled
 ```
 
 ### op 路径（本进程内嵌 OP）
@@ -319,11 +319,11 @@ export type IAMMode = 'disabled' | 'op' | 'rp'
 
 **本地默认账号（仅本机 dev 库，非项目内置）**：
 
-> ark-iam **不内置任何默认口令**。下表是本仓库**本地开发库**为方便调试而重置的临时账号，存在于数据库 `iam_person` 表，**不随代码发布**，换库/清库/重建后即失效。生产环境绝不可沿用。
+> ark-iam **不内置任何默认口令**。`make quickstart` 首次运行会通过 `/iam/install/initialize` 创建 `admin` 账号，密码取 `IAM_ADMIN_PASS`（**dev 缺省 `Adm1n@Strong!Pass`**，可用环境变量覆盖，见 [quickstart.md](./quickstart.md)）。该账号存在于数据库 `iam_person` 表，**不随代码发布**，换库/清库/重建后即失效。生产环境绝不可沿用。
 
-| 用户名 | 密码 | 邮箱 | 手机 |
+| 用户名 | 密码（quickstart dev 缺省） | 邮箱 | 手机 |
 |--------|------|------|------|
-| `admin` | `Admin@123456` | admin@example.com | 13800000000 |
+| `admin` | `Adm1n@Strong!Pass` | admin@example.com | 13800000000 |
 
 - 前端登录地址：`http://localhost:3000`（op 模式下自动跳 `/iam/login` 账密页）。
 - 忘记密码：无法从库反查（bcrypt 存储），需重置 `iam_person.password_encrypted`（bcrypt cost 10）或清库重走 `/iam/install`。

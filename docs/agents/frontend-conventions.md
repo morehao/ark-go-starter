@@ -77,9 +77,9 @@ import { AppShell, PageContainer, tokens } from '@ark-go-starter/ui'
 ## 已知空白（与 `docs/design-language.md` `Known Gaps` 一致）
 
 - `libs/ts/ui` 目前仅落地 `theme` / `AppShell` / `PageContainer`；状态 Tag 字典、列宽工厂（`idColumn` / `timeColumn` / `actionColumn`）、`TimeCell` / `IDCell` / `RemoteSelect` 待按业务引入；
-- demo 已落地多页骨架：深色 `Sider`（侧栏）+ 顶部 `Header` + `Content`，侧栏令牌（`surface-sidebar` / `selected-bg` / 渐变）已实际使用；当前页面有**商品管理 / 数据字典 / 配置中心 / 定时任务 / 异步任务 / 健康检查**六个（对应 `apps/web/src/pages/{Products,Dicts,Settings,Cron,Async,Health}`）。切页用 `antd` `Menu` + `useState`，**仍未引入 react-router**；
-- 登录页仍为模板预留，尚未落地；
-- 未接入路由库 / 状态管理库；如需真正的前端路由（URL 可定位、可回退），先补 `AppShell` 之外的 `MainLayout` 规范再落地；
+- demo 已落地多页骨架：深色 `Sider`（侧栏）+ 顶部 `Header` + `Content`，侧栏令牌（`surface-sidebar` / `selected-bg` / 渐变）已实际使用；当前菜单有**商品管理 / 数据字典 / 配置中心 / 定时任务 / 异步任务 / 健康检查 / 文件上传**七个（对应 `apps/web/src/pages/{Products,Dicts,Settings,Cron,Async,Health,Files}`，切页仍用 `antd` `Menu` + `useState`）；`apps/web/src/auth/` 已落地 IAM 登录/provider 装配（`config.ts` + `index.tsx`，含 `react-router-dom` 的 `BrowserRouter`），业务页切换本身仍未走路由库；
+- IAM 登录页已落地（`@morehao/ark-iam-react/login`，op/rp/disabled 三态，见 [iam.md](./iam.md)）；`apps/web/src/main.tsx` 用 `IAMAuthProvider` + `AuthGuard` 包裹；
+- 尚未接入状态管理库；如需业务页 URL 可定位/可回退的完整前端路由，先补 `AppShell` 之外的 `MainLayout` 规范再落地；
 - 引入上述内容时，同步更新 `docs/design-language.md`，本文的空白清单也应一并核对。
 
 ## 相关文档
