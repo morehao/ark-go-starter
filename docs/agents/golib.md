@@ -14,6 +14,10 @@
 |----|------|----------|
 | `libs/go/code` | 业务错误码（基于 golib `gerror`） | `code.GetError(code.XXXError)`；每类资源一个文件（`user.go`、`org.go`…） |
 | `libs/go/dbclient` | PostgreSQL / Redis 连接管理（基于 `dbgorm`/`dbredis`） | `dbclient.DemoDB(ctx)`、`dbclient.GetDB(ctx, name)`、`dbclient.RedisCli`、`dbclient.DemoDB(ctx).Transaction(func(tx *gorm.DB) error)` |
+| `libs/go/operator` | 请求级操作者身份（controller 填充，service 只读；不依赖 gin） | `operator.Operator` 等 |
+| `libs/go/ginhelper` | Gin 上下文辅助（填充操作人身份到审计列） | `ginhelper.FillOperator` |
+| `libs/go/iamlink` | ark-iam 外部 string 身份 ↔ 本地 BIGINT 用户 ID 映射（三态通用） | `iamlink.NewSvc()` / `EnsureLocalUser`，见 [iam.md](./iam.md) |
+| `libs/go/client` | 契约生成的 OpenAPI HTTP 客户端（oapi-codegen，`client.gen.go`） | 由 `contracts/openapi` 生成，见 [toolchain.md](./toolchain.md) |
 | `libs/go/token` | Token 处理 | 见包内实现 |
 | `libs/go/testsetup` | 测试环境初始化（基于 golib `testkit`） | `Initialize/Close`、`NewContext(WithUserID…)`，详见 [libs/go/testsetup/README.md](../../libs/go/testsetup/README.md) |
 

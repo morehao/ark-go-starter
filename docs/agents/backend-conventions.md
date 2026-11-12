@@ -21,8 +21,8 @@ apps/api/                     # Demo 应用（逻辑标识 demo），Go 服务 :
 ├── dao/                      # 数据访问层
 ├── client/                   # 外部客户端
 ├── object/                   # 基础对象
-└── config/                   # 配置（config.yaml / config.prod.yaml / config.test.yaml）
-libs/go/                      # 公共包（跨应用共享，原 backend/pkg）
+└── config/                   # 配置（config.yaml / config.prod.yaml / config.test.yaml；code_gen.yaml 为 gocli 代码生成配置）
+libs/go/                      # 公共包（跨应用共享）
 ```
 
 ## 命名规范
@@ -225,7 +225,7 @@ func (DepartmentEntity) TableName() string {
 前端专用的状态映射等常量，放在应用的 `internal/constant/` 目录下：
 
 ```go
-// apps/iam/internal/constant/status.go
+// apps/api/internal/constant/status.go（internal/constant/ 目录按需创建）
 package constant
 
 const (

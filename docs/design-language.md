@@ -96,7 +96,7 @@ components:
 |---|---|---|---|
 | 表面 | `{colors.surface-layout}` | #f6f7f9 | 页面布局底色（antd colorBgLayout），冷白 |
 | | `{colors.surface-card}` | #ffffff | 卡片 / 表头底（Header） |
-| | `{colors.surface-sidebar}` | #0f172a | 侧栏深底（预留） |
+| | `{colors.surface-sidebar}` | #0f172a | 侧栏深底 |
 | | `{colors.surface-table-header}` | #f7f8fa | Table 表头（中性，禁止靛 tint） |
 | | `{colors.surface-table-row-hover}` | #f3f4f6 | Table 行 hover（中性） |
 | | `{colors.surface-soft-fill}` | #f1f3f5 | 中性填充底（统计卡图标底等） |
@@ -210,7 +210,7 @@ PageContainer(title, description, extra=刷新 + 主操作[type=primary])
 | `tokens.gradient` / `gradientSoft` | brand-gradient(-soft) | 品牌渐变 |
 | `tokens.bg` | surface-layout | 页面底 |
 | `tokens.cardBg` / `headerBg` | surface-card | 卡/Header 底 |
-| `tokens.sidebarBg` | surface-sidebar | 侧栏底（预留） |
+| `tokens.sidebarBg` | surface-sidebar | 侧栏底 |
 | `tokens.tableHeaderBg` / `rowHoverBg` | surface-table-header / row-hover | 表格（中性） |
 | `tokens.softFill` | surface-soft-fill | 中性填充底 |
 | `tokens.selectedBg` | surface-selected-bg | 深色导航选中柔和底 |
@@ -224,5 +224,5 @@ PageContainer(title, description, extra=刷新 + 主操作[type=primary])
 
 1. `theme.ts` 与本文档（design-language.md）为**人工同步**，暂无 lint/test 强制一致。
 2. 当前 `libs/ts/ui` 仅落地 `theme` / `AppShell` / `PageContainer` 三项；状态 Tag 字典、列宽工厂（`idColumn` / `timeColumn` / `actionColumn`）、`TimeCell`、`IDCell`、`RemoteSelect` 等按业务需要再逐步引入，并同步补充本文件。
-3. demo 已使用深色侧栏 + 顶部 Header 多页骨架（菜单 + `useState` 切页，未引入 react-router），侧栏令牌已落地；登录页仍为预留。
-4. 未接入路由库/状态管理库；如需多页应用，先补 `AppShell` 之外的 `MainLayout` 规范再落地。
+3. demo 已使用深色侧栏 + 顶部 Header 多页骨架（业务页切换仍用菜单 + `useState`，但 `apps/web/src/auth/` 已引入 `react-router-dom` 的 `BrowserRouter` 承载登录回调路由），侧栏令牌已落地；登录页已落地（`@morehao/ark-iam-react/login`，op/rp/disabled 三态）。
+4. 业务页暂未走路由库、未接入状态管理库；如需多页应用 URL 可定位/可回退，先补 `AppShell` 之外的 `MainLayout` 规范再落地。

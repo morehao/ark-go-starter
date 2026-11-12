@@ -19,13 +19,18 @@ ark-go-starter/
 │   ├── api/                 # Demo Go 应用（逻辑标识 demo），Gin 演示 :8099
 │   └── web/                 # 前端应用 :3000，代理 /v1 → http://localhost:8099
 ├── libs/
-│   ├── go/                  # Go 公共包（code/dbclient/ginhelper/iamlink/operator/testsetup/token）
-│   └── ts/                  # 前端共享包（api/types/ui/tsconfig）
+│   ├── go/                  # Go 公共包（client/code/dbclient/ginhelper/iamlink/operator/testsetup/token）
+│   └── ts/                  # 前端共享包（api/api-client/types/ui/tsconfig）
+├── contracts/               # 契约平面（单一事实源）：openapi/openapi.json + verify.sh
 ├── tests/e2e/               # Playwright 端到端测试
 ├── infra/                   # docker/api.Dockerfile、compose/dev.yml
 ├── tools/                   # 仓库级脚本（quickstart.sh）与 DDL（sql/table_init.sql）
 ├── docs/                    # 开发规范（docs/agents/…）与设计语言（docs/design-language.md）
 ├── go.work                  # Go workspace（use ./apps/api ./libs/go）
+├── package.json             # 根前端 workspace 清单
+├── pnpm-workspace.yaml      # 根 pnpm workspace 定义（apps/web、libs/ts/*、tests/e2e）
+├── nx.json                  # Nx 任务编排（project graph / target cache / tags 边界）
+├── tsconfig.base.json       # 前端共享 TS 基配置
 ├── Makefile                 # 根 Makefile（在仓库根执行）
 ├── AGENTS.md                # AI 代理入口（精简索引）
 └── README.md
