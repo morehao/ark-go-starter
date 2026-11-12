@@ -6,40 +6,40 @@
 
 `ark-go-starter` 是一个前后端一体的全栈工程实践项目：
 
-- **后端**：Gin + GORM，Go workspace 多模块，位于 `backend/`；
-- **前端**：React + Vite + Ant Design，pnpm monorepo，位于 `frontend/`。
+- **后端**：Gin + GORM，Go workspace 多模块，应用在 `apps/api`、公共层在 `libs/go`；
+- **前端**：React + Vite + Ant Design，pnpm monorepo，位于 `apps/web` 与 `libs/ts/*`。
 
-后端以 `backend/go.work` 作为 workspace，管理应用模块 `apps/demo` 与公共层 `pkg`。
+Go 以仓库根 `go.work` 作为 workspace，`use ./apps/api ./libs/go`（应用逻辑标识仍为 `demo`，目录名为 `api`，二者解耦）。
 
 ## 项目结构
 
 ```
 ark-go-starter/
-├── backend/                 # Go 后端项目（go.work 多模块）
-│   ├── apps/
-│   │   ├── demo/            # Demo 示例应用（Gin 演示），:8099
-│   │   └── log/             # 运行时日志（gitignore）
-│   ├── pkg/                 # 公共包（code/dbclient/testsetup/token）
-│   ├── go.work
-│   └── output/              # 构建产物（gitignore）
-├── frontend/                # React 前端项目（pnpm monorepo）
-│   ├── apps/demo-web/       # 演示前端应用 :3000，代理 /v1 → http://localhost:8099
-│   ├── packages/            # 共享包（ui/api/types/tsconfig）
-│   └── DESIGN.md            # 前端设计语言（视觉规范事实源）
-├── docs/agents/             # 开发规范文档（由 AGENTS.md 拆分而来）
-├── Makefile                 # 根 Makefile（backend + frontend 双端命令）
+├── apps/
+│   ├── api/                 # Demo Go 应用（逻辑标识 demo），Gin 演示 :8099
+│   └── web/                 # 前端应用 :3000，代理 /v1 → http://localhost:8099
+├── libs/
+│   ├── go/                  # Go 公共包（code/dbclient/ginhelper/iamlink/operator/testsetup/token）
+│   └── ts/                  # 前端共享包（api/types/ui/tsconfig）
+├── tests/e2e/               # Playwright 端到端测试
+├── infra/                   # docker/api.Dockerfile、compose/dev.yml
+├── tools/                   # 仓库级脚本（quickstart.sh）与 DDL（sql/table_init.sql）
+├── docs/                    # 开发规范（docs/agents/…）与设计语言（docs/design-language.md）
+├── go.work                  # Go workspace（use ./apps/api ./libs/go）
+├── Makefile                 # 根 Makefile（在仓库根执行）
 ├── AGENTS.md                # AI 代理入口（精简索引）
 └── README.md
 ```
+> 运行时产物统一落 `.local/`（日志 `.local/log`、存储 `.local/storage`，均 gitignore）；`APP_LOG_DIR` / `APP_STORAGE_DIR` 可覆盖。
 
 后端应用内部的分层结构见 [backend-conventions.md](./backend-conventions.md)；
-前端包结构与样式规范见 [frontend-conventions.md](./frontend-conventions.md) 与 [`frontend/DESIGN.md`](../../frontend/DESIGN.md)。
+前端包结构与样式规范见 [frontend-conventions.md](./frontend-conventions.md) 与 [`docs/design-language.md`](../../docs/design-language.md)。
 
 ## 应用与端口
 
 | 应用 | 后端端口 | 前端 dev 端口 |
 |------|----------|---------------|
-| `demo` | 8099 | 3000（`demo-web`） |
+| `demo`（目录 apps/api） | 8099 | 3000（目录 apps/web） |
 
 根 `Makefile` 中有效 `APP` 取值为 `demo`。命令用法见 [commands.md](./commands.md)。
 前端 monorepo 的技术栈、包结构与命令见 [frontend-conventions.md](./frontend-conventions.md)。

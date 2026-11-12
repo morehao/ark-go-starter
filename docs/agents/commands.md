@@ -40,14 +40,14 @@ make stop-frontend
 # 运行指定应用的测试（推荐）
 make test APP=demo
 
-# 运行单个测试函数
-go test ./apps/demo/internal/service/svcuser -run TestGeneratePassword -v
+# 运行单个测试函数（go.work 在仓库根，需带模块路径）
+go test ./apps/api/internal/service/svcproduct -run TestProductList -v
 ```
 
-> **注意**：后端模块的 go 命令需在 `cd backend` 后执行。
-> `pkg/dbclient/dbcheck_test.go` 依赖本地 PostgreSQL(5432) / Redis(6379) 服务，未启动对应服务时该包测试会失败（属环境依赖，非代码问题）。
+> **注意**：Go workspace 在仓库根 `go.work`（`use ./apps/api ./libs/go`），go 命令在**仓库根**执行并用模块路径（如 `./apps/api/...`、`./libs/go/...`）；`make` 目标已封装好，通常无需手敲。
+> `libs/go/dbclient/dbcheck_test.go` 依赖本地 PostgreSQL(5432) / Redis(6379) 服务，未启动对应服务时该包测试会失败（属环境依赖，非代码问题）。
 > 本项目不连接 Elasticsearch，`health` 接口只返回 `postgres` / `redis` 两项。
-> 数据库初始化脚本见 `backend/scripts/sql/table_init.sql`（PostgreSQL DDL）。
+> 数据库初始化脚本见 `tools/sql/table_init.sql`（PostgreSQL DDL）。
 
 测试写法约定见 [testing.md](./testing.md)。
 
@@ -61,14 +61,14 @@ make lint
 golangci-lint run ./... --disable-all -E golint,errcheck,staticcheck
 ```
 
-前端 ESLint（flat config：[`frontend/eslint.config.mjs`](../../frontend/eslint.config.mjs)，覆盖 `frontend/apps/*` 与 `frontend/packages/*` 源码）：
+前端 ESLint（flat config：[`eslint.config.mjs`](../../eslint.config.mjs)，覆盖 `apps/web` 与 `libs/ts/*` 源码）：
 
 ```bash
 # 根目录等价命令
 make lint-frontend
 
-# 或在 frontend/ 目录内直接跑（自动修复用 pnpm lint:fix）
-cd frontend && pnpm lint
+# 或在仓库根直接跑（自动修复用 pnpm lint:fix）
+pnpm lint
 ```
 
 > 提交前自检口径：前端 `pnpm lint` 必须 **0 error**；当前基线另有 7 条 `react-hooks` warning（`set-state-in-effect` /

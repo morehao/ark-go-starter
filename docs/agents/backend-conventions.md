@@ -2,25 +2,27 @@
 
 > 上级入口：[AGENTS.md](../../AGENTS.md)　·　文档中心：[docs/agents/README.md](./README.md)
 
-适用于 `backend/` 下所有 Go 代码（`apps/*` 与 `pkg/`）。
+适用于仓库内所有 Go 代码：应用在 `apps/api`（逻辑标识 `demo`），公共层在 `libs/go`。
 
 ## 项目结构（后端）
 
+> 迁移后布局（P2）：Go workspace 在仓库根 `go.work`，`use ./apps/api ./libs/go`。
+
 ```
-backend/apps/
-├── demo/                     # Demo 应用
-│   ├── cmd/                  # 入口函数
-│   ├── internal/
-│   │   ├── controller/ctrxxx/  # 控制器层 (ctr 前缀)
-│   │   ├── service/svcxxx/     # 服务层 (svc 前缀)
-│   │   ├── dto/dtoxxx/         # DTO 层
-│   │   ├── router/             # 路由注册
-│   │   └── middleware/         # 中间件
-│   ├── model/              # 数据模型
-│   ├── dao/                # 数据访问层
-│   ├── client/             # 外部客户端
-│   └── object/             # 基础对象
-backend/pkg/                # 公共包（跨应用共享）
+apps/api/                     # Demo 应用（逻辑标识 demo），Go 服务 :8099
+├── cmd/                      # 入口函数
+├── internal/
+│   ├── controller/ctrxxx/    # 控制器层 (ctr 前缀)
+│   ├── service/svcxxx/       # 服务层 (svc 前缀)
+│   ├── dto/dtoxxx/           # DTO 层
+│   ├── router/               # 路由注册
+│   └── middleware/           # 中间件
+├── model/                    # 数据模型
+├── dao/                      # 数据访问层
+├── client/                   # 外部客户端
+├── object/                   # 基础对象
+└── config/                   # 配置（config.yaml / config.prod.yaml / config.test.yaml）
+libs/go/                      # 公共包（跨应用共享，原 backend/pkg）
 ```
 
 ## 命名规范
@@ -100,7 +102,7 @@ type UserPageListResp struct {
 
 ### SQL 字段注释（硬性要求）
 
-DDL（`backend/scripts/sql/table_init.sql`）中**每个字段都必须有注释**，且要写两份、保持一致：
+DDL（`tools/sql/table_init.sql`）中**每个字段都必须有注释**，且要写两份、保持一致：
 
 1. 字段行尾的 `-- 中文说明`：保证脚本本身可读；
 2. 建表后的 `COMMENT ON COLUMN`：把同一份说明写进库元数据，`psql` 里 `\d+ 表名`、以及各类客户端都能看到。
@@ -126,7 +128,7 @@ COMMENT ON COLUMN "user".deleted_at IS '删除时间（软删除）';
 
 ## 模型字段类型规范（PostgreSQL）
 
-**本仓库唯一目标库是 PostgreSQL**：建表事实源是 `backend/scripts/sql/table_init.sql`（PG 语法），model 的 gorm tag **必须显式写 `type:`，且取值只能是 PostgreSQL 合法类型**（与脚本同款，结构体自描述、读模型即知列类型），不得写其它方言的字面量。
+**本仓库唯一目标库是 PostgreSQL**：建表事实源是 `tools/sql/table_init.sql`（PG 语法），model 的 gorm tag **必须显式写 `type:`，且取值只能是 PostgreSQL 合法类型**（与脚本同款，结构体自描述、读模型即知列类型），不得写其它方言的字面量。
 
 | 想要的效果 | 写法 | PG 生成的列 |
 |-----------|------|-------------|
@@ -180,7 +182,7 @@ Meta UserMeta `gorm:"column:meta;serializer:json"`
 
 两者都已在本机 PG 实测：`[]string`/结构体 + `type:jsonb;serializer:json` 建表读写全通；`type:text[]` 配裸 `[]string` 写入必炸；`serializer:json` 不写 `type` 推断成 `text` 列。
 
-守护用例：`apps/demo/model/pg_dialect_test.go` 的 `TestModelTagsArePostgresCompatible` 扫描所有模型的 `type:` tag，命中 MySQL 字面量（`unsigned`、`tinyint`、`datetime`、`longtext` …）即失败；**新增 model 要记得加进该用例的 `postgresModels`**（不需要数据库，纯 tag 校验）。
+守护用例：`apps/api/model/pg_dialect_test.go` 的 `TestModelTagsArePostgresCompatible` 扫描所有模型的 `type:` tag，命中 MySQL 字面量（`unsigned`、`tinyint`、`datetime`、`longtext` …）即失败；**新增 model 要记得加进该用例的 `postgresModels`**（不需要数据库，纯 tag 校验）。
 
 > model 目前不参与 AutoMigrate，建表只走 `table_init.sql`。若将来改成 AutoMigrate 建表，先对齐两处差异：
 > 脚本里 `created_at/updated_at` 是 `NOT NULL DEFAULT now()`，而 `gorm.Model` 生成的是可空 `timestamptz`（无默认值）。
@@ -243,7 +245,7 @@ var StatusTextMap = map[string]string{
 
 1. 标准库 (`fmt`, `strings`, `time`...)
 2. 第三方库 (`github.com/gin-gonic/gin`, `github.com/stretchr/testify`...)
-3. 项目内部包 (`github.com/morehao/ark-go-starter/apps/demo/...`, `github.com/morehao/ark-go-starter/pkg/...`)
+3. 项目内部包 (`github.com/morehao/ark-go-starter/apps/api/...`, `github.com/morehao/ark-go-starter/libs/go/...`)
 4. 关联库 (`github.com/morehao/golib/...`)
 
 ```go
@@ -253,8 +255,8 @@ import (
     "github.com/gin-gonic/gin"
     "github.com/stretchr/testify"
 
-    "github.com/morehao/ark-go-starter/apps/demo/internal/dto/dtouser"
-    "github.com/morehao/ark-go-starter/pkg/code"
+    "github.com/morehao/ark-go-starter/apps/api/internal/dto/dtouser"
+    "github.com/morehao/ark-go-starter/libs/go/code"
     "github.com/morehao/golib/glog"
 )
 ```
@@ -292,7 +294,7 @@ func NewUserSvc() UserSvc {
 
 ## 错误处理
 
-- 使用统一的错误码包 `github.com/morehao/ark-go-starter/pkg/code`
+- 使用统一的错误码包 `github.com/morehao/ark-go-starter/libs/go/code`
 - 业务错误通过 `code.GetError(code.XXXError)` 返回
 - 错误日志使用 `glog.Errorf(ctx, "[module.Method] msg, err:%v", err)`
 
@@ -381,8 +383,8 @@ make lint           # golangci-lint run，必须 0 issues
 make test APP=demo  # 单元测试（无需 DB/Redis）
 ```
 
-- `make test` 覆盖 `pkg/` + 指定应用；依赖 DB/Redis 的集成测试单独用 `make test-integration APP=demo`；
-- 在 `backend/` 下按模块分别检查（`pkg/` 与 `apps/demo/`），见 [commands.md](./commands.md#lint-和代码检查)。
+- `make test` 覆盖 `libs/go` + 指定应用；依赖 DB/Redis 的集成测试单独用 `make test-integration APP=demo`；
+- 在仓库根按模块分别检查（`libs/go` 与 `apps/api`），见 [commands.md](./commands.md#lint-和代码检查)。
 
 ## 相关文档
 
