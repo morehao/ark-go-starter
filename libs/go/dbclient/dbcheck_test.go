@@ -1,0 +1,64 @@
+//go:build integration
+
+// 依赖本地 PostgreSQL(5432)/Redis(6379)，属集成测试：默认 `go test ./...` 不运行，
+// 需 `go test -tags=integration ./...`。
+
+package dbclient_test
+
+import (
+	"context"
+	"testing"
+	"time"
+
+	"github.com/morehao/ark-go-starter/libs/go/dbclient"
+	"github.com/morehao/ark-go-starter/libs/go/testsetup"
+)
+
+const (
+	dbConnTimeout = 5 * time.Second
+)
+
+// TestDbcheckVerify 验证 dbclient 对 PostgreSQL/Redis 的调用及调用日志是否生效。
+//
+// 依赖 testsetup.Initialize 初始化 dbclient 与 glog（读取 apps/demo/config/config.yaml，
+// gorm/redis 日志级别为 debug 且输出到 console）。
+//
+// 运行方式：
+//
+//	go test ./pkg/dbclient/ -v -run TestDbcheckVerify
+//
+// 注意：本地需就绪 PostgreSQL(5432)/Redis(6379)。
+func TestDbcheckVerify(t *testing.T) {
+	testsetup.Initialize(testsetup.AppNameDemo)
+	defer testsetup.Close(testsetup.AppNameDemo)
+
+	ctx, cancel := context.WithTimeout(context.Background(), dbConnTimeout)
+	defer cancel()
+
+	t.Run("Postgres", func(t *testing.T) {
+		db := dbclient.DemoDB(ctx)
+		if db == nil {
+			t.Fatal("DemoDB is nil")
+		}
+		var val int
+		if err := db.Raw("SELECT 1").Scan(&val).Error; err != nil {
+			t.Fatalf("select 1 failed: %v", err)
+		}
+		t.Logf("postgres select 1 => %d", val)
+	})
+
+	t.Run("Redis", func(t *testing.T) {
+		if dbclient.RedisCli == nil {
+			t.Fatal("RedisCli is nil")
+		}
+		if err := dbclient.RedisCli.Set(ctx, "demo:dbcheck", "ok", time.Minute).Err(); err != nil {
+			t.Fatalf("redis set failed: %v", err)
+		}
+		val, err := dbclient.RedisCli.Get(ctx, "demo:dbcheck").Result()
+		if err != nil {
+			t.Fatalf("redis get failed: %v", err)
+		}
+		t.Logf("redis set/get => %s", val)
+		dbclient.RedisCli.Del(ctx, "demo:dbcheck")
+	})
+}

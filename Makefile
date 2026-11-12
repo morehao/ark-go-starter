@@ -4,9 +4,12 @@
 # 构建相关变量
 # ============================================================
 APP        =
+# 应用逻辑标识(APP) 与 目录名(AppDir) 解耦（D11）：demo 的 Go 目录已迁为 apps/api。
+# 新增应用时：若目录名与逻辑名不同，在此补一条映射即可。
+APP_DIR    = $(if $(filter demo,$(APP)),api,$(APP))
 BINARY     = $(APP)
-MAIN_DIR   = ./apps/$(APP)/cmd
-BUILD_DIR  = ./backend/output/build
+MAIN_DIR   = ./apps/$(APP_DIR)/cmd
+BUILD_DIR  = ./output/build
 VERSION    = $(shell date +%Y%m%d%H%M%S)-$(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 
 APP_CONFIG_PATH = /app/config.yaml
@@ -14,8 +17,11 @@ APP_CONFIG_PATH = /app/config.yaml
 # go命令的环境变量
 GO_ENV = CGO_ENABLED=0 GOPROXY=https://goproxy.cn,direct
 
+# Dockerfile 位置（构建上下文为仓库根）
+DOCKERFILE = ./infra/docker/api.Dockerfile
+
 # 注意：本项目所有目标都**不执行** `go work sync`。
-# 原因（go 1.27.3 实测）：go.work 只 use 了 ./backend/apps/demo 与 ./backend/pkg（go.work 已上移到仓库根），`go work sync` 会把
+# 原因（go 1.27.3 实测）：go.work 只 use 了 ./apps/api 与 ./libs/go（go.work 在仓库根），`go work sync` 会把
 # demo/go.mod 里显式 require 的 ark-iam 模块（如 github.com/morehao/ark-iam/pkg）当作
 # 冗余依赖从 go.mod 删掉（且未补进 go.work.sum），随后 go build / go test 直接报
 # "imports ... from implicitly required module"，干净检出下 `make build` / `make test` 必挂。
@@ -59,12 +65,12 @@ all: clean deps build run
 define validate_app
 	@if [ -z "$(APP)" ]; then \
 		echo "❌ 请使用 APP=<名称> 指定要操作的应用程序，例如：make build APP=demo"; \
-		echo "   可用的应用程序：$$(ls ./backend/apps 2>/dev/null | tr '\n' ' ')"; \
+		echo "   可用的应用程序：$$(ls ./apps 2>/dev/null | tr '\n' ' ')"; \
 		exit 1; \
 	fi
-	@if [ ! -d "./backend/apps/$(APP)" ]; then \
-		echo "❌ 应用程序 '$(APP)' 不存在于 ./backend/apps 目录下"; \
-		echo "   可用的应用程序：$$(ls ./backend/apps 2>/dev/null | tr '\n' ' ')"; \
+	@if [ ! -d "./apps/$(APP_DIR)" ]; then \
+		echo "❌ 应用程序 '$(APP)'（目录 apps/$(APP_DIR)）不存在"; \
+		echo "   可用的应用程序：$$(ls ./apps 2>/dev/null | tr '\n' ' ')"; \
 		exit 1; \
 	fi
 endef
@@ -78,16 +84,16 @@ build:
 	$(call validate_app)
 	@echo "🔨 正在构建应用程序 $(APP)..."
 	@mkdir -p $(BUILD_DIR)
-	@cd backend && go build -ldflags="-X 'main.BuildVersion=$(VERSION)'" -o output/build/$(BINARY) $(MAIN_DIR)
-	@echo "✅ 构建完成: ./backend/output/build/$(BINARY)"
+	@go build -ldflags="-X 'main.BuildVersion=$(VERSION)'" -o output/build/$(BINARY) $(MAIN_DIR)
+	@echo "✅ 构建完成: ./output/build/$(BINARY)"
 
 # 为指定环境构建（默认注入 CGO_ENABLED=0，适合容器/Linux 交叉编译）
 build-env:
 	$(call validate_app)
 	@echo "🔨 正在为 [$(GO_ENV)] 构建 $(APP)..."
 	@mkdir -p $(BUILD_DIR)
-	@cd backend && $(GO_ENV) go build -ldflags="-X 'main.BuildVersion=$(VERSION)'" -o output/build/$(BINARY) $(MAIN_DIR)
-	@echo "✅ 构建完成: ./backend/output/build/$(BINARY)"
+	@$(GO_ENV) go build -ldflags="-X 'main.BuildVersion=$(VERSION)'" -o output/build/$(BINARY) $(MAIN_DIR)
+	@echo "✅ 构建完成: ./output/build/$(BINARY)"
 
 # ============================================================
 # 清理
@@ -102,24 +108,24 @@ clean:
 # ============================================================
 
 # 直接用 go run 启动（开发调试用）
-# 注意：必须在 backend/apps/<app>/cmd 目录下启动——config（../config/config.yaml）、
-# 日志（../../../log）等相对路径均按该 CWD 设计。
+# 注意：必须在 apps/<appdir>/cmd 目录下启动——config（../config/config.yaml）、
+# 日志、存储等相对路径（缺省 .local/）均按该 CWD 与配置设计。
 run:
 	$(call validate_app)
 	@echo "🚀 正在运行应用程序 $(APP)..."
-	@cd backend/apps/$(APP)/cmd && go run .
+	@cd apps/$(APP_DIR)/cmd && go run .
 
-# 运行单元测试（pkg 公共层 + 指定应用；不含 //go:build integration 的用例）
+# 运行单元测试（libs 公共层 + 指定应用；不含 //go:build integration 的用例）
 test:
 	$(call validate_app)
 	@echo "🧪 正在运行测试..."
-	@cd backend && go test ./pkg/... ./apps/$(APP)/... -v
+	@go test ./libs/go/... ./apps/$(APP_DIR)/... -v
 
 # 运行集成测试（需本地 PostgreSQL(5432)/Redis(6379) 就绪）
 test-integration:
 	$(call validate_app)
 	@echo "🔗 正在运行集成测试..."
-	@cd backend && go test -tags=integration ./pkg/... ./apps/$(APP)/... -v
+	@go test -tags=integration ./libs/go/... ./apps/$(APP_DIR)/... -v
 
 # ============================================================
 # E2E 端到端测试
@@ -128,7 +134,7 @@ test-integration:
 # 依赖预检：探测本地 PostgreSQL(5432)/Redis(6379) 是否就绪（e2e 复用本地实例）
 e2e-deps-check:
 	@ok=1; \
-	if ! nc -z 127.0.0.1 5432 2>/dev/null; then echo "❌ PostgreSQL(127.0.0.1:5432) 未就绪，请先启动本地 PG 并执行 backend/scripts/sql/table_init.sql"; ok=0; fi; \
+	if ! nc -z 127.0.0.1 5432 2>/dev/null; then echo "❌ PostgreSQL(127.0.0.1:5432) 未就绪，请先启动本地 PG 并执行 tools/sql/table_init.sql"; ok=0; fi; \
 	if ! nc -z 127.0.0.1 6379 2>/dev/null; then echo "❌ Redis(127.0.0.1:6379) 未就绪，请先启动本地 Redis"; ok=0; fi; \
 	[ $$ok -eq 1 ] && echo "✅ 本地 PG/Redis 就绪" || exit 1
 
@@ -136,12 +142,12 @@ e2e-deps-check:
 e2e-backend:
 	$(call validate_app)
 	@echo "🌐 正在运行后端 e2e（真端口）..."
-	@cd backend && go test -tags=e2e ./apps/$(APP)/e2e/... -v -count=1
+	@go test -tags=e2e ./apps/$(APP_DIR)/e2e/... -v -count=1
 
 # 前端 Playwright 端到端测试（需后端 8099 已在运行；前端服务由 playwright webServer 自动拉起）
 e2e-frontend:
 	@echo "🎭 正在运行前端 Playwright e2e..."
-	@cd frontend/e2e && pnpm exec playwright test
+	@cd tests/e2e && pnpm exec playwright test
 
 # 两端 e2e 全量
 e2e: e2e-deps-check e2e-backend e2e-frontend
@@ -149,8 +155,8 @@ e2e: e2e-deps-check e2e-backend e2e-frontend
 # 首次安装 Playwright 浏览器依赖
 e2e-install:
 	@echo "📦 正在安装前端依赖与 Playwright 浏览器..."
-	@cd frontend && pnpm install
-	@cd frontend/e2e && pnpm exec playwright install --with-deps chromium
+	@pnpm install
+	@cd tests/e2e && pnpm exec playwright install --with-deps chromium
 
 # ============================================================
 # 依赖管理
@@ -159,7 +165,7 @@ e2e-install:
 # 同步依赖：逐模块 go mod download + tidy（不使用 go work sync，原因见文件头注释）
 deps:
 	@echo "📦 正在下载依赖项..."
-	@find ./backend -name "go.mod" -not -path "*/vendor/*" | while read modfile; do \
+	@find ./apps ./libs -name "go.mod" -not -path "*/vendor/*" | while read modfile; do \
 		dir=$$(dirname $$modfile); \
 		echo "  => $$dir"; \
 		(cd $$dir && $(GO_ENV) go mod download && go mod tidy); \
@@ -168,7 +174,7 @@ deps:
 
 # 仅执行 go mod tidy（不下载全量依赖，速度更快）
 tidy:
-	@find ./backend -name "go.mod" -not -path "*/vendor/*" | while read modfile; do \
+	@find ./apps ./libs -name "go.mod" -not -path "*/vendor/*" | while read modfile; do \
 		dir=$$(dirname $$modfile); \
 		echo "==> Tidy in $$dir"; \
 		(cd $$dir && go mod tidy); \
@@ -182,7 +188,7 @@ update-dep:
 		echo "   用法：make update-dep ARGS=\"-u github.com/morehao/golib@v0.1.1\""; \
 		exit 1; \
 	fi
-	@find ./backend -name "go.mod" -not -path "*/vendor/*" | while read modfile; do \
+	@find ./apps ./libs -name "go.mod" -not -path "*/vendor/*" | while read modfile; do \
 		dir=$$(dirname $$modfile); \
 		pkg=$$(echo "$(ARGS)" | grep -oE '[a-zA-Z0-9._/-]+/[a-zA-Z0-9._/-]+' | head -1); \
 		if grep -q "$$pkg" "$$modfile"; then \
@@ -201,16 +207,16 @@ swag:
 	$(call validate_app)
 	@echo "📚 正在生成 Swagger 文档..."
 	@which swag > /dev/null 2>&1 || (echo "⚠️  swag 未安装，正在安装..." && go install github.com/swaggo/swag/cmd/swag@latest)
-	@cd backend && swag init \
+	@swag init \
 		--parseDependency \
 		--parseInternal \
 		--parseDependencyLevel 2 \
 		-g app.go \
-		--dir apps/$(APP) \
-		--output apps/$(APP)/docs \
+		--dir apps/$(APP_DIR) \
+		--output apps/$(APP_DIR)/docs \
 		--outputTypes go \
 		--instanceName $(APP)
-	@echo "✅ Swagger 文档已生成：backend/apps/$(APP)/docs"
+	@echo "✅ Swagger 文档已生成：apps/$(APP_DIR)/docs"
 
 # gocli 版本：模板已切换为 RESTful kebab-case 复数资源路由风格
 CLI_VERSION := v1.32.6
@@ -239,20 +245,20 @@ codegen:
 		fi; \
 	fi
 	@echo "🔧 开始生成代码：APP=$(APP)，COMMAND=$(COMMAND)"
-	@cd backend && gocli generate $(COMMAND) -a $(APP)
+	@gocli generate $(COMMAND) -a $(APP)
 
 # ============================================================
 # Docker
 # ============================================================
 
-# 构建 Docker 镜像
+# 构建 Docker 镜像（构建上下文为仓库根：.dockerignore 负责排除 node_modules/log/output/storage 等）
 docker-build:
 	$(call validate_app)
 	@echo "🐳 正在构建 $(APP) 的 Docker 镜像..."
 	@echo "   镜像名称  : $(DOCKER_IMAGE)"
 	@echo "   Git Tag   : $(if $(GIT_TAG),$(GIT_TAG),无)"
 	@echo "   Git Commit: $(GIT_COMMIT)"
-	@docker buildx build -t $(DOCKER_IMAGE) -f ./backend/apps/$(APP)/scripts/Dockerfile ./backend
+	@docker buildx build -t $(DOCKER_IMAGE) -f $(DOCKERFILE) .
 	@echo "✅ Docker 镜像 $(DOCKER_IMAGE) 构建完成"
 
 # 运行 Docker 容器（镜像不存在时自动构建）
@@ -287,11 +293,11 @@ check-image:
 # 幂等，可重复执行不报错；端口被占自动降级复用外部依赖。
 # 用法：make quickstart [APP=demo] [IAM_ADMIN_USER=admin IAM_ADMIN_PASS=***]
 quickstart:
-	@bash scripts/quickstart.sh
+	@bash tools/quickstart.sh
 
 # 一键跑通（无 Docker / 复用本机已就绪的 PG 5432 与 Redis 6379）
 quickstart-local:
-	@SKIP_DEPS=1 bash scripts/quickstart.sh
+	@SKIP_DEPS=1 bash tools/quickstart.sh
 
 # 一键跑通验收：对已在运行的环境跑 IAM 登录全流程 e2e。
 # quickstart 以 op 模式启动（登录强制），故这里跑的是「未登录→跳登录页→账密登录→回跳
@@ -302,7 +308,7 @@ quickstart-local:
 # 用法：make quickstart-verify [IAM_ADMIN_USER=admin IAM_ADMIN_PASS=***]
 quickstart-verify:
 	@echo "🎭 运行 quickstart 验收 e2e（E2E_IAM=1 · iam-login 主链路）..."
-	@cd frontend/e2e && \
+	@cd tests/e2e && \
 		E2E_IAM=1 \
 		E2E_IAM_ADMIN_USER="$${IAM_ADMIN_USER:-admin}" \
 		E2E_IAM_ADMIN_PASS="$${IAM_ADMIN_PASS:-Adm1n@Strong!Pass}" \
@@ -329,21 +335,21 @@ stop-dev:
 	sleep 1; \
 	echo "✅ 清理完成"
 
-# 同时启动后端与前端开发服务（后端后台运行、verbose 日志写入 log/dev-all-backend.log；
+# 同时启动后端与前端开发服务（后端后台运行、verbose 日志写入 .local/log/dev-all-backend.log；
 # 前端前台输出；前端就绪后打印明确的访问地址，Ctrl+C 一并停止）
 # 用法：make dev-all [APP=demo]
 # 注意：启动前会先调用 stop-dev 杀掉既有的后端/前端进程，保证端口干净再启动。
 dev-all: stop-dev
-	@app="$(APP)"; app=$${app:-demo}; \
-	if [ ! -d "./backend/apps/$$app" ]; then \
-		echo "❌ 应用程序 '$$app' 不存在于 ./backend/apps 目录下"; \
-		echo "   可用的应用程序：$$(ls ./backend/apps 2>/dev/null | tr '\n' ' ')"; \
+	@app="$(APP)"; appdir="$(APP_DIR)"; app=$${app:-demo}; appdir=$${appdir:-demo}; \
+	if [ ! -d "./apps/$$appdir" ]; then \
+		echo "❌ 应用程序 '$$app'（目录 apps/$$appdir）不存在"; \
+		echo "   可用的应用程序：$$(ls ./apps 2>/dev/null | tr '\n' ' ')"; \
 		exit 1; \
 	fi; \
-	mkdir -p ./log; \
-	echo "🚀 正在启动后端 [$$app] 与前端（后端日志：log/dev-all-backend.log）..."; \
+	mkdir -p ./.local/log; \
+	echo "🚀 正在启动后端 [$$app] 与前端（后端日志：.local/log/dev-all-backend.log）..."; \
 	before_ports="$$(lsof -nP -iTCP -sTCP:LISTEN 2>/dev/null | awk 'NR>1 {print $$9}' | grep -oE ':[0-9]+$$' | tr -d ':' | sort -u | tr '\n' ' ')"; \
-	( cd backend/apps/$$app/cmd && go run . ) > ./log/dev-all-backend.log 2>&1 & \
+	( cd apps/$$appdir/cmd && go run . ) > ./.local/log/dev-all-backend.log 2>&1 & \
 	backend_pid=$$!; \
 	trap 'echo ""; echo "🛑 正在停止后端 [$$app]..."; kill $$backend_pid 2>/dev/null; wait $$backend_pid 2>/dev/null; echo "✅ 已停止"; exit 0' INT TERM; \
 	( for _ in $$(seq 1 120); do \
@@ -356,7 +362,7 @@ dev-all: stop-dev
 				echo "=============================================="; \
 				echo "  🌐 前端访问地址: http://localhost:$$p"; \
 				echo "  🔌 后端接口:     http://localhost:8099"; \
-				echo "  📄 后端日志:     log/dev-all-backend.log"; \
+				echo "  📄 后端日志:     .local/log/dev-all-backend.log"; \
 				echo "=============================================="; \
 				echo ""; \
 				exit 0; \
@@ -365,7 +371,7 @@ dev-all: stop-dev
 		sleep 1; \
 	done ) & \
 	watcher_pid=$$!; \
-	( cd frontend && pnpm dev ); \
+	( pnpm dev ); \
 	kill $$watcher_pid 2>/dev/null; \
 	kill $$backend_pid 2>/dev/null; wait $$backend_pid 2>/dev/null; \
 	echo "✅ 前后端开发服务已全部停止"
@@ -373,7 +379,7 @@ dev-all: stop-dev
 # 启动前端开发服务（开发调试用）
 dev-frontend:
 	@echo "🚀 正在启动前端开发服务..."
-	@cd frontend && pnpm dev
+	@pnpm dev
 
 # 停止前端开发服务（本地测试用）
 stop-frontend:
@@ -387,11 +393,11 @@ stop-frontend:
 # 列出所有可用的应用程序
 list-apps:
 	@echo "📂 可用的应用程序:"
-	@ls -1 ./backend/apps
+	@ls -1 ./apps
 
 # 运行代码检查工具（在 workspace 各模块目录内分别执行）
-# 说明：go.work 已上移到仓库根，DiskPath 形如 ./backend/apps/demo，均相对仓库根，
-# 故在仓库根（make 默认 cwd）读取并 cd 到各模块，不再 `cd backend`（否则路径会重复一层）。
+# 说明：go.work 在仓库根，DiskPath 形如 ./apps/api、./libs/go，均相对仓库根，
+# 故在仓库根（make 默认 cwd）读取并 cd 到各模块。
 lint:
 	@echo "🔍 正在运行代码检查工具..."
 	@go work edit -json | grep -o '"DiskPath": "[^"]*"' | awk '{gsub(/"/, "", $$2); print $$2}' | while read mod; do \
@@ -399,10 +405,10 @@ lint:
 		(cd $$mod && golangci-lint run ./...); \
 	done
 
-# 运行前端 ESLint（frontend/apps/* 与 frontend/packages/* 源码；e2e workspace 独立，未纳入）
+# 运行前端 ESLint（apps/web 与 libs/ts/* 源码；e2e workspace 独立，未纳入）
 lint-frontend:
 	@echo "🔍 正在运行前端 ESLint..."
-	@cd frontend && pnpm lint
+	@pnpm lint
 
 # ============================================================
 # 帮助信息
@@ -419,7 +425,7 @@ help:
 	@echo "    make all       APP=<名称>              clean → deps → build → run"
 	@echo ""
 	@echo "  测试 & 检查"
-	@echo "    make test      APP=<名称>              运行单元测试（pkg + 指定应用）"
+	@echo "    make test      APP=<名称>              运行单元测试（libs + 指定应用）"
 	@echo "    make test-integration APP=<名称>     运行集成测试（需 PG/Redis）"
 	@echo "    make e2e       [APP=<名称>]            两端端到端测试（后端真端口 + 前端 Playwright）"
 	@echo "    make e2e-backend APP=<名称>          后端真端口 e2e（需 PG/Redis）"
@@ -427,7 +433,7 @@ help:
 	@echo "    make e2e-install                       安装前端依赖与 Playwright 浏览器（首次）"
 	@echo "    make e2e-deps-check                    探测本地 PG/Redis 是否就绪"
 	@echo "    make lint                              运行 golangci-lint"
-	@echo "    make lint-frontend                     运行前端 ESLint（frontend/apps + packages）"
+	@echo "    make lint-frontend                     运行前端 ESLint（apps/web + libs/ts）"
 	@echo ""
 	@echo "  依赖管理"
 	@echo "    make deps                              同步 workspace 并更新全部模块依赖"

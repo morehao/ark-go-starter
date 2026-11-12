@@ -1,0 +1,62 @@
+// Package svchealth 提供健康检查业务逻辑。
+package svchealth
+
+import (
+	"context"
+	"time"
+
+	"github.com/morehao/ark-go-starter/apps/api/internal/dto/dtohealth"
+	"github.com/morehao/ark-go-starter/libs/go/dbclient"
+	"github.com/morehao/golib/glog"
+	"gorm.io/gorm"
+)
+
+// HealthSvc 是健康检查服务接口。
+type HealthSvc interface {
+	Check(ctx context.Context) *dtohealth.DbCheckResp
+}
+
+type healthSvc struct{}
+
+var _ HealthSvc = (*healthSvc)(nil)
+
+// NewHealthSvc 构造 HealthSvc。
+func NewHealthSvc() HealthSvc {
+	return &healthSvc{}
+}
+
+func (svc *healthSvc) Check(ctx context.Context) *dtohealth.DbCheckResp {
+	resp := &dtohealth.DbCheckResp{
+		Postgres: "ok",
+		Redis:    "ok",
+	}
+	checkCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+
+	if err := pingDB(checkCtx, dbclient.DemoDB(checkCtx)); err != nil {
+		glog.Errorf(ctx, "[svchealth.Check] db ping fail, err:%v", err)
+		resp.Postgres = err.Error()
+	}
+	if err := pingRedis(checkCtx); err != nil {
+		glog.Errorf(ctx, "[svchealth.Check] redis ping fail, err:%v", err)
+		resp.Redis = err.Error()
+	}
+	glog.Infof(ctx, "[svchealth.Check] result, postgres:%s, redis:%s",
+		resp.Postgres, resp.Redis)
+	return resp
+}
+
+func pingDB(ctx context.Context, db *gorm.DB) error {
+	if db == nil {
+		return context.DeadlineExceeded
+	}
+	var val int
+	return db.WithContext(ctx).Raw("SELECT 1").Scan(&val).Error
+}
+
+func pingRedis(ctx context.Context) error {
+	if dbclient.RedisCli == nil {
+		return context.DeadlineExceeded
+	}
+	return dbclient.RedisCli.Ping(ctx).Err()
+}

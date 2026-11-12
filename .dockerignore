@@ -1,11 +1,36 @@
-.idea
-.DS_Store
+# Docker 构建上下文 = 仓库根（P2 迁移后）
+# 忽略一切非构建必需的大目录，避免镜像体积膨胀（P0-T4 曾发现 .dockerignore 失效致上下文 3.5GB）
 .git
+.github
 .history
+.idea
+.vscode
 .opencode
+.dsh
+.pnpm-store
 
-frontend/
 **/node_modules/
+**/dist/
 **/log/
 **/output/
-backend/.tmp/
+**/storage/
+.local/
+storage/
+
+# 前端与文档不参与后端镜像
+apps/web
+libs/ts
+tests/
+docs/
+
+# Go 编译/调试产物
+**/*.test
+**/*.exe
+**/*.out
+__debug_bin*
+
+# 密钥
+**/*.pem
+**/*.key
+**/*.cert
+certs/
