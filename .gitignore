@@ -12,10 +12,9 @@
 **/log/
 **/output/
 
-# 本地运行时数据（file_storage.driver=local 的运行时数据；P2-T5 起统一放 .local/）
+# 本地运行时数据（P2-T5 起统一放 .local/：日志 .local/log、存储 .local/storage）
 .local/
 storage/
-backend/storage/
 
 # 前端
 **/node_modules/
@@ -27,15 +26,14 @@ pnpm-debug.log*
 tests/e2e/playwright-report/
 tests/e2e/test-results/
 tests/e2e/blob-report/
-frontend/e2e/playwright-report/
-frontend/e2e/test-results/
-frontend/e2e/blob-report/
+
+# Nx 缓存（P4 引入）
+.nx/
 
 # Go 编译产物
 *.test
 *.exe
 *.out
-backend/.tmp/
 __debug_bin*
 
 # 密钥文件

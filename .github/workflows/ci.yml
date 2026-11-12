@@ -245,7 +245,8 @@ jobs:
 
       - name: Install frontend deps
         run: |
-          pnpm install --frozen-lockfile=false
+          # P3-T5：统一用 --frozen-lockfile（根 lockfile 已冻结，安装不可漂移；clean checkout 下 lockfile 与 package.json 一致）
+          pnpm install --frozen-lockfile
           pnpm --filter @ark-go-starter/e2e exec playwright install --with-deps chromium
 
       - name: Frontend lint (ESLint)
