@@ -36,6 +36,15 @@ pkg/                      # 公共包（跨应用共享）
 | 仓库根 | `deploy/` | 构建与部署资产：Dockerfile、compose、k8s/Helm 清单、发布脚本 | 否（不进 `go.work` / `pnpm-workspace` / Nx project graph） |
 | 代码内 | `internal/infra/`（预留，当前不建） | 基础设施层 / 适配器实现：持久化、缓存、消息队列、外部 HTTP、对象存储 | 是 |
 
+**`deploy/` 不含建表 SQL**
+
+DDL（`scripts/sql/table_init.sql`）是数据库初始化资产，归 `scripts/`，不进 `deploy/`。判断口径：
+
+- 由**容器 / 编排工具**读取的（Dockerfile、compose、k8s/Helm 清单）→ `deploy/`
+- 由 **`psql -f`、CI、quickstart 直接执行**的（建库建表、数据修复脚本）→ `scripts/`
+
+`deploy/` 只回答「怎么构建、怎么编排」，不回答「库里有什么表」；反过来 `scripts/` 不放编排描述。
+
 **1. 唯一住所，禁止并存**
 
 引入 `internal/infra/` 时，现有按技术命名的适配器必须在**同一个 PR 内**迁入并删除，不允许并存超过一个提交：
