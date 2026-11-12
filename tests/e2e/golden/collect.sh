@@ -14,7 +14,7 @@
 #      （生产配置 iam.mode=op 时这批路由无 token 统一 401，属鉴权层，不在 A4 契约范围内；
 #        详见 .dsh/docs/notes/2026-11-12-a4-golden-baseline-notes.md。）
 #   3. 端口用 8098（避开可能已被占用的 8099 开发实例），日志/存储目录落到被 .gitignore 忽略的
-#      backend/.dsh/tmp，不污染仓库、不写入仓内 log/storage。
+#      .dsh/tmp，不污染仓库、不写入仓内 .local/log、.local/storage。
 #   4. 造数（POST products）用随机唯一名，采集后立即清理，保证多次运行库不变、输出不变。
 #
 # 用法（在仓库根目录）：
@@ -30,8 +30,8 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 GOLDEN_DIR="$REPO_ROOT/tests/e2e/golden"
 GOLDEN_FILE="$GOLDEN_DIR/a4_golden.json"
-BACKEND_DIR="$REPO_ROOT/backend"
-TMP_DIR="$BACKEND_DIR/.dsh/tmp"                 # 被 .gitignore 忽略（.dsh/ 任意层级）
+APP_DIR="$REPO_ROOT/apps/api"                    # P2 搬迁后后端应用在 apps/api
+TMP_DIR="$REPO_ROOT/.dsh/tmp"                    # 被 .gitignore 忽略（.dsh/ 任意层级）
 GOCACHE_DIR="$TMP_DIR/gocache"
 LOG_DIR="$TMP_DIR/log"
 STORAGE_DIR="$TMP_DIR/storage"
@@ -52,15 +52,18 @@ done
 mkdir -p "$TMP_DIR" "$GOCACHE_DIR" "$LOG_DIR" "$STORAGE_DIR"
 
 # ---- 派生配置（iam.mode: op -> disabled；端口/目录指到 tmp）-----------------------
+# sed 匹配按 apps/api/config/config.yaml 的实际当前内容：
+#   - 三个 log writer 的文件目录：`dir: ../../../log`
+#   - 存储目录：`base_dir: ../../../.local/storage`（P2b 已从 ../../../storage 迁到 .local/storage）
 sed -e 's/^  mode: op/  mode: disabled/' \
     -e "s#^  port: 8099#  port: ${PORT}#" \
     -e "s#dir: ../../../log#dir: ${LOG_DIR}#" \
-    -e "s#base_dir: ../../../storage#base_dir: ${STORAGE_DIR}#" \
+    -e "s#base_dir: ../../../.local/storage#base_dir: ${STORAGE_DIR}#" \
     -e "s#base_url: http://127.0.0.1:8099/v1/demo/objects#base_url: http://127.0.0.1:${PORT}/v1/demo/objects#" \
-    "$BACKEND_DIR/apps/demo/config/config.yaml" > "$CFG"
+    "$APP_DIR/config/config.yaml" > "$CFG"
 
 # ---- 构建（GOCACHE 指向仓内忽略目录，避免写到仓库外被沙箱拒）----------------------
-( cd "$BACKEND_DIR" && GOCACHE="$GOCACHE_DIR" go build -o "$BIN" ./apps/demo/cmd )
+( cd "$REPO_ROOT" && GOCACHE="$GOCACHE_DIR" go build -o "$BIN" ./apps/api/cmd )
 
 # ---- 启动服务并等就绪 -----------------------------------------------------------
 SERVER_PID=""
@@ -73,7 +76,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-APP_CONFIG_PATH="$CFG" "$BIN" > "$SRV_LOG" 2>&1 &
+APP_CONFIG_PATH="$CFG" APP_LOG_DIR="$LOG_DIR" APP_STORAGE_DIR="$STORAGE_DIR" "$BIN" > "$SRV_LOG" 2>&1 &
 SERVER_PID=$!
 
 ready=0
