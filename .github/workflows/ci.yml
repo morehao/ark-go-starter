@@ -168,8 +168,12 @@ jobs:
             backend/go.work.sum
 
       - name: govulncheck
+        env:
+          # 锁定 govulncheck 版本，保证扫描结果可复现（不再用 @latest，避免上游版本漂移导致门禁时红时绿）。
+          # v1.9.0 = 本次修复时本地实测通过的版本。升级需同步复核后改这里。
+          GOVULNCHECK_VERSION: v1.9.0
         run: |
-          go install golang.org/x/vuln/cmd/govulncheck@latest
+          go install golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}
           cd backend
           (cd pkg && govulncheck ./...)
           (cd apps/demo && govulncheck ./...)
