@@ -18,6 +18,50 @@ env:
   GOLANGCI_LINT_VERSION: v2.15.0
 
 jobs:
+  frontend:
+    name: Frontend
+    # P05-T1：新增前端门禁（lint + typecheck + build），与既有 Lint/Test/Security/E2E 四 job 并列，
+    # **不改**它们的 job id / name / 触发。路径过滤不在本 job 内做：顶层 on: 一旦加 paths 会把
+    # 既有 4 个 job（含后端）一起门控，破坏其触发，故本 job 与其余 job 一样在全部分支 push/PR 上运行；
+    # 过度触发由后续 P4-T3 的 `nx affected` 收敛（job 名保持不变）。
+    # 依赖：P05-T3（R2）修通 pnpm typecheck/build；当前本仓 frontend 三脚本本地实测均通过（lint 0 error/7 warning）。
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          # 与既有 e2e job / 本地 engines 保持单一事实源：读取 frontend/package.json 的 packageManager（pnpm@12.10.1）
+          package_json_file: frontend/package.json
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install deps
+        run: |
+          cd frontend
+          pnpm install --frozen-lockfile
+
+      - name: Lint (ESLint)
+        run: |
+          cd frontend
+          pnpm lint
+
+      - name: Typecheck
+        run: |
+          cd frontend
+          pnpm typecheck
+
+      - name: Build
+        run: |
+          cd frontend
+          pnpm build
+
   lint:
     name: Lint
     runs-on: ubuntu-latest
@@ -124,8 +168,12 @@ jobs:
             backend/go.work.sum
 
       - name: govulncheck
+        env:
+          # 锁定 govulncheck 版本，保证扫描结果可复现（不再用 @latest，避免上游版本漂移导致门禁时红时绿）。
+          # v1.9.0 = 本次修复时本地实测通过的版本。升级需同步复核后改这里。
+          GOVULNCHECK_VERSION: v1.9.0
         run: |
-          go install golang.org/x/vuln/cmd/govulncheck@latest
+          go install golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}
           cd backend
           (cd pkg && govulncheck ./...)
           (cd apps/demo && govulncheck ./...)

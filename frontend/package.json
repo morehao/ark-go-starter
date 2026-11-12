@@ -7,7 +7,7 @@
     "dev": "pnpm --filter @ark-go-starter/demo-web dev",
     "dev:demo": "pnpm --filter @ark-go-starter/demo-web dev",
     "build": "pnpm -r --filter './packages/*' --filter './apps/*' build",
-    "typecheck": "pnpm -r --filter '@ark-go-starter/types' --filter '@ark-go-starter/api' --filter '@ark-go-starter/ui' --filter '@ark-go-starter/demo-web' exec tsc --noEmit -p tsconfig.json",
+    "typecheck": "pnpm -r --filter '!@ark-go-starter/tsconfig' exec tsc --noEmit -p tsconfig.json",
     "lint": "eslint apps packages",
     "lint:fix": "eslint apps packages --fix"
   },

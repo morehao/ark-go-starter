@@ -1,0 +1,139 @@
+server:
+  name: demo
+  port: 8099
+  env: dev
+
+client:
+  httpbingo:
+    host: https://httpbingo.org
+    module: httpbingo
+    retry: 3
+    timeout: 5s
+
+log:
+  default:
+    logger_type: zap
+    service: demo
+    module: default
+    level: info
+    writers:
+      - type: console
+      - type: file
+        dir: ../../../log
+    extra_keys:
+      - requestId
+  gorm:
+    logger_type: zap
+    service: demo
+    module: gorm
+    level: debug
+    writers:
+      - type: console
+      - type: file
+        dir: ../../../log
+    extra_keys:
+      - requestId
+  redis:
+    logger_type: zap
+    service: demo
+    module: redis
+    level: debug
+    writers:
+      - type: console
+      - type: file
+        dir: ../../../log
+    extra_keys:
+      - requestId
+
+trace:
+  enable: false
+  service_version: ""
+  sampler: traceidratio
+  trace_id_ratio: 1.0
+  otlp:
+    endpoint: "127.0.0.1:4317"
+    insecure: true
+    timeout: 10s
+
+
+db_configs:
+  # 目标库为 PostgreSQL（model tag 与 backend/scripts/sql/table_init.sql 都按 PG 写）
+  - url: "postgres://postgres:123456@127.0.0.1:5432/demo?sslmode=disable&TimeZone=Asia/Shanghai"
+    service: demo
+    # 连接池：显式配置，避免默认无上限导致连接耗尽（golib dbgorm 按 >0 才下发）。
+    max_idle_conns: 10
+    max_open_conns: 100
+    conn_max_lifetime: 1h
+
+redis_config:
+  service: demo
+  addr: 127.0.0.1:6379
+  # 本地 dev 的 Redis 容器默认未设 requirepass，置空即可直连。
+  # 注意：go-redis 在配置了密码但服务端未设密码时，AUTH 会返回
+  # "ERR AUTH <password> called without any password configured"，启动即失败。
+  # 若你的 Redis 设了密码，改这里，或用 APP_CONFIG_PATH 指向本地覆盖配置。
+  password: ""
+  db: 0
+  dial_timeout: 5s
+  read_timeout: 3s
+  write_timeout: 3s
+
+file_storage:
+  driver: local
+  bucket: demo
+  storage:
+    base_dir: ../../../storage
+    # 必须指向 ginupload 注册的对象直传路由（/v1/demo/objects），
+    # local driver 按 base_url/{bucket}/{key} 拼预签名 URL
+    base_url: http://127.0.0.1:8099/v1/demo/objects
+    sign_secret: demo-sign-secret
+
+cron:
+  enable_lock: true       # 是否启用分布式锁（多实例互斥）
+  lock_ttl: 60s           # 分布式锁租期
+
+async:
+  redis_addr: 127.0.0.1:6379  # Redis 地址
+  redis_password: ""          # Redis 密码（与 redis_config 保持一致：本机 dev 无密码）
+  redis_db: 0                 # Redis 库号
+
+# 可选接入 ark-iam（三态 mode）。默认 disabled：不初始化 IAM、不建表、不挂 /iam/* 路由，
+# 业务鉴权回落到固定 dev 身份（仅 dev）。
+#   mode: disabled  不接入（默认，零副作用）
+#   mode: op        本进程内嵌 OIDC Provider：建库、挂 /iam/*、签发/验签
+#   mode: rp        对接外部 ark-iam：仅本地验签（读 jwks_url/audience），不建库、不挂路由
+# 兼容旧开关：mode 留空且 enable: true 时按 op 处理（enable 已废弃，建议改用 mode）。
+iam:
+  mode: disabled              # 接入形态：disabled（默认）| op | rp —— 测试专用：集成/e2e 走 off 路径，生产 config.yaml 仍为 op
+  enable: false               # 旧二态开关（兼容）：mode 为空且为 true 时按 op
+  prefix: /iam                # IAM 挂载路由前缀（op 须与前端 basePath 一致）
+  dsn: ""                     # IAM 数据库 DSN（op），空则复用 db_configs 第一个库
+  redis_addr: ""              # IAM Redis 地址（op），空则复用 redis_config
+  redis_password: ""          # IAM Redis 密码（op），空则复用 redis_config
+  # OIDC issuer：op 空则按「后端端口」推导成 http://localhost:8099/iam/oidc，会导致登录时
+  # 浏览器被导航到后端端口（8099）的 /iam/login（noRoute），绕不过前端 vite 的 GET bypass，
+  # 登录页渲染不出来。这里显式指向前端 origin(:3000)，让登录页 / SSO / discovery 全部同源到
+  # localhost:3000（经 vite 的 /iam 代理转发到后端）。rp 形态则为外部 ark-iam 的 issuer。
+  issuer: "http://localhost:3000/iam/oidc"
+  jwks_url: ""                # rp 形态的 JWKS 端点，空则按 issuer 推导
+  audience: ""                # rp 形态需校验的 token aud
+  signing_key: ""             # 签名私钥 PEM（op），非 dev 必填
+  encryption_key: ""          # 加密密钥（op），非 dev 必填
+  cookie_secure: false        # SSO cookie Secure（op），生产（HTTPS）必须 true
+  # 内置控制台 platform_admin_web 的 OAuth 回调白名单（完整 URL，可多个）。
+  # 留空则用 ark-iam 内置缺省（仅 http://localhost:4001/auth/callback）。vite 端口被占会自动退到 3001，
+  # 故这里显式列出 3000/3001，避免「redirect_uri is missing in the client configuration」。
+  redirect_uris:
+    - "http://localhost:3000/auth/callback"
+    - "http://localhost:3001/auth/callback"
+    - "http://localhost:4001/auth/callback"
+  # 前端应用基址：op 下用于拼内嵌登录页 `{frontend_url}/iam/login`。
+  # 前后端分离部署（后端 8099、前端 3000）必须配置，否则登录页会被导向 8099 而 404。
+  frontend_url: "http://localhost:3000"
+
+# 首次初始化引导（/iam/install/initialize）相关配置。
+# 该令牌等价于「创建平台管理员」的权限：**仅用于 dev**，生产必须改用环境变量
+# BOOTSTRAP_TOKEN 或密钥管理覆盖，且初始化完成后移除。env BOOTSTRAP_TOKEN 优先于本项。
+# make quickstart 会把它作为 X-Bootstrap-Token 自动初始化；手跑时也可 `BOOTSTRAP_TOKEN=xxx make run`。
+install:
+  bootstrapToken: "dev-bootstrap-token"

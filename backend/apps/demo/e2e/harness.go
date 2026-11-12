@@ -25,8 +25,6 @@ import (
 	"mime/multipart"
 	"net"
 	"net/http"
-	"path/filepath"
-	"runtime"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -46,14 +44,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// configPath 定位 app 配置文件，约定与 testsetup.findConfigPath 一致（从包目录回溯到 apps/demo）。
+// configPath 定位 app 配置文件：优先 config.test.yaml（测试专用，iam.mode=disabled），
+// 使真端口 e2e 走 off/DemoIdentity 路径；无测试配置时回退生产 config.yaml。
 func configPath(t *testing.T) string {
 	t.Helper()
-	_, filename, _, ok := runtime.Caller(0)
-	require.True(t, ok)
-	// filename: .../apps/demo/e2e/harness.go，上溯 e2e → demo 即得 .../apps/demo
-	appDir := filepath.Dir(filepath.Dir(filename))
-	return filepath.Join(appDir, "config", "config.yaml")
+	return testsetup.TestConfigPath(testsetup.AppNameDemo)
 }
 
 // apiResp 是统一的接口响应包装。
