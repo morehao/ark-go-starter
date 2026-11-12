@@ -4,6 +4,7 @@
   "projectType": "application",
   "sourceRoot": "apps/api",
   "tags": ["type:app", "lang:go"],
+  "implicitDependencies": ["libs-go"],
   "targets": {
     "build": {
       "executor": "nx:run-commands",
