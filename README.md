@@ -71,7 +71,7 @@ Follows [project-layout](https://github.com/golang-standards/project-layout). Cu
 ├── pkg                         # Shared Go layer (code / dbclient / testsetup / token / ginhelper / iamlink / operator)
 ├── tests
 │   └── e2e                     # E2E tests (Playwright specs + A4 golden)
-├── scripts                     # Scripts & SQL (quickstart.sh, sql/table_init.sql)
+├── scripts                     # Repo-level scripts (quickstart.sh)
 ├── deploy                      # Container & orchestration (docker/api.Dockerfile, compose/dev.yml)
 ├── contracts                   # Contract plane (OpenAPI 3.1 spec + verify.sh)
 ├── docs                        # Documentation (agents/ conventions, design-language.md)

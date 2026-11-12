@@ -63,7 +63,7 @@ make quickstart-verify IAM_ADMIN_USER=admin IAM_ADMIN_PASS='你的密码'
 ├── pkg                         # Go 公共层（code / dbclient / testsetup / token / ginhelper / iamlink / operator）
 ├── tests
 │   └── e2e                     # 端到端测试（Playwright specs + A4 golden）
-├── scripts                     # 脚本与 SQL（quickstart.sh、sql/table_init.sql）
+├── scripts                     # 仓库级脚本（quickstart.sh）
 ├── deploy                      # 容器与编排（docker/api.Dockerfile、compose/dev.yml）
 ├── contracts                   # 契约平面（OpenAPI 3.1 契约源 + verify.sh）
 ├── docs                        # 文档（agents/ 规范、design-language.md 设计语言）

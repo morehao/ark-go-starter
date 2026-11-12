@@ -177,7 +177,7 @@ jobs:
         env:
           PGPASSWORD: "123456"
         run: |
-          psql -h 127.0.0.1 -U postgres -d demo -f scripts/sql/table_init.sql
+          psql -h 127.0.0.1 -U postgres -d demo -f apps/api/db/table_init.sql
 
       # 依赖 DB/Redis 的用例已用 //go:build integration 标记，必须带 tag 才会执行，
       # 否则本 job 提供的 postgres/redis service 形同虚设。
@@ -266,7 +266,7 @@ jobs:
         env:
           PGPASSWORD: "123456"
         run: |
-          psql -h 127.0.0.1 -U postgres -d demo -f scripts/sql/table_init.sql
+          psql -h 127.0.0.1 -U postgres -d demo -f apps/api/db/table_init.sql
 
       # 后端真端口 e2e：用例内部用 testsetup + Routers 自起随机端口，不依赖外部进程
       - name: Backend e2e (real port)

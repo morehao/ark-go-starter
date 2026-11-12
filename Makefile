@@ -134,7 +134,7 @@ test-integration:
 # 依赖预检：探测本地 PostgreSQL(5432)/Redis(6379) 是否就绪（e2e 复用本地实例）
 e2e-deps-check:
 	@ok=1; \
-	if ! nc -z 127.0.0.1 5432 2>/dev/null; then echo "❌ PostgreSQL(127.0.0.1:5432) 未就绪，请先启动本地 PG 并执行 scripts/sql/table_init.sql"; ok=0; fi; \
+	if ! nc -z 127.0.0.1 5432 2>/dev/null; then echo "❌ PostgreSQL(127.0.0.1:5432) 未就绪，请先启动本地 PG 并执行 apps/api/db/table_init.sql"; ok=0; fi; \
 	if ! nc -z 127.0.0.1 6379 2>/dev/null; then echo "❌ Redis(127.0.0.1:6379) 未就绪，请先启动本地 Redis"; ok=0; fi; \
 	[ $$ok -eq 1 ] && echo "✅ 本地 PG/Redis 就绪" || exit 1
 
