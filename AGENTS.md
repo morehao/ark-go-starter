@@ -21,36 +21,45 @@
 
 ## 项目概述
 
-`ark-go-starter` 是前后端一体的全栈工程实践项目：后端 Gin + GORM（Go workspace 多模块），前端 React + Vite + Ant Design（pnpm monorepo）。仓库根以 `go.work` 管理 Go 模块 `apps/api`（应用）与 `libs/go`（公共层）；前端以根 `pnpm-workspace.yaml` 管理 `apps/web` 与 `libs/ts/*`。
+`ark-go-starter` 是前后端一体的全栈工程实践项目，采用 monorepo（`apps/` + `libs/` + `contracts/`）布局：后端 Gin + GORM（Go workspace 多模块，根 `go.work` 管理 `apps/api` 与 `libs/go`），前端 React + Vite + Ant Design（pnpm monorepo，根 `pnpm-workspace.yaml` 管理 `apps/web` 与 `libs/ts/*`）。任务编排用 Nx（`nx.json`）。
+
+### 双 apps 语义（重要）
+
+- **`apps/api`** = Go 后端应用。其**逻辑应用名是 `demo`**（`AppName = "demo"`，路由前缀 `/v1/demo`、Swagger tag 等沿用 demo）。因此 `make … APP=demo` 中 `demo` 是逻辑标识，**映射到目录 `apps/api`**（Makefile 内 `APP_DIR=$(if $(filter demo,$(APP)),api,$(APP))`）。它不是前端的 `apps/web`。
+- **`apps/web`** = React 前端应用（Vite，:3000），无 `APP` 逻辑名概念，前端命令（`pnpm`/`make dev-frontend` 等）不传 `APP`。
+- 一句话：**`APP=demo` 指后端 `apps/api`；前端在 `apps/web`，两者不是同层"两个 demo"，而是 api（Go）/ web（React）。**
 
 ## 项目结构
 
 ```
 ark-go-starter/
 ├── apps/
-│   ├── api/                 # Go 后端应用（Gin 演示，:8099；逻辑名 demo→目录 api）
+│   ├── api/                 # Go 后端应用（Gin，:8099；逻辑名 demo→目录 api）
 │   └── web/                 # React 前端应用（Vite，:3000，代理 /v1 → http://localhost:8099）
 ├── libs/
-│   ├── go/                  # Go 公共层（code/dbclient/testsetup/token/ginhelper/iamlink/operator）
-│   └── ts/                  # 前端共享包（api/types/ui/tsconfig）
+│   ├── go/                  # Go 公共层（code/dbclient/testsetup/token/ginhelper/iamlink/operator/client）
+│   └── ts/                  # 前端共享包（api/types/ui/tsconfig/api-client）
+├── contracts/               # 契约平面（单一事实源）：openapi/openapi.json + verify.sh（生成物一致性校验）
 ├── tests/
-│   └── e2e/                 # 端到端测试（前端 Playwright + golden）
+│   └── e2e/                 # 端到端测试（前端 Playwright specs + A4 golden）
 ├── tools/                   # 脚本与 SQL（quickstart.sh、sql/table_init.sql）
 ├── infra/                   # 容器与编排（docker/api.Dockerfile、compose/dev.yml）
-├── contracts/               # 契约平面（P5 规划，暂未创建）
 ├── docs/                    # 文档（agents/ 开发规范、design-language.md 设计语言事实源）
-├── go.work                  # 根 Go workspace
+├── go.work                  # 根 Go workspace（use ./apps/api ./libs/go）
 ├── package.json             # 根前端 workspace 清单
-├── pnpm-workspace.yaml      # 根 pnpm workspace 定义
-├── Makefile                 # 根 Makefile（后端 + 前端命令）
+├── pnpm-workspace.yaml      # 根 pnpm workspace 定义（apps/web、libs/ts/*、tests/e2e）
+├── nx.json                  # Nx 编排配置（project graph / target cache / tags 边界）
+├── tsconfig.base.json       # 前端共享 TS 基配置
+├── Makefile                 # 根 Makefile（后端 + 前端 + 契约命令）
 └── AGENTS.md                # AI 代理入口（即本文件）
 ```
+> 运行时产物（不入库）：`.local/`（日志 `log`、存储 `storage`）、`output/`、各包 `dist/`、`node_modules/`（见 `.gitignore`）。
 
 后端应用内部分层结构见 [backend-conventions.md](./docs/agents/backend-conventions.md#项目结构后端)。
 
 ## 命令速查
 
-所有命令在**项目根目录**执行，`APP` 为应用逻辑标识（当前 `demo`，对应 Go 目录 `apps/api`）。前端命令无需 `APP`。
+所有命令在**项目根目录**执行，`APP` 为应用逻辑标识（当前 `demo`，对应 Go 目录 `apps/api`）。前端/契约命令无需 `APP`。
 
 | 目的 | 命令 |
 |------|------|
@@ -61,13 +70,24 @@ ark-go-starter/
 | 测试（单元，无需 DB） | `make test APP=demo` |
 | 集成测试（需 PG/Redis） | `make test-integration APP=demo` |
 | 端到端测试 | `make e2e APP=demo`（后端真端口 + 前端 Playwright，需 PG/Redis；首次 `make e2e-install`） |
-| Lint | `make lint`（Go）/ `make lint-frontend`（前端 ESLint） |
+| Lint | `make lint`（Go golangci-lint）/ `make lint-frontend`（前端 ESLint） |
 | 代码生成 | `make codegen APP=demo COMMAND=api\|module\|model` |
 | Swagger | `make swag APP=demo` |
+| 契约校验 | `make contracts-verify`（spec 合法 + Go/TS 生成物与 spec 一致；CI 门禁） |
 | 依赖 / 清理 | `make deps` / `make tidy` / `make clean` |
 | 前端开发 | `make dev-frontend` / `make stop-frontend` |
 | 一键跑通 | `make quickstart` / `make quickstart-local` / `make quickstart-verify` |
 | Docker | `make docker-build APP=demo` / `make docker-run APP=demo` |
+
+**Nx 任务编排**（`pnpm exec nx …`，monorepo 增量/缓存；详见 `nx.json`）：
+
+| 目的 | 命令 |
+|------|------|
+| 查看全部项目 | `pnpm exec nx show projects` |
+| 依赖图 | `pnpm exec nx graph` |
+| 跑全部构建 / 类型检查 | `pnpm exec nx run-many -t build` / `pnpm exec nx run-many -t typecheck` |
+| 受影响项目 | `pnpm exec nx show projects --affected` |
+| 只构建受影响 | `pnpm exec nx affected -t build`（改 `libs/ts/ui` 只跑 ui+web，不跑 Go） |
 
 > 注意：Go 命令由 Makefile 统一在仓库根调度（`go.work` 在根，`use ./apps/api ./libs/go`，无需再 `cd backend`）。**默认测试不依赖外部服务**：连库用例已用 `//go:build integration` 隔离，`make test` 无需 PostgreSQL/Redis；跑集成测试用 `make test-integration`。本项目不连接 Elasticsearch。
 > `golangci-lint` 需 **v2**（匹配 `.golangci.yml` v2 schema）：**勿 `go install`、勿裸 `brew install golangci-lint`**（formula 依赖 Homebrew go，会劫持 gvm 的 `go`），用 `brew install --ignore-dependencies golangci-lint`；详见 [commands.md](./docs/agents/commands.md#lint-和代码检查)。
