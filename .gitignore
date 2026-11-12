@@ -12,7 +12,9 @@
 **/log/
 **/output/
 
-# 本地文件存储（file_storage.driver=local 的运行时数据）
+# 本地运行时数据（file_storage.driver=local 的运行时数据；P2-T5 起统一放 .local/）
+.local/
+storage/
 backend/storage/
 
 # 前端
@@ -22,6 +24,9 @@ backend/storage/
 pnpm-debug.log*
 
 # 前端 e2e（Playwright）产物
+tests/e2e/playwright-report/
+tests/e2e/test-results/
+tests/e2e/blob-report/
 frontend/e2e/playwright-report/
 frontend/e2e/test-results/
 frontend/e2e/blob-report/

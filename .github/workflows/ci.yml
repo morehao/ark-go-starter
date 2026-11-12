@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 env:
-  # 与 backend/apps/demo/config/config.yaml 中 db_configs / redis_config 保持一致，
+  # 与 apps/api/config/config.yaml 中 db_configs / redis_config 保持一致，
   # 供需要数据库的测试（pkg/dbclient、svcuser）使用。
   GOLANGCI_LINT_VERSION: v2.15.0
 
@@ -43,7 +43,7 @@ jobs:
           # P1：lockfile 已上移到根 pnpm-lock.yaml
           cache-dependency-path: pnpm-lock.yaml
 
-      # P1：workspace 根在仓库根，pnpm 命令在根目录执行（成员仍为 frontend/apps/*、frontend/packages/*、frontend/e2e）
+      # P1/P2：workspace 根在仓库根，pnpm 命令在根目录执行（P2 后成员为 apps/web、libs/ts/*、tests/e2e）
       - name: Install deps
         run: pnpm install --frozen-lockfile
 
@@ -72,8 +72,7 @@ jobs:
 
       - name: gofmt check
         run: |
-          cd backend
-          unformatted=$(gofmt -l .)
+          unformatted=$(gofmt -l apps libs)
           if [ -n "$unformatted" ]; then
             echo "以下文件未 gofmt："
             echo "$unformatted"
@@ -82,20 +81,19 @@ jobs:
 
       - name: go vet
         run: |
-          cd backend
-          (cd pkg && go vet ./...)
-          (cd apps/demo && go vet ./...)
+          (cd libs/go && go vet ./...)
+          (cd apps/api && go vet ./...)
 
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v9
         with:
           version: ${{ env.GOLANGCI_LINT_VERSION }}
-          working-directory: backend/pkg
+          working-directory: libs/go
       - name: golangci-lint (demo)
         uses: golangci/golangci-lint-action@v9
         with:
           version: ${{ env.GOLANGCI_LINT_VERSION }}
-          working-directory: backend/apps/demo
+          working-directory: apps/api
 
   test:
     name: Test
@@ -138,14 +136,14 @@ jobs:
         env:
           PGPASSWORD: "123456"
         run: |
-          psql -h 127.0.0.1 -U postgres -d demo -f backend/scripts/sql/table_init.sql
+          psql -h 127.0.0.1 -U postgres -d demo -f tools/sql/table_init.sql
 
       # 依赖 DB/Redis 的用例已用 //go:build integration 标记，必须带 tag 才会执行，
       # 否则本 job 提供的 postgres/redis service 形同虚设。
       - name: Test pkg (unit + integration)
-        run: cd backend/pkg && go test -race -tags=integration ./...
+        run: cd libs/go && go test -race -tags=integration ./...
       - name: Test demo (unit + integration)
-        run: cd backend/apps/demo && go test -race -tags=integration ./...
+        run: cd apps/api && go test -race -tags=integration ./...
 
   security:
     name: Security (govulncheck)
@@ -168,9 +166,8 @@ jobs:
           GOVULNCHECK_VERSION: v1.9.0
         run: |
           go install golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}
-          cd backend
-          (cd pkg && govulncheck ./...)
-          (cd apps/demo && govulncheck ./...)
+          (cd libs/go && govulncheck ./...)
+          (cd apps/api && govulncheck ./...)
 
   e2e:
     name: E2E
@@ -228,20 +225,18 @@ jobs:
         env:
           PGPASSWORD: "123456"
         run: |
-          psql -h 127.0.0.1 -U postgres -d demo -f backend/scripts/sql/table_init.sql
+          psql -h 127.0.0.1 -U postgres -d demo -f tools/sql/table_init.sql
 
       # 后端真端口 e2e：用例内部用 testsetup + Routers 自起随机端口，不依赖外部进程
       - name: Backend e2e (real port)
         run: |
-          cd backend
-          go test -tags=e2e ./apps/demo/e2e/... -v -count=1
+          go test -tags=e2e ./apps/api/e2e/... -v -count=1
 
       # 前端 Playwright 需要一个真实后端在 8099：构建二进制并后台启动
       - name: Build & start backend for frontend e2e
         run: |
-          cd backend
-          go build -o output/build/demo ./apps/demo/cmd
-          APP_CONFIG_PATH="$PWD/apps/demo/config/config.yaml" ./output/build/demo > /tmp/demo_be.log 2>&1 &
+          go build -o output/build/demo ./apps/api/cmd
+          APP_CONFIG_PATH="$PWD/apps/api/config/config.yaml" ./output/build/demo > /tmp/demo_be.log 2>&1 &
           for i in $(seq 1 40); do
             if curl -sf http://127.0.0.1:8099/v1/demo/health >/dev/null; then echo "backend up"; break; fi
             sleep 1
@@ -260,7 +255,7 @@ jobs:
         env:
           E2E_WEB_MODE: preview
         run: |
-          cd frontend/e2e
+          cd tests/e2e
           pnpm exec playwright test
 
       - name: Upload Playwright artifacts
@@ -269,8 +264,8 @@ jobs:
         with:
           name: playwright-report
           path: |
-            frontend/e2e/playwright-report/
-            frontend/e2e/test-results/
+            tests/e2e/playwright-report/
+            tests/e2e/test-results/
           retention-days: 7
 
       - name: Dump backend log on failure
