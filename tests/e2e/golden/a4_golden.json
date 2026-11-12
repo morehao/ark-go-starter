@@ -1,0 +1,371 @@
+{
+  "meta": {
+    "task": "P0-T2 A4 golden",
+    "triple": "code+message+httpStatus",
+    "basePath": "/v1/demo",
+    "note": "iam.mode=disabled + env=dev（见 collect.sh 头注释）",
+    "interfaces": 20
+  },
+  "endpoints": [
+    {
+      "id": "async",
+      "kind": "negative",
+      "method": "GET",
+      "path": "/async-tasks/nonexistent-type",
+      "code": -1,
+      "message": "gasync: task not found",
+      "httpStatus": 404
+    },
+    {
+      "id": "async",
+      "kind": "positive",
+      "method": "GET",
+      "path": "/async-tasks",
+      "code": 0,
+      "message": "success",
+      "httpStatus": 200
+    },
+    {
+      "id": "client_httpbingo",
+      "kind": "negative",
+      "method": "POST",
+      "path": "/client/callGetHttpbingo",
+      "code": 109902,
+      "message": "请求方法不允许",
+      "httpStatus": 405
+    },
+    {
+      "id": "client_httpbingo",
+      "kind": "positive",
+      "method": "GET",
+      "path": "/client/callGetHttpbingo",
+      "code": 0,
+      "message": "success",
+      "httpStatus": 200
+    },
+    {
+      "id": "cron",
+      "kind": "negative",
+      "method": "GET",
+      "path": "/cron-tasks/nonexistent-id",
+      "code": -1,
+      "message": "gcron: task not registered",
+      "httpStatus": 404
+    },
+    {
+      "id": "cron",
+      "kind": "positive",
+      "method": "GET",
+      "path": "/cron-tasks",
+      "code": 0,
+      "message": "success",
+      "httpStatus": 200
+    },
+    {
+      "id": "dict",
+      "kind": "negative",
+      "method": "POST",
+      "path": "/dict-types",
+      "code": -1,
+      "message": "Key: 'createTypeRequest.Code' Error:Field validation for 'Code' failed on the 'required' tag",
+      "httpStatus": 200
+    },
+    {
+      "id": "dict",
+      "kind": "positive",
+      "method": "GET",
+      "path": "/dict-types",
+      "code": 0,
+      "message": "success",
+      "httpStatus": 200
+    },
+    {
+      "id": "format",
+      "kind": "negative",
+      "method": "POST",
+      "path": "/format/formatResponse",
+      "code": 109902,
+      "message": "请求方法不允许",
+      "httpStatus": 405
+    },
+    {
+      "id": "format",
+      "kind": "positive",
+      "method": "GET",
+      "path": "/format/formatResponse",
+      "code": 0,
+      "message": "success",
+      "httpStatus": 200
+    },
+    {
+      "id": "health",
+      "kind": "negative",
+      "method": "POST",
+      "path": "/health",
+      "code": 109902,
+      "message": "请求方法不允许",
+      "httpStatus": 405
+    },
+    {
+      "id": "health",
+      "kind": "positive",
+      "method": "GET",
+      "path": "/health",
+      "code": 0,
+      "message": "success",
+      "httpStatus": 200
+    },
+    {
+      "id": "products_create",
+      "kind": "negative",
+      "method": "POST",
+      "path": "/products",
+      "code": -1,
+      "message": "json: cannot unmarshal string into Go struct field ProductCreateReq.price of type float64",
+      "httpStatus": 200
+    },
+    {
+      "id": "products_create",
+      "kind": "positive",
+      "method": "POST",
+      "path": "/products",
+      "code": 0,
+      "message": "success",
+      "httpStatus": 200
+    },
+    {
+      "id": "products_delete",
+      "kind": "negative",
+      "method": "DELETE",
+      "path": "/products/999999999",
+      "code": 100305,
+      "message": "商品管理不存在",
+      "httpStatus": 200
+    },
+    {
+      "id": "products_delete",
+      "kind": "positive",
+      "method": "DELETE",
+      "path": "/products/{productID}",
+      "code": 0,
+      "message": "success",
+      "httpStatus": 200
+    },
+    {
+      "id": "products_detail",
+      "kind": "negative",
+      "method": "GET",
+      "path": "/products/999999999",
+      "code": 100305,
+      "message": "商品管理不存在",
+      "httpStatus": 200
+    },
+    {
+      "id": "products_detail",
+      "kind": "positive",
+      "method": "GET",
+      "path": "/products/{productID}",
+      "code": 0,
+      "message": "success",
+      "httpStatus": 200
+    },
+    {
+      "id": "products_list",
+      "kind": "negative",
+      "method": "GET",
+      "path": "/products?page=abc",
+      "code": -1,
+      "message": "invalid syntax",
+      "httpStatus": 200
+    },
+    {
+      "id": "products_list",
+      "kind": "positive",
+      "method": "GET",
+      "path": "/products?page=1&pageSize=10",
+      "code": 0,
+      "message": "success",
+      "httpStatus": 200
+    },
+    {
+      "id": "products_tx",
+      "kind": "negative",
+      "method": "POST",
+      "path": "/products/tx",
+      "code": -1,
+      "message": "Key: 'ProductCreateInTxReq.SecondName' Error:Field validation for 'SecondName' failed on the 'required' tag",
+      "httpStatus": 200
+    },
+    {
+      "id": "products_tx",
+      "kind": "positive",
+      "method": "POST",
+      "path": "/products/tx",
+      "code": 0,
+      "message": "success",
+      "httpStatus": 200
+    },
+    {
+      "id": "products_update",
+      "kind": "negative",
+      "method": "PUT",
+      "path": "/products/999999999",
+      "code": 100305,
+      "message": "商品管理不存在",
+      "httpStatus": 200
+    },
+    {
+      "id": "products_update",
+      "kind": "positive",
+      "method": "PUT",
+      "path": "/products/{productID}",
+      "code": 0,
+      "message": "success",
+      "httpStatus": 200
+    },
+    {
+      "id": "setting",
+      "kind": "negative",
+      "method": "POST",
+      "path": "/settings",
+      "code": -1,
+      "message": "Key: 'createRequest.Group' Error:Field validation for 'Group' failed on the 'required' tag",
+      "httpStatus": 200
+    },
+    {
+      "id": "setting",
+      "kind": "positive",
+      "method": "GET",
+      "path": "/settings",
+      "code": 0,
+      "message": "success",
+      "httpStatus": 200
+    },
+    {
+      "id": "sse_chat",
+      "kind": "negative",
+      "method": "POST",
+      "path": "/sse/chat",
+      "code": 109902,
+      "message": "请求方法不允许",
+      "httpStatus": 405
+    },
+    {
+      "id": "sse_chat",
+      "kind": "positive",
+      "method": "GET",
+      "path": "/sse/chat",
+      "code": null,
+      "message": "text/event-stream;charset=utf-8",
+      "httpStatus": 200
+    },
+    {
+      "id": "sse_process",
+      "kind": "negative",
+      "method": "POST",
+      "path": "/sse/process",
+      "code": 109902,
+      "message": "请求方法不允许",
+      "httpStatus": 405
+    },
+    {
+      "id": "sse_process",
+      "kind": "positive",
+      "method": "GET",
+      "path": "/sse/process",
+      "code": null,
+      "message": "text/event-stream;charset=utf-8",
+      "httpStatus": 200
+    },
+    {
+      "id": "sse_raw",
+      "kind": "negative",
+      "method": "POST",
+      "path": "/sse/raw",
+      "code": 109902,
+      "message": "请求方法不允许",
+      "httpStatus": 405
+    },
+    {
+      "id": "sse_raw",
+      "kind": "positive",
+      "method": "GET",
+      "path": "/sse/raw",
+      "code": null,
+      "message": "text/event-stream;charset=utf-8",
+      "httpStatus": 200
+    },
+    {
+      "id": "sse_time",
+      "kind": "negative",
+      "method": "POST",
+      "path": "/sse/time",
+      "code": 109902,
+      "message": "请求方法不允许",
+      "httpStatus": 405
+    },
+    {
+      "id": "sse_time",
+      "kind": "positive",
+      "method": "GET",
+      "path": "/sse/time",
+      "code": null,
+      "message": "text/event-stream",
+      "httpStatus": 200
+    },
+    {
+      "id": "sse_timeRaw",
+      "kind": "negative",
+      "method": "POST",
+      "path": "/sse/timeRaw",
+      "code": 109902,
+      "message": "请求方法不允许",
+      "httpStatus": 405
+    },
+    {
+      "id": "sse_timeRaw",
+      "kind": "positive",
+      "method": "GET",
+      "path": "/sse/timeRaw",
+      "code": null,
+      "message": "text/event-stream",
+      "httpStatus": 200
+    },
+    {
+      "id": "upload_check_exist",
+      "kind": "negative",
+      "method": "POST",
+      "path": "/files/check-exist",
+      "code": -1,
+      "message": "Key: 'checkExistRequest.ContentHash' Error:Field validation for 'ContentHash' failed on the 'required' tag",
+      "httpStatus": 200
+    },
+    {
+      "id": "upload_check_exist",
+      "kind": "positive",
+      "method": "POST",
+      "path": "/files/check-exist",
+      "code": 0,
+      "message": "success",
+      "httpStatus": 200
+    },
+    {
+      "id": "upload_file_detail",
+      "kind": "negative",
+      "method": "GET",
+      "path": "/files/00000000-0000-0000-0000-000000000000",
+      "code": -1,
+      "message": "filestore: file not found",
+      "httpStatus": 200
+    },
+    {
+      "id": "upload_file_detail",
+      "kind": "positive",
+      "method": "GET",
+      "path": "/files/{id}",
+      "code": 0,
+      "message": "success",
+      "httpStatus": 200
+    }
+  ]
+}
