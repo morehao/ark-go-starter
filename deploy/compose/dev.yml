@@ -1,7 +1,7 @@
 # ============================================================================
-# 本地开发依赖编排（仅 dev，供 scripts/quickstart.sh 使用）
+# 本地开发依赖编排（仅 dev，供 tools/quickstart.sh 使用）
 #
-# 只用一条命令把 PG / Redis 起起来：`docker compose -f infra/compose/dev.yml up -d`
+# 只用一条命令把 PG / Redis 起起来：`docker compose -f deploy/compose/dev.yml up -d`
 # （`make quickstart` 会自动调用，你通常不用手敲）。
 #
 # 端口与密码**必须**与 apps/api/config/config.yaml 对齐：

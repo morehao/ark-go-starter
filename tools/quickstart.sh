@@ -47,7 +47,7 @@ FRONTEND_HOST="${FRONTEND_HOST:-localhost}"
 FRONTEND_PORT="${FRONTEND_PORT:-3000}"
 API_BASE="http://127.0.0.1:${BACKEND_PORT}"
 TABLE_INIT_SQL="$REPO_ROOT/tools/sql/table_init.sql"
-COMPOSE_FILE="$REPO_ROOT/infra/compose/dev.yml"
+COMPOSE_FILE="$REPO_ROOT/deploy/compose/dev.yml"
 COMPOSE_PROJECT_TAG="ark-go-starter"
 
 # 管理员账号：dev 缺省口令用「强口令示例」，可被环境变量覆盖（绝不写进 config/README 当内置默认）

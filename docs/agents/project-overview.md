@@ -22,7 +22,7 @@ ark-go-starter/
 ├── pkg/                     # Go 公共包（client/code/dbclient/ginhelper/iamlink/operator/testsetup/token）
 ├── contracts/               # 契约平面（单一事实源）：openapi/openapi.json + verify.sh
 ├── tests/e2e/               # Playwright 端到端测试
-├── infra/                   # docker/api.Dockerfile、compose/dev.yml
+├── deploy/                  # docker/api.Dockerfile、compose/dev.yml
 ├── tools/                   # 仓库级脚本（quickstart.sh）与 DDL（sql/table_init.sql）
 ├── docs/                    # 开发规范（docs/agents/…）与设计语言（docs/design-language.md）
 ├── go.work                  # Go workspace（use ./apps/api ./pkg）
@@ -35,6 +35,8 @@ ark-go-starter/
 └── README.md
 ```
 > 运行时产物统一落 `.local/`（日志 `.local/log`、存储 `.local/storage`，均 gitignore）；`APP_LOG_DIR` / `APP_STORAGE_DIR` 可覆盖。
+>
+> `deploy/` 只放构建与部署资产（不进 `go.work` / `pnpm-workspace` / Nx 图，不参与编译）；代码侧基础设施层统一叫 `internal/infra/`，**当前预留不建**——命名边界与迁移纪律见 [backend-conventions.md](./backend-conventions.md#部署目录与基础设施层的命名边界)。
 
 后端应用内部的分层结构见 [backend-conventions.md](./backend-conventions.md)；
 前端包结构与样式规范见 [frontend-conventions.md](./frontend-conventions.md) 与 [`docs/design-language.md`](../../docs/design-language.md)。

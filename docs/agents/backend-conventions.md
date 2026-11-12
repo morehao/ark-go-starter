@@ -25,6 +25,50 @@ apps/api/                     # Demo 应用（逻辑标识 demo），Go 服务 :
 pkg/                      # 公共包（跨应用共享）
 ```
 
+### 部署目录与基础设施层的命名边界
+
+> 2026-11 起：仓库根的编排目录由 `infra/` 更名为 `deploy/`（原因：与代码侧「基础设施层」的通用叫法撞名）。以下约定自此生效。
+
+**名字预算（固定，不再改）**
+
+| 位置 | 名字 | 装什么 | 参与编译 |
+|------|------|--------|----------|
+| 仓库根 | `deploy/` | 构建与部署资产：Dockerfile、compose、k8s/Helm 清单、发布脚本 | 否（不进 `go.work` / `pnpm-workspace` / Nx project graph） |
+| 代码内 | `internal/infra/`（预留，当前不建） | 基础设施层 / 适配器实现：持久化、缓存、消息队列、外部 HTTP、对象存储 | 是 |
+
+**1. 唯一住所，禁止并存**
+
+引入 `internal/infra/` 时，现有按技术命名的适配器必须在**同一个 PR 内**迁入并删除，不允许并存超过一个提交：
+
+| 现状 | 迁入后 |
+|------|--------|
+| `apps/api/dao/` | `apps/api/internal/infra/persistence` |
+| `apps/api/client/` | `apps/api/internal/infra/external` |
+| `apps/api/storage/` | `apps/api/internal/infra/storage` |
+| 将来 Redis / MQ | `apps/api/internal/infra/cache`、`apps/api/internal/infra/mq` |
+
+`model/` 不迁：它是 service 与 dao 共用的表结构实体，不属于 infra。
+
+**2. 依赖方向**
+
+`infra` 只能 import `model`、`pkg/*`、第三方 SDK；**禁止** import `controller`、`service`、`dto`（防反向依赖）。接口沿用 Go 惯例的**消费方定义**（service 内定义 `ProductRepo interface`，infra 提供实现），不为了「正统」单独造 `domain/` 或 `port/` 大目录。
+
+**3. 触发条件（满足其一才建）**
+
+- 单测需要 mock 外部依赖（DB / HTTP / 存储）；
+- 需要替换实现（换库、多存储共存、灰度双写）；
+- 两个以上团队要并行改适配器。
+
+不满足就维持现状：`dao` / `client` / `storage` 本身已是基础设施层，只是按技术名而非层名组织。
+
+**4. 事务边界不随搬家**
+
+当前事务写在 service（`dbclient.DemoDB(ctx).Transaction(...)`，见 `svcproduct`）。事务下移属于重写写入路径，必须单独出方案，不在「搬目录」的 PR 里顺带做。
+
+**5. 表达兜底**
+
+文档、PR、issue 里出现 `infra` 必须带限定：`deploy/` 指部署资产，`internal/infra/` 指代码层。裸说「infra 改一下」视为不合格表述，评审里容易产生歧义。
+
 ## 命名规范
 
 - **包名**: 小写，简短，如 `svcuser`, `dtouser`
