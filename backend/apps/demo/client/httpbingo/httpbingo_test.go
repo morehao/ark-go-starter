@@ -6,8 +6,6 @@
 package httpbingo
 
 import (
-	"path/filepath"
-	"runtime"
 	"testing"
 
 	"github.com/morehao/ark-go-starter/demo/config"
@@ -18,11 +16,7 @@ import (
 
 func findConfigPath(t *testing.T) string {
 	t.Helper()
-	_, filename, _, ok := runtime.Caller(0)
-	if !ok {
-		t.Fatal("runtime.Caller failed")
-	}
-	return filepath.Join(filepath.Dir(filename), "..", "..", "config", "config.yaml")
+	return testsetup.TestConfigPath(testsetup.AppNameDemo)
 }
 
 func TestGet(t *testing.T) {

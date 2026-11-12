@@ -16,8 +16,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"path/filepath"
-	"runtime"
 	"strconv"
 	"testing"
 	"time"
@@ -40,16 +38,11 @@ import (
 
 // 依赖本地 PostgreSQL（同 pkg/dbclient 的集成测试），配置读取 apps/demo/config/config.yaml。
 
-// configPath 定位 app 配置文件，与 testsetup.findConfigPath 保持同一约定（从包目录回溯到 apps/demo）。
+// configPath 定位 app 配置文件：优先 config.test.yaml（测试专用，iam.mode=disabled），
+// 使其走 demo.Routers 的 off/DemoIdentity 路径；无测试配置时回退生产 config.yaml。
 func configPath(t *testing.T) string {
 	t.Helper()
-	_, filename, _, ok := runtime.Caller(0)
-	require.True(t, ok)
-	appDir := filepath.Dir(filename) // .../ctrproduct
-	for range 3 {
-		appDir = filepath.Dir(appDir) // controller → internal → demo
-	}
-	return filepath.Join(appDir, "config", "config.yaml")
+	return testsetup.TestConfigPath(testsetup.AppNameDemo)
 }
 
 // apiResp 通用响应包装。

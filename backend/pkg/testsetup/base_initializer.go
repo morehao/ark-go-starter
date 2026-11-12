@@ -56,6 +56,35 @@ func findConfigPath(appName string) string {
 	return filepath.Join(projectRoot, "apps", appName, "config", "config.yaml")
 }
 
+// appConfigDir 返回指定应用 config 目录的绝对路径（基于本包源文件位置回溯）。
+func appConfigDir(appName string) string {
+	_, filename, _, ok := runtime.Caller(0)
+	if !ok {
+		return ""
+	}
+	pkgDir := filepath.Dir(filename)
+	projectRoot := filepath.Dir(filepath.Dir(pkgDir))
+	return filepath.Join(projectRoot, "apps", appName, "config")
+}
+
+// TestConfigPath 返回测试应加载的配置文件路径：
+//   - 若同一 config 目录下存在 config.test.yaml（测试专用，通常把 iam.mode 设为 disabled，
+//     使集成/e2e 走 DemoIdentity 的 off 路径），优先返回它；
+//   - 否则回退到生产 config.yaml。
+//
+// 这样测试用独立配置覆盖 iam.mode，无需改动生产 config.yaml / config.prod.yaml。
+func TestConfigPath(appName string) string {
+	dir := appConfigDir(appName)
+	if dir == "" {
+		return ""
+	}
+	testCfg := filepath.Join(dir, "config.test.yaml")
+	if _, err := os.Stat(testCfg); err == nil {
+		return testCfg
+	}
+	return filepath.Join(dir, "config.yaml")
+}
+
 func (i *baseAppInitializer) Init() error {
 	if _, err := os.Stat(i.ConfigPath); err != nil {
 		return fmt.Errorf("config file not found: %s, error: %w", i.ConfigPath, err)

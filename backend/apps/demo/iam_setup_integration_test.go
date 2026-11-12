@@ -14,8 +14,6 @@ import (
 	"math/big"
 	"net/http"
 	"net/http/httptest"
-	"path/filepath"
-	"runtime"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -44,13 +42,11 @@ func setupIAMIntegrationEnv(t *testing.T) *gin.Engine {
 	return gin.New()
 }
 
-// integrationConfigPath 定位 app 配置文件（从包目录回溯到 apps/demo）。
+// integrationConfigPath 定位 app 配置文件：优先 config.test.yaml（仅提供 DB/Redis 等资源，
+// iam.mode 会在 setupIAMIntegrationEnv 里显式覆盖为 op）；无测试配置时回退生产 config.yaml。
 func integrationConfigPath(t *testing.T) string {
 	t.Helper()
-	_, filename, _, ok := runtime.Caller(0)
-	require.True(t, ok)
-	appDir := filepath.Dir(filename) // .../demo
-	return filepath.Join(appDir, "config", "config.yaml")
+	return testsetup.TestConfigPath(testsetup.AppNameDemo)
 }
 
 // TestSetupIAMOPMountsRoutes op 形态：/iam/install 可达、/iam/config.json 可达、建表、KeySource 非空。
