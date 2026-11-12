@@ -9,7 +9,7 @@ WORKDIR /build
 # 复制整个项目代码（.dockerignore 已排除 node_modules/log/output/storage/.git 等）
 COPY . .
 
-# 下载依赖（go.work 下两个模块：./apps/api 与 ./libs/go）
+# 下载依赖（go.work 下两个模块：./apps/api 与 ./pkg）
 RUN go mod download
 
 # 构建应用程序（入口文件在 apps/api/cmd，模块 github.com/morehao/ark-go-starter/apps/api）

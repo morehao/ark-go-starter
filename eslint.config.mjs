@@ -41,7 +41,7 @@ export default tseslint.config(
           depConstraints: [
             // 应用（api/web/e2e）可依赖 公共库(lib) 与 契约(contracts)
             { sourceTag: 'type:app', onlyDependOnLibsWithTags: ['type:lib', 'type:contracts'] },
-            // 公共库（libs-go / libs/ts/*）可依赖 其它库 与 契约，**不得依赖应用**
+            // 公共库（pkg / packages/*）可依赖 其它库 与 契约，**不得依赖应用**
             { sourceTag: 'type:lib', onlyDependOnLibsWithTags: ['type:lib', 'type:contracts'] },
             // 契约平面只依赖契约，不被反向依赖到 app/lib 的具体实现
             { sourceTag: 'type:contracts', onlyDependOnLibsWithTags: ['type:contracts'] },

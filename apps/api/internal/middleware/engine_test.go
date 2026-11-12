@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/morehao/ark-go-starter/libs/go/code"
+	"github.com/morehao/ark-go-starter/pkg/code"
 	"github.com/morehao/golib/biz/gcontext"
 	"github.com/morehao/golib/biz/gcontext/gincontext"
 	"github.com/morehao/golib/biz/gmiddleware/ginmiddleware"

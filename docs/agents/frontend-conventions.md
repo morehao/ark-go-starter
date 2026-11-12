@@ -8,7 +8,7 @@
 ## 事实源与同步链
 
 ```
-libs/ts/ui/src/theme.ts 的 tokens  ←(唯一代码事实源)→  docs/design-language.md front matter  ←→  页面实际取值
+packages/ui/src/theme.ts 的 tokens  ←(唯一代码事实源)→  docs/design-language.md front matter  ←→  页面实际取值
 ```
 
 - 改任何色值 / 圆角 / 间距：**先改 `tokens`，再同步 `docs/design-language.md` front matter**，顺序不可颠倒。
@@ -17,14 +17,14 @@ libs/ts/ui/src/theme.ts 的 tokens  ←(唯一代码事实源)→  docs/design-l
 
 ## 技术栈与包结构
 
-仓库根是 pnpm monorepo（workspace 成员为 `apps/web`、`libs/ts/*`、`tests/e2e`）：
+仓库根是 pnpm monorepo（workspace 成员为 `apps/web`、`packages/*`、`tests/e2e`）：
 
 | 路径 | 包名 | 作用 |
 |------|------|------|
-| `libs/ts/ui/` | `@ark-go-starter/ui` | 主题与通用组件：`themeConfig` / `tokens` / `AppShell` / `PageContainer` |
-| `libs/ts/api/` | `@ark-go-starter/api` | 接口封装 |
-| `libs/ts/types/` | `@ark-go-starter/types` | 共享类型 |
-| `libs/ts/tsconfig/` | `@ark-go-starter/tsconfig` | 共享 TS 配置 |
+| `packages/ui/` | `@ark-go-starter/ui` | 主题与通用组件：`themeConfig` / `tokens` / `AppShell` / `PageContainer` |
+| `packages/api/` | `@ark-go-starter/api` | 接口封装 |
+| `packages/types/` | `@ark-go-starter/types` | 共享类型 |
+| `packages/tsconfig/` | `@ark-go-starter/tsconfig` | 共享 TS 配置 |
 | `apps/web/` | `@ark-go-starter/demo-web` | 演示前端应用（Vite + React + AntD），dev :3000，代理 `/v1` → `http://localhost:8099` |
 
 统一入口：
@@ -48,7 +48,7 @@ import { AppShell, PageContainer, tokens } from '@ark-go-starter/ui'
 | 前后端一起起 | — | `make dev-all APP=demo` |
 | 停止前端服务 | — | `make stop-frontend` |
 
-> `pnpm dev` 会 `--filter @ark-go-starter/demo-web`；`pnpm build` 按 `libs/ts/*` → `apps/*` 顺序递归构建。
+> `pnpm dev` 会 `--filter @ark-go-starter/demo-web`；`pnpm build` 按 `packages/*` → `apps/*` 顺序递归构建。
 
 ## 硬性规则（必须遵守）
 
@@ -76,7 +76,7 @@ import { AppShell, PageContainer, tokens } from '@ark-go-starter/ui'
 
 ## 已知空白（与 `docs/design-language.md` `Known Gaps` 一致）
 
-- `libs/ts/ui` 目前仅落地 `theme` / `AppShell` / `PageContainer`；状态 Tag 字典、列宽工厂（`idColumn` / `timeColumn` / `actionColumn`）、`TimeCell` / `IDCell` / `RemoteSelect` 待按业务引入；
+- `packages/ui` 目前仅落地 `theme` / `AppShell` / `PageContainer`；状态 Tag 字典、列宽工厂（`idColumn` / `timeColumn` / `actionColumn`）、`TimeCell` / `IDCell` / `RemoteSelect` 待按业务引入；
 - demo 已落地多页骨架：深色 `Sider`（侧栏）+ 顶部 `Header` + `Content`，侧栏令牌（`surface-sidebar` / `selected-bg` / 渐变）已实际使用；当前菜单有**商品管理 / 数据字典 / 配置中心 / 定时任务 / 异步任务 / 健康检查 / 文件上传**七个（对应 `apps/web/src/pages/{Products,Dicts,Settings,Cron,Async,Health,Files}`，切页仍用 `antd` `Menu` + `useState`）；`apps/web/src/auth/` 已落地 IAM 登录/provider 装配（`config.ts` + `index.tsx`，含 `react-router-dom` 的 `BrowserRouter`），业务页切换本身仍未走路由库；
 - IAM 登录页已落地（`@morehao/ark-iam-react/login`，op/rp/disabled 三态，见 [iam.md](./iam.md)）；`apps/web/src/main.tsx` 用 `IAMAuthProvider` + `AuthGuard` 包裹；
 - 尚未接入状态管理库；如需业务页 URL 可定位/可回退的完整前端路由，先补 `AppShell` 之外的 `MainLayout` 规范再落地；

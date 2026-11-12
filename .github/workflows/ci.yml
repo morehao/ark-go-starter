@@ -83,12 +83,12 @@ jobs:
           echo "NX_HEAD=HEAD" >> "$GITHUB_ENV"
           echo "Nx affected base=$BASE head=HEAD"
 
-      # lint：前端无 nx lint target，保持根 pnpm lint 整跑（apps/web + libs/ts，ESLint 很快）。
+      # lint：前端无 nx lint target，保持根 pnpm lint 整跑（apps/web + packages/*，ESLint 很快）。
       - name: Lint (ESLint)
         run: pnpm lint
 
       # 受影响前端包只跑 typecheck/build（含其依赖的 build）。
-      # --exclude='*,!tag:lang:ts'：只保留 tag lang:ts 的项目（web、libs/ts/*），排除 Go（api/libs-go）与 contracts，
+      # --exclude='*,!tag:lang:ts'：只保留 tag lang:ts 的项目（web、packages/*），排除 Go（api/pkg）与 contracts，
       # 避免前端 job 误跑 Go 项目的 build（且 api 的 build 在 go.work 根下会失败，属 R1 project.json 范畴，本 job 不碰）。
       - name: Affected typecheck + build (Nx, TS only)
         run: |
@@ -113,7 +113,7 @@ jobs:
 
       - name: gofmt check
         run: |
-          unformatted=$(gofmt -l apps/api libs/go)
+          unformatted=$(gofmt -l apps/api pkg)
           if [ -n "$unformatted" ]; then
             echo "以下文件未 gofmt："
             echo "$unformatted"
@@ -122,14 +122,14 @@ jobs:
 
       - name: go vet
         run: |
-          (cd libs/go && go vet ./...)
+          (cd pkg && go vet ./...)
           (cd apps/api && go vet ./...)
 
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v9
         with:
           version: ${{ env.GOLANGCI_LINT_VERSION }}
-          working-directory: libs/go
+          working-directory: pkg
       - name: golangci-lint (demo)
         uses: golangci/golangci-lint-action@v9
         with:
@@ -182,7 +182,7 @@ jobs:
       # 依赖 DB/Redis 的用例已用 //go:build integration 标记，必须带 tag 才会执行，
       # 否则本 job 提供的 postgres/redis service 形同虚设。
       - name: Test pkg (unit + integration)
-        run: cd libs/go && go test -race -tags=integration ./...
+        run: cd pkg && go test -race -tags=integration ./...
       - name: Test demo (unit + integration)
         run: cd apps/api && go test -race -tags=integration ./...
 
@@ -207,7 +207,7 @@ jobs:
           GOVULNCHECK_VERSION: v1.9.0
         run: |
           go install golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}
-          (cd libs/go && govulncheck ./...)
+          (cd pkg && govulncheck ./...)
           (cd apps/api && govulncheck ./...)
 
   e2e:

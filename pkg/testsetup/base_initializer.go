@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/morehao/ark-go-starter/libs/go/dbclient"
+	"github.com/morehao/ark-go-starter/pkg/dbclient"
 	"github.com/morehao/golib/dbaccess/dbgorm"
 	"github.com/morehao/golib/dbaccess/dbredis"
 	"github.com/morehao/golib/glog"
@@ -45,14 +45,14 @@ func newBaseAppInitializer(appName string) (*baseAppInitializer, error) {
 }
 
 // repoRoot 从本包源文件位置向上回溯，找到包含 go.work 的目录（仓库根）。
-// 用「向上找 go.work」代替「固定上溯 N 级」，避免 libs/go/testsetup 这类深层目录
+// 用「向上找 go.work」代替「固定上溯 N 级」，避免 pkg/testsetup 这类深层目录
 // 在模块搬迁后层数变化导致路径拼错。
 func repoRoot() string {
 	_, filename, _, ok := runtime.Caller(0)
 	if !ok {
 		return ""
 	}
-	dir := filepath.Dir(filename) // .../libs/go/testsetup
+	dir := filepath.Dir(filename) // .../pkg/testsetup
 	for {
 		if _, err := os.Stat(filepath.Join(dir, "go.work")); err == nil {
 			return dir

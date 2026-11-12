@@ -3,7 +3,7 @@ version: 2
 updates:
   # ── Go：workspace 两个模块需分别声明（Dependabot 按 go.mod 目录识别） ──
   - package-ecosystem: "gomod"
-    directory: "/libs/go"
+    directory: "/pkg"
     schedule:
       interval: "weekly"
       day: "monday"

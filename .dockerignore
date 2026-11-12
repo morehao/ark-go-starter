@@ -19,7 +19,7 @@ storage/
 
 # 前端与文档不参与后端镜像
 apps/web
-libs/ts
+packages/
 tests/
 docs/
 

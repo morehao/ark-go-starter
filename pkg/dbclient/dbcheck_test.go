@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/morehao/ark-go-starter/libs/go/dbclient"
-	"github.com/morehao/ark-go-starter/libs/go/testsetup"
+	"github.com/morehao/ark-go-starter/pkg/dbclient"
+	"github.com/morehao/ark-go-starter/pkg/testsetup"
 )
 
 const (

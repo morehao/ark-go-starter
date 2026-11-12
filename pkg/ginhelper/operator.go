@@ -3,7 +3,7 @@ package ginhelper
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/morehao/ark-go-starter/libs/go/operator"
+	"github.com/morehao/ark-go-starter/pkg/operator"
 	"github.com/morehao/golib/biz/gcontext/gincontext"
 )
 

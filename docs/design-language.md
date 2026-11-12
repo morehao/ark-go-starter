@@ -1,7 +1,7 @@
 ---
 version: 1.0
 name: ark-go-starter-frontend-design
-description: "ark-go-starter 前端统一视觉语言。方向为「冷白工程台」（方法论受 Stripe / Vercel 工程控制台启发）：靛蓝 #4f6ef7 是唯一强调色，仅用于主按钮 / 链接 / 选中态 / 品牌区；深蓝黑 #0f172a 侧栏；页面表面一律中性灰阶（禁用靛蓝淡底 tint）；卡片与内容区用冷调 hairline 边框分层、不使用卡片阴影（阴影仅留给 Modal 等浮层）；文字为三级 hex 灰阶并全站开启 tabular-nums（ID/时间/数字等宽）。代码事实源：libs/ts/ui/src/theme.ts 的 tokens 对象（本文件与之一一对应，改动需同步两处）。"
+description: "ark-go-starter 前端统一视觉语言。方向为「冷白工程台」（方法论受 Stripe / Vercel 工程控制台启发）：靛蓝 #4f6ef7 是唯一强调色，仅用于主按钮 / 链接 / 选中态 / 品牌区；深蓝黑 #0f172a 侧栏；页面表面一律中性灰阶（禁用靛蓝淡底 tint）；卡片与内容区用冷调 hairline 边框分层、不使用卡片阴影（阴影仅留给 Modal 等浮层）；文字为三级 hex 灰阶并全站开启 tabular-nums（ID/时间/数字等宽）。代码事实源：packages/ui/src/theme.ts 的 tokens 对象（本文件与之一一对应，改动需同步两处）。"
 
 colors:
   brand-primary: "#4f6ef7"
@@ -63,7 +63,7 @@ components:
 # ark-go-starter 前端设计语言（docs/design-language.md）
 
 > 供 AI 编码代理与开发者共同遵循的前端「统一风格约定」。
-> **代码唯一事实源是 `libs/ts/ui/src/theme.ts` 的 `tokens` 对象**：改任何色值/圆角/间距必须先改 tokens，再同步本文件 front matter（二者必须一致）。业务页面与组件一律引用 `tokens` / antd token，禁止出现 `#4f6ef7`、`#e6e9ef`、`#94a3b8` 之类的裸色值。
+> **代码唯一事实源是 `packages/ui/src/theme.ts` 的 `tokens` 对象**：改任何色值/圆角/间距必须先改 tokens，再同步本文件 front matter（二者必须一致）。业务页面与组件一律引用 `tokens` / antd token，禁止出现 `#4f6ef7`、`#e6e9ef`、`#94a3b8` 之类的裸色值。
 
 ## 1. 视觉主题总览
 
@@ -178,7 +178,7 @@ PageContainer(title, description, extra=刷新 + 主操作[type=primary])
 
 ### Do
 
-- 改设计值：先改 `libs/ts/ui/src/theme.ts` 的 `tokens`，再同步本文件 front matter（两处一致）。
+- 改设计值：先改 `packages/ui/src/theme.ts` 的 `tokens`，再同步本文件 front matter（两处一致）。
 - 页面/组件引用颜色一律用 `tokens.*`（`import { tokens } from '@ark-go-starter/ui'`）或 antd `theme.useToken()`。
 - 页面用 `PageContainer` 骨架；列表 Table 用 `tableLayout="fixed"` + 显式列宽 + `scroll={{ x }}`。
 - 主色仅用于主操作/链接/选中/焦点；页面表面保持中性灰阶 + 白卡（冷白工程台）。
@@ -223,6 +223,6 @@ PageContainer(title, description, extra=刷新 + 主操作[type=primary])
 ## Known Gaps
 
 1. `theme.ts` 与本文档（design-language.md）为**人工同步**，暂无 lint/test 强制一致。
-2. 当前 `libs/ts/ui` 仅落地 `theme` / `AppShell` / `PageContainer` 三项；状态 Tag 字典、列宽工厂（`idColumn` / `timeColumn` / `actionColumn`）、`TimeCell`、`IDCell`、`RemoteSelect` 等按业务需要再逐步引入，并同步补充本文件。
+2. 当前 `packages/ui` 仅落地 `theme` / `AppShell` / `PageContainer` 三项；状态 Tag 字典、列宽工厂（`idColumn` / `timeColumn` / `actionColumn`）、`TimeCell`、`IDCell`、`RemoteSelect` 等按业务需要再逐步引入，并同步补充本文件。
 3. demo 已使用深色侧栏 + 顶部 Header 多页骨架（业务页切换仍用菜单 + `useState`，但 `apps/web/src/auth/` 已引入 `react-router-dom` 的 `BrowserRouter` 承载登录回调路由），侧栏令牌已落地；登录页已落地（`@morehao/ark-iam-react/login`，op/rp/disabled 三态）。
 4. 业务页暂未走路由库、未接入状态管理库；如需多页应用 URL 可定位/可回退，先补 `AppShell` 之外的 `MainLayout` 规范再落地。

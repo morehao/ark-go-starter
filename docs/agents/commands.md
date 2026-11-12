@@ -44,8 +44,8 @@ make test APP=demo
 go test ./apps/api/internal/service/svcproduct -run TestProductList -v
 ```
 
-> **注意**：Go workspace 在仓库根 `go.work`（`use ./apps/api ./libs/go`），go 命令在**仓库根**执行并用模块路径（如 `./apps/api/...`、`./libs/go/...`）；`make` 目标已封装好，通常无需手敲。
-> `libs/go/dbclient/dbcheck_test.go` 依赖本地 PostgreSQL(5432) / Redis(6379) 服务，未启动对应服务时该包测试会失败（属环境依赖，非代码问题）。
+> **注意**：Go workspace 在仓库根 `go.work`（`use ./apps/api ./pkg`），go 命令在**仓库根**执行并用模块路径（如 `./apps/api/...`、`./pkg/...`）；`make` 目标已封装好，通常无需手敲。
+> `pkg/dbclient/dbcheck_test.go` 依赖本地 PostgreSQL(5432) / Redis(6379) 服务，未启动对应服务时该包测试会失败（属环境依赖，非代码问题）。
 > 本项目不连接 Elasticsearch，`health` 接口只返回 `postgres` / `redis` 两项。
 > 数据库初始化脚本见 `tools/sql/table_init.sql`（PostgreSQL DDL）。
 
@@ -61,7 +61,7 @@ make lint
 golangci-lint run ./... --disable-all -E golint,errcheck,staticcheck
 ```
 
-前端 ESLint（flat config：[`eslint.config.mjs`](../../eslint.config.mjs)，覆盖 `apps/web` 与 `libs/ts/*` 源码）：
+前端 ESLint（flat config：[`eslint.config.mjs`](../../eslint.config.mjs)，覆盖 `apps/web` 与 `packages/*` 源码）：
 
 ```bash
 # 根目录等价命令

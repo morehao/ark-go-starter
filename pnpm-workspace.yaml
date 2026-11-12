@@ -1,6 +1,6 @@
 packages:
   - 'apps/web'
-  - 'libs/ts/*'
+  - 'packages/*'
   - 'tests/e2e'
 
 # 版本收敛（P3-T4）：TypeScript / react / antd 及类型包统一走 catalog，成员用 `catalog:` 引用。

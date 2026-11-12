@@ -7,7 +7,7 @@ import (
 
 	demo "github.com/morehao/ark-go-starter/apps/api"
 	"github.com/morehao/ark-go-starter/apps/api/config"
-	"github.com/morehao/ark-go-starter/libs/go/dbclient"
+	"github.com/morehao/ark-go-starter/pkg/dbclient"
 	"github.com/morehao/golib/dict"
 	"github.com/morehao/golib/distlock"
 	"github.com/morehao/golib/glog"

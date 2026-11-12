@@ -2,7 +2,7 @@
   "name": "ts-api",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "projectType": "library",
-  "sourceRoot": "libs/ts/api",
+  "sourceRoot": "packages/api",
   "tags": [
     "type:lib",
     "lang:ts"
@@ -12,7 +12,7 @@
       "executor": "nx:run-commands",
       "options": {
         "command": "tsc --noEmit -p tsconfig.json",
-        "cwd": "libs/ts/api"
+        "cwd": "packages/api"
       },
       "cache": true
     },
@@ -20,7 +20,7 @@
       "executor": "nx:run-commands",
       "options": {
         "command": "tsc --noEmit -p tsconfig.json",
-        "cwd": "libs/ts/api"
+        "cwd": "packages/api"
       },
       "cache": true
     }

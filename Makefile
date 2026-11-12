@@ -21,7 +21,7 @@ GO_ENV = CGO_ENABLED=0 GOPROXY=https://goproxy.cn,direct
 DOCKERFILE = ./infra/docker/api.Dockerfile
 
 # 注意：本项目所有目标都**不执行** `go work sync`。
-# 原因（go 1.27.3 实测）：go.work 只 use 了 ./apps/api 与 ./libs/go（go.work 在仓库根），`go work sync` 会把
+# 原因（go 1.27.3 实测）：go.work 只 use 了 ./apps/api 与 ./pkg（go.work 在仓库根），`go work sync` 会把
 # demo/go.mod 里显式 require 的 ark-iam 模块（如 github.com/morehao/ark-iam/pkg）当作
 # 冗余依赖从 go.mod 删掉（且未补进 go.work.sum），随后 go build / go test 直接报
 # "imports ... from implicitly required module"，干净检出下 `make build` / `make test` 必挂。
@@ -115,17 +115,17 @@ run:
 	@echo "🚀 正在运行应用程序 $(APP)..."
 	@cd apps/$(APP_DIR)/cmd && go run .
 
-# 运行单元测试（libs 公共层 + 指定应用；不含 //go:build integration 的用例）
+# 运行单元测试（pkg 公共层 + 指定应用；不含 //go:build integration 的用例）
 test:
 	$(call validate_app)
 	@echo "🧪 正在运行测试..."
-	@go test ./libs/go/... ./apps/$(APP_DIR)/... -v
+	@go test ./pkg/... ./apps/$(APP_DIR)/... -v
 
 # 运行集成测试（需本地 PostgreSQL(5432)/Redis(6379) 就绪）
 test-integration:
 	$(call validate_app)
 	@echo "🔗 正在运行集成测试..."
-	@go test -tags=integration ./libs/go/... ./apps/$(APP_DIR)/... -v
+	@go test -tags=integration ./pkg/... ./apps/$(APP_DIR)/... -v
 
 # ============================================================
 # E2E 端到端测试
@@ -165,7 +165,7 @@ e2e-install:
 # 同步依赖：逐模块 go mod download + tidy（不使用 go work sync，原因见文件头注释）
 deps:
 	@echo "📦 正在下载依赖项..."
-	@find ./apps ./libs -name "go.mod" -not -path "*/vendor/*" | while read modfile; do \
+	@find ./apps ./pkg -name "go.mod" -not -path "*/vendor/*" | while read modfile; do \
 		dir=$$(dirname $$modfile); \
 		echo "  => $$dir"; \
 		(cd $$dir && $(GO_ENV) go mod download && go mod tidy); \
@@ -174,7 +174,7 @@ deps:
 
 # 仅执行 go mod tidy（不下载全量依赖，速度更快）
 tidy:
-	@find ./apps ./libs -name "go.mod" -not -path "*/vendor/*" | while read modfile; do \
+	@find ./apps ./pkg -name "go.mod" -not -path "*/vendor/*" | while read modfile; do \
 		dir=$$(dirname $$modfile); \
 		echo "==> Tidy in $$dir"; \
 		(cd $$dir && go mod tidy); \
@@ -188,7 +188,7 @@ update-dep:
 		echo "   用法：make update-dep ARGS=\"-u github.com/morehao/golib@v0.1.1\""; \
 		exit 1; \
 	fi
-	@find ./apps ./libs -name "go.mod" -not -path "*/vendor/*" | while read modfile; do \
+	@find ./apps ./pkg -name "go.mod" -not -path "*/vendor/*" | while read modfile; do \
 		dir=$$(dirname $$modfile); \
 		pkg=$$(echo "$(ARGS)" | grep -oE '[a-zA-Z0-9._/-]+/[a-zA-Z0-9._/-]+' | head -1); \
 		if grep -q "$$pkg" "$$modfile"; then \
@@ -396,7 +396,7 @@ list-apps:
 	@ls -1 ./apps
 
 # 运行代码检查工具（在 workspace 各模块目录内分别执行）
-# 说明：go.work 在仓库根，DiskPath 形如 ./apps/api、./libs/go，均相对仓库根，
+# 说明：go.work 在仓库根，DiskPath 形如 ./apps/api、./pkg，均相对仓库根，
 # 故在仓库根（make 默认 cwd）读取并 cd 到各模块。
 lint:
 	@echo "🔍 正在运行代码检查工具..."
@@ -405,7 +405,7 @@ lint:
 		(cd $$mod && golangci-lint run ./...); \
 	done
 
-# 运行前端 ESLint（apps/web 与 libs/ts/* 源码；e2e workspace 独立，未纳入）
+# 运行前端 ESLint（apps/web 与 packages/* 源码；e2e workspace 独立，未纳入）
 lint-frontend:
 	@echo "🔍 正在运行前端 ESLint..."
 	@pnpm lint
@@ -413,7 +413,7 @@ lint-frontend:
 # ============================================================
 # 契约校验（P5 试点）
 # ============================================================
-# 校验 contracts/openapi spec 合法性 + 生成物（libs/go/client、libs/ts/api-client）与 spec 一致。
+# 校验 contracts/openapi spec 合法性 + 生成物（pkg/client、packages/api-client）与 spec 一致。
 # 任一不一致即 exit 非 0（CI 阻断）。详见 contracts/verify.sh 头部说明。
 contracts-verify:
 	@bash contracts/verify.sh
@@ -433,7 +433,7 @@ help:
 	@echo "    make all       APP=<名称>              clean → deps → build → run"
 	@echo ""
 	@echo "  测试 & 检查"
-	@echo "    make test      APP=<名称>              运行单元测试（libs + 指定应用）"
+	@echo "    make test      APP=<名称>              运行单元测试（pkg + 指定应用）"
 	@echo "    make test-integration APP=<名称>     运行集成测试（需 PG/Redis）"
 	@echo "    make e2e       [APP=<名称>]            两端端到端测试（后端真端口 + 前端 Playwright）"
 	@echo "    make e2e-backend APP=<名称>          后端真端口 e2e（需 PG/Redis）"
@@ -441,7 +441,7 @@ help:
 	@echo "    make e2e-install                       安装前端依赖与 Playwright 浏览器（首次）"
 	@echo "    make e2e-deps-check                    探测本地 PG/Redis 是否就绪"
 	@echo "    make lint                              运行 golangci-lint"
-	@echo "    make lint-frontend                     运行前端 ESLint（apps/web + libs/ts）"
+	@echo "    make lint-frontend                     运行前端 ESLint（apps/web + packages/*）"
 	@echo "    make contracts-verify                  契约校验（spec 合法 + Go/TS 生成物与 spec 一致）"
 	@echo ""
 	@echo "  依赖管理"
