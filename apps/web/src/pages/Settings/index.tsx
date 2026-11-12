@@ -13,7 +13,7 @@ import {
   App,
   type TableProps,
 } from 'antd'
-import { PageContainer, tokens } from '@ark-go-starter/ui'
+import { PageContainer, tokens, StatCard, StatRow } from '@ark-go-starter/ui'
 import {
   createSetting,
   deleteSetting,
@@ -226,6 +226,12 @@ export default function SettingsPage() {
             新建配置
           </Button>
         </Space>
+      }
+      summary={
+        <StatRow>
+          <StatCard label="配置项总数" value={total.toLocaleString()} hint="当前分页接口返回总条数" />
+          <StatCard label="本页数量" value={data.length} hint={`第 ${page} 页 · 每页 ${pageSize} 条`} accent={tokens.success} />
+        </StatRow>
       }
     >
       <Space wrap size="middle" style={{ marginBottom: 16 }}>

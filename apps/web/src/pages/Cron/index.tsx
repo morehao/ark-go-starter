@@ -12,7 +12,7 @@ import {
   type DescriptionsProps,
   type TableProps,
 } from 'antd'
-import { PageContainer, tokens } from '@ark-go-starter/ui'
+import { PageContainer, tokens, StatCard, StatRow } from '@ark-go-starter/ui'
 import {
   cleanupCronTaskRuns,
   getCronTask,
@@ -239,6 +239,12 @@ export default function CronPage() {
       title="定时任务"
       description="定时任务列表，支持查看详情、运行记录、启停，以及标记陈旧运行与清理历史运行记录，数据来自 /v1/demo/cron-tasks"
       extra={<Button onClick={load}>刷新</Button>}
+      summary={
+        <StatRow>
+          <StatCard label="任务总数" value={total.toLocaleString()} hint="当前分页接口返回总条数" />
+          <StatCard label="本页数量" value={data.length} hint={`第 ${page} 页 · 每页 ${pageSize} 条`} accent={tokens.success} />
+        </StatRow>
+      }
     >
       <Table<CronTask>
         rowKey="id"

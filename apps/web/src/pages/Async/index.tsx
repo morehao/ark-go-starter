@@ -10,7 +10,7 @@ import {
   App,
   type TableProps,
 } from 'antd'
-import { PageContainer, tokens } from '@ark-go-starter/ui'
+import { PageContainer, tokens, StatCard, StatRow } from '@ark-go-starter/ui'
 import {
   cleanupAsyncTaskRuns,
   getAsyncTaskRuns,
@@ -188,6 +188,12 @@ export default function AsyncPage() {
       title="异步任务"
       description="异步任务列表，支持启停、查看运行记录，以及标记陈旧运行与清理历史运行记录，数据来自 /v1/demo/async-tasks"
       extra={<Button onClick={load}>刷新</Button>}
+      summary={
+        <StatRow>
+          <StatCard label="任务总数" value={total.toLocaleString()} hint="当前分页接口返回总条数" />
+          <StatCard label="本页数量" value={data.length} hint={`第 ${page} 页 · 每页 ${pageSize} 条`} accent={tokens.success} />
+        </StatRow>
+      }
     >
       <Table<AsyncTask>
         rowKey="id"
