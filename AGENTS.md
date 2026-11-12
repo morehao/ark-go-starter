@@ -42,7 +42,7 @@ ark-go-starter/
 ├── tests/
 │   └── e2e/                 # 端到端测试（前端 Playwright specs + A4 golden）
 ├── tools/                   # 脚本与 SQL（quickstart.sh、sql/table_init.sql）
-├── infra/                   # 容器与编排（docker/api.Dockerfile、compose/dev.yml）
+├── deploy/                  # 容器与编排（docker/api.Dockerfile、compose/dev.yml）
 ├── docs/                    # 文档（agents/ 开发规范、design-language.md 设计语言事实源）
 ├── go.work                  # 根 Go workspace（use ./apps/api ./pkg）
 ├── package.json             # 根前端 workspace 清单

@@ -17,11 +17,12 @@
 .local/
 storage/
 
-# 前端与文档不参与后端镜像
+# 前端、文档与部署描述不参与后端镜像
 apps/web
 packages/
 tests/
 docs/
+deploy/
 
 # Go 编译/调试产物
 **/*.test

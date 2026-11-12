@@ -18,7 +18,7 @@ APP_CONFIG_PATH = /app/config.yaml
 GO_ENV = CGO_ENABLED=0 GOPROXY=https://goproxy.cn,direct
 
 # Dockerfile 位置（构建上下文为仓库根）
-DOCKERFILE = ./infra/docker/api.Dockerfile
+DOCKERFILE = ./deploy/docker/api.Dockerfile
 
 # 注意：本项目所有目标都**不执行** `go work sync`。
 # 原因（go 1.27.3 实测）：go.work 只 use 了 ./apps/api 与 ./pkg（go.work 在仓库根），`go work sync` 会把
