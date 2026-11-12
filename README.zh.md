@@ -31,7 +31,7 @@ make quickstart-verify IAM_ADMIN_USER=admin IAM_ADMIN_PASS='你的密码'
 `ark-go-starter` 是一个前后端一体的 Go Web 全栈工程实践项目：后端基于 [Gin](https://github.com/gin-gonic/gin) + GORM（Go workspace 多模块），前端基于 React + Vite + Ant Design（pnpm monorepo），提供分层清晰、可维护、可扩展的多应用服务结构。
 # 项目特点
 
-- 清晰的项目结构：参考了[project-layout](https://github.com/golang-standards/project-layout)，遵循分层架构思想，采用 monorepo 布局：`apps/`（应用：`apps/api` Go 后端、`apps/web` React 前端）、`packages/`（前端共享包）、`pkg/`（Go 公共层）、`tests/e2e`、`tools/`、`deploy/`，目录组织合理，便于团队协作与长期维护。
+- 清晰的项目结构：参考了[project-layout](https://github.com/golang-standards/project-layout)，遵循分层架构思想，采用 monorepo 布局：`apps/`（应用：`apps/api` Go 后端、`apps/web` React 前端）、`packages/`（前端共享包）、`pkg/`（Go 公共层）、`tests/e2e`、`scripts/`、`deploy/`，目录组织合理，便于团队协作与长期维护。
 - 常用组件集成：PostgreSQL、Redis（已移除 Elasticsearch 集成，PostgreSQL 为唯一目标库）。
 - 全链路日志追踪：基于`zap`封装的日志组件`glog`,支持链路 ID 贯穿 PostgreSQL、Redis、Http 调用。
 - 代码生成工具：提供`gocli`命令行工具，支持根据配置快速生成标准代码（包括 model、dao、object、dto、code、service、controller、router层代码）。
@@ -63,7 +63,7 @@ make quickstart-verify IAM_ADMIN_USER=admin IAM_ADMIN_PASS='你的密码'
 ├── pkg                         # Go 公共层（code / dbclient / testsetup / token / ginhelper / iamlink / operator）
 ├── tests
 │   └── e2e                     # 端到端测试（Playwright specs + A4 golden）
-├── tools                       # 脚本与 SQL（quickstart.sh、sql/table_init.sql）
+├── scripts                     # 脚本与 SQL（quickstart.sh、sql/table_init.sql）
 ├── deploy                      # 容器与编排（docker/api.Dockerfile、compose/dev.yml）
 ├── contracts                   # 契约平面（OpenAPI 3.1 契约源 + verify.sh）
 ├── docs                        # 文档（agents/ 规范、design-language.md 设计语言）

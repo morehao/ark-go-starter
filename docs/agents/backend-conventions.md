@@ -146,7 +146,7 @@ type UserPageListResp struct {
 
 ### SQL 字段注释（硬性要求）
 
-DDL（`tools/sql/table_init.sql`）中**每个字段都必须有注释**，且要写两份、保持一致：
+DDL（`scripts/sql/table_init.sql`）中**每个字段都必须有注释**，且要写两份、保持一致：
 
 1. 字段行尾的 `-- 中文说明`：保证脚本本身可读；
 2. 建表后的 `COMMENT ON COLUMN`：把同一份说明写进库元数据，`psql` 里 `\d+ 表名`、以及各类客户端都能看到。
@@ -172,7 +172,7 @@ COMMENT ON COLUMN "user".deleted_at IS '删除时间（软删除）';
 
 ## 模型字段类型规范（PostgreSQL）
 
-**本仓库唯一目标库是 PostgreSQL**：建表事实源是 `tools/sql/table_init.sql`（PG 语法），model 的 gorm tag **必须显式写 `type:`，且取值只能是 PostgreSQL 合法类型**（与脚本同款，结构体自描述、读模型即知列类型），不得写其它方言的字面量。
+**本仓库唯一目标库是 PostgreSQL**：建表事实源是 `scripts/sql/table_init.sql`（PG 语法），model 的 gorm tag **必须显式写 `type:`，且取值只能是 PostgreSQL 合法类型**（与脚本同款，结构体自描述、读模型即知列类型），不得写其它方言的字面量。
 
 | 想要的效果 | 写法 | PG 生成的列 |
 |-----------|------|-------------|

@@ -21,7 +21,7 @@ var postgresModels = []any{
 // 其它取值会被原样拼进 DDL。例如 `type:bigint unsigned` 在 PostgreSQL 上实测直接
 // `syntax error at or near "unsigned" (SQLSTATE 42601)`（PG 的等价写法是 type:bigint）。
 // 显式写 PG 类型是允许的（type:bigint、type:varchar(255)、type:jsonb 均可），与
-// tools/sql/table_init.sql 保持同款即可。
+// scripts/sql/table_init.sql 保持同款即可。
 var nonPostgresTypeTokens = []string{
 	"unsigned", "zerofill", "auto_increment",
 	"tinyint", "mediumint", "tinytext", "mediumtext", "longtext",

@@ -23,7 +23,7 @@ ark-go-starter/
 ├── contracts/               # 契约平面（单一事实源）：openapi/openapi.json + verify.sh
 ├── tests/e2e/               # Playwright 端到端测试
 ├── deploy/                  # docker/api.Dockerfile、compose/dev.yml
-├── tools/                   # 仓库级脚本（quickstart.sh）与 DDL（sql/table_init.sql）
+├── scripts/                 # 仓库级脚本（quickstart.sh）与 DDL（sql/table_init.sql）
 ├── docs/                    # 开发规范（docs/agents/…）与设计语言（docs/design-language.md）
 ├── go.work                  # Go workspace（use ./apps/api ./pkg）
 ├── package.json             # 根前端 workspace 清单

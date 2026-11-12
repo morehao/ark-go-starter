@@ -47,7 +47,7 @@ go test ./apps/api/internal/service/svcproduct -run TestProductList -v
 > **注意**：Go workspace 在仓库根 `go.work`（`use ./apps/api ./pkg`），go 命令在**仓库根**执行并用模块路径（如 `./apps/api/...`、`./pkg/...`）；`make` 目标已封装好，通常无需手敲。
 > `pkg/dbclient/dbcheck_test.go` 依赖本地 PostgreSQL(5432) / Redis(6379) 服务，未启动对应服务时该包测试会失败（属环境依赖，非代码问题）。
 > 本项目不连接 Elasticsearch，`health` 接口只返回 `postgres` / `redis` 两项。
-> 数据库初始化脚本见 `tools/sql/table_init.sql`（PostgreSQL DDL）。
+> 数据库初始化脚本见 `scripts/sql/table_init.sql`（PostgreSQL DDL）。
 
 测试写法约定见 [testing.md](./testing.md)。
 

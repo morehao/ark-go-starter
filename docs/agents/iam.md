@@ -47,7 +47,7 @@
 | `app.go`（`Routers` / `buildAuthMiddleware`） | 按 `mode` 装配鉴权中间件（op/rp 共用 `OIDCAuth`） |
 | `internal/middleware/oidc_auth.go` | 业务接口 OIDC 本地验签中间件（依赖 `contract.KeySource`） |
 | `pkg/iamlink/*` | IAM string 身份 ↔ 本地 BIGINT 用户 ID 的映射层（与形态无关，三态通用） |
-| `tools/sql/table_init.sql` | 业务表 DDL（含 `biz_iam_user_map`）；不含 `iam_` 表 |
+| `scripts/sql/table_init.sql` | 业务表 DDL（含 `biz_iam_user_map`）；不含 `iam_` 表 |
 
 ---
 

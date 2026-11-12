@@ -36,7 +36,7 @@ make quickstart-verify IAM_ADMIN_USER=admin IAM_ADMIN_PASS='<your password>'
 
 # Features
 
-* **Clear Project Structure**: Inspired by [project-layout](https://github.com/golang-standards/project-layout), follows layered architecture principles. Monorepo layout: `apps/` (applications: `apps/api` Go backend, `apps/web` React frontend), `packages/` (shared frontend packages), `pkg/` (shared Go layer), `tests/e2e`, `tools/`, `deploy/`, organized for team collaboration and long-term maintenance.
+* **Clear Project Structure**: Inspired by [project-layout](https://github.com/golang-standards/project-layout), follows layered architecture principles. Monorepo layout: `apps/` (applications: `apps/api` Go backend, `apps/web` React frontend), `packages/` (shared frontend packages), `pkg/` (shared Go layer), `tests/e2e`, `scripts/`, `deploy/`, organized for team collaboration and long-term maintenance.
 * **Common Component Integration**: Includes built-in examples for PostgreSQL and Redis (Elasticsearch integration has been removed — PostgreSQL is the sole target DB).
 * **Full Link Logging**: Provides a custom logging package `glog` based on `zap`, supporting full trace ID propagation across PostgreSQL, Redis, and HTTP calls.
 * **Code Generation Tool**: Comes with a command-line tool `gocli` that can generate standardized code (including model, dao, object, dto, code, service, controller, router layers) based on config.
@@ -71,7 +71,7 @@ Follows [project-layout](https://github.com/golang-standards/project-layout). Cu
 ├── pkg                         # Shared Go layer (code / dbclient / testsetup / token / ginhelper / iamlink / operator)
 ├── tests
 │   └── e2e                     # E2E tests (Playwright specs + A4 golden)
-├── tools                       # Scripts & SQL (quickstart.sh, sql/table_init.sql)
+├── scripts                     # Scripts & SQL (quickstart.sh, sql/table_init.sql)
 ├── deploy                      # Container & orchestration (docker/api.Dockerfile, compose/dev.yml)
 ├── contracts                   # Contract plane (OpenAPI 3.1 spec + verify.sh)
 ├── docs                        # Documentation (agents/ conventions, design-language.md)
