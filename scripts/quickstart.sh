@@ -9,7 +9,7 @@
 # 用法：
 #   make quickstart          # 有 Docker：自动起 PG/Redis（端口被占则自动降级复用外部）
 #   make quickstart-local    # 无 Docker：复用本机已在跑的 PG/Redis（= SKIP_DEPS=1）
-#   bash tools/quickstart.sh
+#   bash scripts/quickstart.sh
 #
 # 可用环境变量（都有合理缺省，通常无需设置）：
 #   SKIP_DEPS=1            跳过依赖编排（不起容器），直接复用 127.0.0.1:5432/6379
@@ -46,7 +46,7 @@ BACKEND_PORT="8099"
 FRONTEND_HOST="${FRONTEND_HOST:-localhost}"
 FRONTEND_PORT="${FRONTEND_PORT:-3000}"
 API_BASE="http://127.0.0.1:${BACKEND_PORT}"
-TABLE_INIT_SQL="$REPO_ROOT/tools/sql/table_init.sql"
+TABLE_INIT_SQL="$REPO_ROOT/apps/api/db/table_init.sql"
 COMPOSE_FILE="$REPO_ROOT/deploy/compose/dev.yml"
 COMPOSE_PROJECT_TAG="ark-go-starter"
 

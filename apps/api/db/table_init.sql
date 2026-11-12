@@ -1,9 +1,12 @@
 -- ============================================================================
 -- 初始化脚本（PostgreSQL）
 --
+-- 本文件是业务表结构的唯一事实源，位于「拥有这些表的服务」apps/api 内，
+-- 并通过同目录 db.go 的 go:embed 打进包（model 包的一致性用例直接读它）。
+--
 -- 本项目以 PostgreSQL 为样板库。首次使用：
 --   createdb demo
---   psql -d demo -f backend/scripts/sql/table_init.sql
+--   psql -d demo -f apps/api/db/table_init.sql
 --
 -- 注意：product 表名在 PostgreSQL 中非关键字，SQL 中可直接写 product（无需像保留字那样加双引号）。
 -- Go 侧 model.TableNameProduct 是**不带引号**的逻辑表名，传给 gormdao.NewDao 即可，
@@ -103,7 +106,7 @@ CREATE SEQUENCE IF NOT EXISTS biz_iam_user_map_local_uid_seq
 CREATE TABLE IF NOT EXISTS biz_iam_user_map
 (
     iam_user_id VARCHAR(128) PRIMARY KEY,                                        -- IAM 侧字符串用户ID（rp.Identity.UserID）
-    local_uid   BIGINT       NOT NULL DEFAULT nextval('biz_iam_user_map_local_uid_seq'), -- 本地 BIGINT 用户ID（映射目标）
+    local_uid   BIGINT       NOT NULL DEFAULT nextval('biz_iam_user_map_local_uid_seq'), -- 本地BIGINT用户ID（映射目标）
     person_id   VARCHAR(128) NOT NULL DEFAULT '',                                -- IAM 侧自然人ID（rp.Identity.PersonID）
     created_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),                             -- 创建时间
     updated_at  TIMESTAMPTZ  NOT NULL DEFAULT now()                              -- 更新时间

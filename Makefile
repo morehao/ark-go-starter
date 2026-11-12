@@ -134,7 +134,7 @@ test-integration:
 # 依赖预检：探测本地 PostgreSQL(5432)/Redis(6379) 是否就绪（e2e 复用本地实例）
 e2e-deps-check:
 	@ok=1; \
-	if ! nc -z 127.0.0.1 5432 2>/dev/null; then echo "❌ PostgreSQL(127.0.0.1:5432) 未就绪，请先启动本地 PG 并执行 tools/sql/table_init.sql"; ok=0; fi; \
+	if ! nc -z 127.0.0.1 5432 2>/dev/null; then echo "❌ PostgreSQL(127.0.0.1:5432) 未就绪，请先启动本地 PG 并执行 apps/api/db/table_init.sql"; ok=0; fi; \
 	if ! nc -z 127.0.0.1 6379 2>/dev/null; then echo "❌ Redis(127.0.0.1:6379) 未就绪，请先启动本地 Redis"; ok=0; fi; \
 	[ $$ok -eq 1 ] && echo "✅ 本地 PG/Redis 就绪" || exit 1
 
@@ -293,11 +293,11 @@ check-image:
 # 幂等，可重复执行不报错；端口被占自动降级复用外部依赖。
 # 用法：make quickstart [APP=demo] [IAM_ADMIN_USER=admin IAM_ADMIN_PASS=***]
 quickstart:
-	@bash tools/quickstart.sh
+	@bash scripts/quickstart.sh
 
 # 一键跑通（无 Docker / 复用本机已就绪的 PG 5432 与 Redis 6379）
 quickstart-local:
-	@SKIP_DEPS=1 bash tools/quickstart.sh
+	@SKIP_DEPS=1 bash scripts/quickstart.sh
 
 # 一键跑通验收：对已在运行的环境跑 IAM 登录全流程 e2e。
 # quickstart 以 op 模式启动（登录强制），故这里跑的是「未登录→跳登录页→账密登录→回跳

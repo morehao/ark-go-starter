@@ -6,7 +6,7 @@ import (
 
 // ProductEntity 商品管理表结构体
 //
-// 每个字段显式写 PG 的 type，与 tools/sql/table_init.sql 一一对应（结构体自描述，
+// 每个字段显式写 PG 的 type，与 apps/api/db/table_init.sql 一一对应（结构体自描述，
 // 读模型即知列类型）。type 必须是 PostgreSQL 合法类型：gorm 只把 bool/int/uint/float/string/
 // time/bytes 这类逻辑类型名交给方言映射，其它取值原样拼进 DDL，写成其它方言的字面量
 // （如 type:bigint unsigned）在 PG 建表会直接 syntax error at or near "unsigned"。

@@ -40,7 +40,7 @@ make quickstart-local
 脚本会依次：
 
 1. 探测/拉起依赖（PostgreSQL + Redis），端口已被占则自动降级为「复用现有实例」；
-2. `createdb demo`（不存在才建）→ 执行 `tools/sql/table_init.sql`（幂等建表）；
+2. `createdb demo`（不存在才建）→ 执行 `apps/api/db/table_init.sql`（幂等建表）；
 3. 后台起后端（:8099），等待 `/iam/install/status` 就绪；
 4. 首次运行时自动调用 `/iam/install/initialize` 创建管理员（**已初始化则跳过，不重置数据**）；
 5. 前台起前端（:3000），并在终端打印访问地址与登录账号密码。
@@ -129,7 +129,7 @@ docker compose -f deploy/compose/dev.yml up -d
 
 # 2) 建库建表
 docker exec -i ark-go-starter-postgres psql -U postgres -c 'CREATE DATABASE demo'   # 已存在可忽略
-docker exec -i ark-go-starter-postgres psql -U postgres -d demo -f - < tools/sql/table_init.sql
+docker exec -i ark-go-starter-postgres psql -U postgres -d demo -f - < apps/api/db/table_init.sql
 
 # 3) 起后端（BOOTSTRAP_TOKEN 与 config.yaml 的 install.bootstrapToken 一致即可）
 BOOTSTRAP_TOKEN=dev-bootstrap-token make run APP=demo   # :8099

@@ -8,11 +8,15 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm/schema"
+
+	"github.com/morehao/ark-go-starter/pkg/iamlink"
 )
 
-// postgresModels 是受本用例守护的模型清单，新增 model 时补进来。
+// postgresModels 是受本目录一致性用例守护的模型清单，新增 model 时补进来。
+// 跨模块的 model（如 pkg/iamlink 的映射表）也一并登记：它们的表同样由这份 DDL 建。
 var postgresModels = []any{
 	&ProductEntity{},
+	&iamlink.IAMUserMapEntity{},
 }
 
 // nonPostgresTypeTokens 是禁止出现在 gorm `type:` tag 里的其它方言字面量。
@@ -21,7 +25,7 @@ var postgresModels = []any{
 // 其它取值会被原样拼进 DDL。例如 `type:bigint unsigned` 在 PostgreSQL 上实测直接
 // `syntax error at or near "unsigned" (SQLSTATE 42601)`（PG 的等价写法是 type:bigint）。
 // 显式写 PG 类型是允许的（type:bigint、type:varchar(255)、type:jsonb 均可），与
-// tools/sql/table_init.sql 保持同款即可。
+// apps/api/db/table_init.sql 保持同款即可。
 var nonPostgresTypeTokens = []string{
 	"unsigned", "zerofill", "auto_increment",
 	"tinyint", "mediumint", "tinytext", "mediumtext", "longtext",
