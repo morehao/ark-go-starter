@@ -21,6 +21,7 @@ overrides:
 
 allowBuilds:
   esbuild: true
+  nx: true
 
 minimumReleaseAgeExclude:
   - '@morehao/ark-iam-react@0.2.0 || 0.3.0'

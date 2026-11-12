@@ -14,6 +14,7 @@ import globals from 'globals'
 import tseslint from 'typescript-eslint'
 import react from 'eslint-plugin-react'
 import reactHooks from 'eslint-plugin-react-hooks'
+import nxPlugin from '@nx/eslint-plugin'
 
 const GLOBAL_IGNORES = [
   '**/dist/**',
@@ -26,6 +27,29 @@ const GLOBAL_IGNORES = [
 
 export default tseslint.config(
   { ignores: GLOBAL_IGNORES },
+  // Nx 模块边界：注册 @nx 插件（flat/base 只注入插件），并在下方追加 enforce-module-boundaries 规则。
+  ...nxPlugin.configs['flat/base'],
+  {
+    files: ['**/*.{ts,tsx,js,jsx}'],
+    rules: {
+      // A7：按 tags 约束依赖方向 —— type:lib 不得依赖 type:app；contracts 只依赖同类。
+      '@nx/enforce-module-boundaries': [
+        'error',
+        {
+          enforceBuildableLibDependency: false,
+          allow: [],
+          depConstraints: [
+            // 应用（api/web/e2e）可依赖 公共库(lib) 与 契约(contracts)
+            { sourceTag: 'type:app', onlyDependOnLibsWithTags: ['type:lib', 'type:contracts'] },
+            // 公共库（libs-go / libs/ts/*）可依赖 其它库 与 契约，**不得依赖应用**
+            { sourceTag: 'type:lib', onlyDependOnLibsWithTags: ['type:lib', 'type:contracts'] },
+            // 契约平面只依赖契约，不被反向依赖到 app/lib 的具体实现
+            { sourceTag: 'type:contracts', onlyDependOnLibsWithTags: ['type:contracts'] },
+          ],
+        },
+      ],
+    },
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

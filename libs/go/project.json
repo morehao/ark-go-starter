@@ -1,0 +1,41 @@
+{
+  "name": "libs-go",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "libs/go",
+  "tags": ["type:lib", "lang:go"],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "go build ./...",
+        "cwd": "libs/go"
+      },
+      "cache": true
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "go test ./...",
+        "cwd": "libs/go"
+      },
+      "cache": true
+    },
+    "test-integration": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "go test -tags=integration ./...",
+        "cwd": "libs/go"
+      },
+      "cache": false
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "go vet ./...",
+        "cwd": "libs/go"
+      },
+      "cache": true
+    }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "ts-tsconfig",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "libs/ts/tsconfig",
+  "tags": [
+    "type:lib",
+    "lang:ts"
+  ],
+  "targets": {}
+}
