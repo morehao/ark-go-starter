@@ -107,6 +107,7 @@ ark-go-starter/
 11. **前端**：`main.tsx` 必须用 `AppShell` 包裹，管理页用 `PageContainer`；颜色/圆角/间距一律取 `@ark-go-starter/ui` 的 `tokens` 或 antd token，**禁止裸色值**；卡片无阴影、Table 必须 `tableLayout="fixed"` + 显式列宽。详见 [frontend-conventions.md](./docs/agents/frontend-conventions.md)；设计值事实源是 [docs/design-language.md](./docs/design-language.md)（改 `theme.ts` tokens 与它必须同步）。
 12. **注释**：每个包必须有 `// Package xxx` 注释，每个导出符号必须有以符号名开头的 godoc；`internal/dto/` 下结构体字段必须有行内中文注释；DDL 字段必须有行尾 `--` 注释 + `COMMENT ON COLUMN`（两份保持一致）。详见 [backend-conventions.md](./docs/agents/backend-conventions.md#注释规范)。
 13. **提交前自检**：`gofmt -w .` + `make lint`（必须 0 issues）+ `make test APP=demo` 三项全过再提交；`%w` 包装错误、blank import 写用途注释、连接池显式配置。详见 [backend-conventions.md](./docs/agents/backend-conventions.md#提交前自检硬性要求)。
+14. **目录命名**：`deploy/` 只放构建与部署资产（不进 `go.work` / `pnpm-workspace` / Nx 图），代码侧基础设施层统一叫 `internal/infra/`（当前预留不建；一旦建，`dao` / `client` / `storage` 必须同 PR 迁完删除）。详见 [backend-conventions.md](./docs/agents/backend-conventions.md#部署目录与基础设施层的命名边界)。
 
 ## 维护本文件
 
