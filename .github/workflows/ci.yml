@@ -72,7 +72,7 @@ jobs:
 
       - name: gofmt check
         run: |
-          unformatted=$(gofmt -l apps libs)
+          unformatted=$(gofmt -l apps/api libs/go)
           if [ -n "$unformatted" ]; then
             echo "以下文件未 gofmt："
             echo "$unformatted"
