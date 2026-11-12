@@ -1,7 +1,7 @@
 packages:
-  - 'apps/*'
-  - 'packages/*'
-  - 'e2e'
+  - 'frontend/apps/*'
+  - 'frontend/packages/*'
+  - 'frontend/e2e'
 
 allowBuilds:
   esbuild: true

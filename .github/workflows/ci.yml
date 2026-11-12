@@ -33,34 +33,28 @@ jobs:
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
         with:
-          # 与既有 e2e job / 本地 engines 保持单一事实源：读取 frontend/package.json 的 packageManager（pnpm@12.10.1）
-          package_json_file: frontend/package.json
+          # P1：前端 workspace 已上移到仓库根，单一事实源是根 package.json 的 packageManager（pnpm@12.10.1）
+          package_json_file: package.json
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 26
           cache: pnpm
-          cache-dependency-path: frontend/pnpm-lock.yaml
+          # P1：lockfile 已上移到根 pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
 
+      # P1：workspace 根在仓库根，pnpm 命令在根目录执行（成员仍为 frontend/apps/*、frontend/packages/*、frontend/e2e）
       - name: Install deps
-        run: |
-          cd frontend
-          pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Lint (ESLint)
-        run: |
-          cd frontend
-          pnpm lint
+        run: pnpm lint
 
       - name: Typecheck
-        run: |
-          cd frontend
-          pnpm typecheck
+        run: pnpm typecheck
 
       - name: Build
-        run: |
-          cd frontend
-          pnpm build
+        run: pnpm build
 
   lint:
     name: Lint
@@ -72,9 +66,9 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v7
         with:
-          go-version-file: backend/pkg/go.mod
+          go-version-file: go.work
           cache-dependency-path: |
-            backend/go.work.sum
+            go.work.sum
 
       - name: gofmt check
         run: |
@@ -136,9 +130,9 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v7
         with:
-          go-version-file: backend/pkg/go.mod
+          go-version-file: go.work
           cache-dependency-path: |
-            backend/go.work.sum
+            go.work.sum
 
       - name: Init PostgreSQL schema
         env:
@@ -163,9 +157,9 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v7
         with:
-          go-version-file: backend/pkg/go.mod
+          go-version-file: go.work
           cache-dependency-path: |
-            backend/go.work.sum
+            go.work.sum
 
       - name: govulncheck
         env:
@@ -213,23 +207,22 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v7
         with:
-          go-version-file: backend/pkg/go.mod
+          go-version-file: go.work
           cache-dependency-path: |
-            backend/go.work.sum
+            go.work.sum
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
         with:
-          # 省略 version：读取 frontend/package.json 的 packageManager（pnpm@12.10.1），
-          # 与本地/engines 保持单一事实源。package_json_file 指向 workspace 根的 package.json。
-          package_json_file: frontend/package.json
+          # P1：读取根 package.json 的 packageManager（pnpm@12.10.1），单一事实源在仓库根。
+          package_json_file: package.json
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          # 与 frontend/package.json 的 engines.node（>=26）对齐；Node 26 为当前 LTS。
+          # 与根 package.json 的 engines.node（>=26）对齐；Node 26 为当前 LTS。
           node-version: 26
           cache: pnpm
-          cache-dependency-path: frontend/pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Init PostgreSQL schema
         env:
@@ -257,14 +250,11 @@ jobs:
 
       - name: Install frontend deps
         run: |
-          cd frontend
           pnpm install --frozen-lockfile=false
           pnpm --filter @ark-go-starter/e2e exec playwright install --with-deps chromium
 
       - name: Frontend lint (ESLint)
-        run: |
-          cd frontend
-          pnpm lint
+        run: pnpm lint
 
       - name: Frontend e2e (Playwright)
         env:

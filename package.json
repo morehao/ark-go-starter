@@ -1,15 +1,15 @@
 {
-  "name": "ark-go-starter-frontend",
+  "name": "ark-go-starter",
   "private": true,
   "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "pnpm --filter @ark-go-starter/demo-web dev",
     "dev:demo": "pnpm --filter @ark-go-starter/demo-web dev",
-    "build": "pnpm -r --filter './packages/*' --filter './apps/*' build",
+    "build": "pnpm -r --filter './frontend/packages/*' --filter './frontend/apps/*' build",
     "typecheck": "pnpm -r --filter '!@ark-go-starter/tsconfig' exec tsc --noEmit -p tsconfig.json",
-    "lint": "eslint apps packages",
-    "lint:fix": "eslint apps packages --fix"
+    "lint": "eslint --config frontend/eslint.config.mjs frontend/apps frontend/packages",
+    "lint:fix": "eslint --config frontend/eslint.config.mjs frontend/apps frontend/packages --fix"
   },
   "engines": {
     "node": ">=26"
