@@ -20,41 +20,65 @@ env:
 jobs:
   frontend:
     name: Frontend
-    # P05-T1：新增前端门禁（lint + typecheck + build），与既有 Lint/Test/Security/E2E 四 job 并列，
-    # **不改**它们的 job id / name / 触发。路径过滤不在本 job 内做：顶层 on: 一旦加 paths 会把
-    # 既有 4 个 job（含后端）一起门控，破坏其触发，故本 job 与其余 job 一样在全部分支 push/PR 上运行；
-    # 过度触发由后续 P4-T3 的 `nx affected` 收敛（job 名保持不变）。
-    # 依赖：P05-T3（R2）修通 pnpm typecheck/build；当前本仓 frontend 三脚本本地实测均通过（lint 0 error/7 warning）。
+    # P0.5 建的前端门禁（lint + typecheck + build），P4-T3 改为 **Nx affected** 驱动：
+    # 只在受影响的前端包上跑 typecheck/build，减少无关改动下的耗时。
+    # 硬约束：job id `frontend` / name `Frontend` 不变；顶层 on: 触发语义不变；其它 4 个 job 名不变。
+    # Nx 缓存：不启用 Nx Cloud（已定不做），用本地 .nx/cache；CI 内不跨 run 持久化，缓存命中仅 run 内。
+    # 说明：前端项目当前无 `lint` target（lint 是根 `pnpm lint`，非 nx target），故 lint 保持整跑（很快）；
+    #       typecheck/build 走 affected（真正的耗时项按受影响范围收敛）。
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
+        with:
+          # Nx affected 需要 base..head 的 git 历史（计算 merge-base / 变更文件），浅克隆不够，故全量拉取。
+          fetch-depth: 0
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
         with:
-          # P1：前端 workspace 已上移到仓库根，单一事实源是根 package.json 的 packageManager（pnpm@12.10.1）
+          # 单一事实源：根 package.json 的 packageManager（pnpm@12.10.1）
           package_json_file: package.json
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 26
           cache: pnpm
-          # P1：lockfile 已上移到根 pnpm-lock.yaml
           cache-dependency-path: pnpm-lock.yaml
 
-      # P1/P2：workspace 根在仓库根，pnpm 命令在根目录执行（P2 后成员为 apps/web、libs/ts/*、tests/e2e）
       - name: Install deps
         run: pnpm install --frozen-lockfile
 
+      # 计算 Nx affected 的 base/head：
+      #  - PR：base = origin/<base_ref>（与目标分支的 merge-base 由 nx 自动求），head = HEAD
+      #  - push 到主干：base = HEAD~1（对比上一个提交）
+      - name: Compute Nx affected base/head
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.base_ref }}"
+            # fetch-depth:0 拉全历史，但 origin/<base_ref> 追踪 ref 不一定存在；显式确保它存在再用作 base
+            git fetch --no-tags origin "$BASE:refs/remotes/origin/$BASE" || true
+            BASE="origin/$BASE"
+          else
+            BASE="HEAD~1"
+          fi
+          echo "NX_BASE=$BASE" >> "$GITHUB_ENV"
+          echo "NX_HEAD=HEAD" >> "$GITHUB_ENV"
+          echo "Nx affected base=$BASE head=HEAD"
+
+      # lint：前端无 nx lint target，保持根 pnpm lint 整跑（apps/web + libs/ts，ESLint 很快）。
       - name: Lint (ESLint)
         run: pnpm lint
 
-      - name: Typecheck
-        run: pnpm typecheck
-
-      - name: Build
-        run: pnpm build
+      # 受影响前端包只跑 typecheck/build（含其依赖的 build）。
+      # --exclude='*,!tag:lang:ts'：只保留 tag lang:ts 的项目（web、libs/ts/*），排除 Go（api/libs-go）与 contracts，
+      # 避免前端 job 误跑 Go 项目的 build（且 api 的 build 在 go.work 根下会失败，属 R1 project.json 范畴，本 job 不碰）。
+      - name: Affected typecheck + build (Nx, TS only)
+        run: |
+          pnpm exec nx affected -t typecheck build \
+            --base="$NX_BASE" --head="$NX_HEAD" \
+            --exclude='*,!tag:lang:ts' \
+            --output-style=static
 
   lint:
     name: Lint

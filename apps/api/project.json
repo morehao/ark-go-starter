@@ -1,0 +1,41 @@
+{
+  "name": "api",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "apps/api",
+  "tags": ["type:app", "lang:go"],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "go build ./...",
+        "cwd": "apps/api"
+      },
+      "cache": true
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "go test ./...",
+        "cwd": "apps/api"
+      },
+      "cache": true
+    },
+    "test-integration": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "go test -tags=integration ./...",
+        "cwd": "apps/api"
+      },
+      "cache": false
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "go vet ./...",
+        "cwd": "apps/api"
+      },
+      "cache": true
+    }
+  }
+}

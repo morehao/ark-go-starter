@@ -17,10 +17,13 @@
   "packageManager": "pnpm@12.10.1",
   "devDependencies": {
     "@eslint/js": "^9.39.5",
+    "@nx/eslint-plugin": "^24.0.6",
+    "@nx/js": "^24.0.6",
     "eslint": "^9.39.5",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.14.0",
+    "nx": "^24.0.6",
     "typescript-eslint": "^8.72.2"
   }
 }
