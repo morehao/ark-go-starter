@@ -6,10 +6,10 @@
   "scripts": {
     "dev": "pnpm --filter @ark-go-starter/demo-web dev",
     "dev:demo": "pnpm --filter @ark-go-starter/demo-web dev",
-    "build": "pnpm -r --filter './frontend/packages/*' --filter './frontend/apps/*' build",
+    "build": "pnpm -r --filter './libs/ts/*' --filter './apps/web' build",
     "typecheck": "pnpm -r --filter '!@ark-go-starter/tsconfig' exec tsc --noEmit -p tsconfig.json",
-    "lint": "eslint --config frontend/eslint.config.mjs frontend/apps frontend/packages",
-    "lint:fix": "eslint --config frontend/eslint.config.mjs frontend/apps frontend/packages --fix"
+    "lint": "eslint --config eslint.config.mjs apps/web libs/ts",
+    "lint:fix": "eslint --config eslint.config.mjs apps/web libs/ts --fix"
   },
   "engines": {
     "node": ">=26"
