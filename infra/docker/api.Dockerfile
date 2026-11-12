@@ -18,6 +18,10 @@ RUN go build -ldflags="-s -w" -o /app/demo ./apps/api/cmd
 # 运行阶段
 FROM alpine:3.22
 
+# 运行阶段安装时区库：config.prod.yaml 的 PG DSN 带 TimeZone=Asia/Shanghai，
+# alpine 基础镜像不含 tzdata，缺了会 "unknown time zone Asia/Shanghai" 导致打开 DB 失败、容器 panic。
+RUN apk add --no-cache tzdata
+
 # 从构建阶段复制二进制文件
 COPY --from=builder /app/demo /app/demo
 

@@ -11,6 +11,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -161,12 +162,38 @@ func TestPanicResponseHasRequestID(t *testing.T) {
 	assert.Equal(t, requestID, resp.Header.Get(gconstant.HeaderRequestID), "panic 响应头应带 requestID")
 }
 
-// e2eLogDir 是 config.yaml 里 log.dir（../../../log）相对测试进程工作目录解析出的目录。
+// e2eLogDir 返回 e2e 运行时真实日志目录，与 config 的运行时路径解析（D10, runtime_paths.go）保持一致：
+//   - 优先环境变量 APP_LOG_DIR；
+//   - 缺省 <repoRoot>/.local/log（P2-T5 起运行时日志统一落仓库根 .local/log）。
 //
-// go test 把工作目录设为被测包目录（apps/demo/e2e），因此上溯三级即 backend/log，
-// 与 testsetup.Initialize → glog.InitLogger 使用的相对路径一致。
+// 不再用旧的 CWD 相对 "../../../log"（那是迁移前 backend/log 的约定，P2 后已失效）。
 func e2eLogDir() string {
-	return filepath.Join("..", "..", "..", "log")
+	if d := os.Getenv("APP_LOG_DIR"); d != "" {
+		return d
+	}
+	if root := e2eRepoRoot(); root != "" {
+		return filepath.Join(root, ".local", "log")
+	}
+	return filepath.Join(".local", "log")
+}
+
+// e2eRepoRoot 从当前测试文件位置向上找含 go.work 的目录（仓库根），避免写死上溯层数。
+func e2eRepoRoot() string {
+	_, file, _, ok := runtime.Caller(0)
+	if !ok {
+		return ""
+	}
+	dir := filepath.Dir(file) // .../apps/api/e2e
+	for {
+		if _, err := os.Stat(filepath.Join(dir, "go.work")); err == nil {
+			return dir
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return ""
+		}
+		dir = parent
+	}
 }
 
 // findLatestFullLog 找到最近被写入的「全量」日志文件（<dir>/<YYYYMMDD>/<service>_full.log）。
