@@ -1,0 +1,13 @@
+# Redocly CLI 配置（P5 试点契约校验）
+# 用途：make contracts-verify 用 `@redocly/cli lint` 校验 contracts/openapi/openapi.json。
+# 原则：结构/规范类错误必须 0（error 即失败）；以下两条为试点阶段的**已知非阻断 warning**，显式关闭以保证校验结果稳定、
+#       不受 Redocly 默认规则集版本漂移影响（将来补全 license/生产 servers 后应移除关闭项）。
+extends:
+  - recommended
+
+rules:
+  # 试点 spec 尚未声明 info.license（内部试点）；非阻断，关闭。
+  info-license: off
+  # 试点 servers 指向 http://localhost:8099（本地 dev）；非阻断，关闭。
+  # 生产化时应改成真实域名并从本配置移除该 off。
+  no-server-example.com: off

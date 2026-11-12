@@ -1,0 +1,4 @@
+{
+  "extends": "@ark-go-starter/tsconfig/base.json",
+  "include": ["src"]
+}

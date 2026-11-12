@@ -1,0 +1,178 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "ark-go-starter demo API (pilot)",
+    "description": "P5 Q6 试点：仅含 GET /v1/demo/products 一个接口，用于验证 swag→OpenAPI3.1 工具链。",
+    "version": "0.0.0-pilot"
+  },
+  "paths": {
+    "/v1/demo/products": {
+      "get": {
+        "tags": [
+          "商品管理"
+        ],
+        "summary": "商品管理列表分页",
+        "parameters": [
+          {
+            "description": "分类id（可选）",
+            "name": "categoryID",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "商品名称（可选，精确匹配）",
+            "name": "name",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "页码",
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "每页数据条数",
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "maximum": 1000
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "{\"code\": 0, \"requestID\": \"xxx\", \"data\": \"ok\", \"msg\": \"success\"}",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/gincontext.DtoRender"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/dtoproduct.ProductPageListResp"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数校验失败（code!=0 的业务错误）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/gincontext.DtoRender"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "listProducts"
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "dtoproduct.ProductPageListResp": {
+        "type": "object",
+        "properties": {
+          "list": {
+            "description": "数据列表",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/dtoproduct.ProductPageListItem"
+            }
+          },
+          "total": {
+            "description": "数据总条数",
+            "type": "integer"
+          }
+        }
+      },
+      "dtoproduct.ProductPageListItem": {
+        "type": "object",
+        "properties": {
+          "categoryID": {
+            "description": "分类id",
+            "type": "integer"
+          },
+          "createdAt": {
+            "description": "创建时间",
+            "type": "integer"
+          },
+          "createdBy": {
+            "description": "创建人id",
+            "type": "integer"
+          },
+          "name": {
+            "description": "商品名称",
+            "type": "string"
+          },
+          "price": {
+            "description": "价格",
+            "type": "number"
+          },
+          "productID": {
+            "description": "自增 ID",
+            "type": "integer"
+          },
+          "updatedAt": {
+            "description": "更新时间",
+            "type": "integer"
+          },
+          "updatedBy": {
+            "description": "更新人id",
+            "type": "integer"
+          }
+        }
+      },
+      "gincontext.DtoRender": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer"
+          },
+          "data": {},
+          "msg": {
+            "type": "string"
+          },
+          "requestID": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "OIDC access token（iam.mode=disabled 时走 DemoIdentity 请求头，可忽略）"
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8099",
+      "description": "本地 dev"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ]
+}
