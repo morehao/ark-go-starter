@@ -15,7 +15,7 @@ APP_CONFIG_PATH = /app/config.yaml
 GO_ENV = CGO_ENABLED=0 GOPROXY=https://goproxy.cn,direct
 
 # 注意：本项目所有目标都**不执行** `go work sync`。
-# 原因（go 1.27.3 实测）：go.work 只 use 了 ./apps/demo 与 ./pkg，`go work sync` 会把
+# 原因（go 1.27.3 实测）：go.work 只 use 了 ./backend/apps/demo 与 ./backend/pkg（go.work 已上移到仓库根），`go work sync` 会把
 # demo/go.mod 里显式 require 的 ark-iam 模块（如 github.com/morehao/ark-iam/pkg）当作
 # 冗余依赖从 go.mod 删掉（且未补进 go.work.sum），随后 go build / go test 直接报
 # "imports ... from implicitly required module"，干净检出下 `make build` / `make test` 必挂。
@@ -390,9 +390,11 @@ list-apps:
 	@ls -1 ./backend/apps
 
 # 运行代码检查工具（在 workspace 各模块目录内分别执行）
+# 说明：go.work 已上移到仓库根，DiskPath 形如 ./backend/apps/demo，均相对仓库根，
+# 故在仓库根（make 默认 cwd）读取并 cd 到各模块，不再 `cd backend`（否则路径会重复一层）。
 lint:
 	@echo "🔍 正在运行代码检查工具..."
-	@cd backend && go work edit -json | grep -o '"DiskPath": "[^"]*"' | awk '{gsub(/"/, "", $$2); print $$2}' | while read mod; do \
+	@go work edit -json | grep -o '"DiskPath": "[^"]*"' | awk '{gsub(/"/, "", $$2); print $$2}' | while read mod; do \
 		echo "  => lint $$mod"; \
 		(cd $$mod && golangci-lint run ./...); \
 	done
