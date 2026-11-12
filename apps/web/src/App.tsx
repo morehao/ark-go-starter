@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Layout, Menu, Typography } from 'antd'
 import { tokens } from '@ark-go-starter/ui'
 import ProductsPage from './pages/Products'
@@ -22,43 +22,109 @@ const PAGES: Record<string, () => React.JSX.Element> = {
   files: FilesPage,
 }
 
-const MENU_ITEMS = [
-  { key: 'products', label: '商品管理' },
-  { key: 'dicts', label: '数据字典' },
-  { key: 'settings', label: '配置中心' },
-  { key: 'cron', label: '定时任务' },
-  { key: 'async', label: '异步任务' },
-  { key: 'health', label: '健康检查' },
-  { key: 'files', label: '文件上传' },
+/** 侧栏分组：组名 + 组内菜单项（key / 标签 / 所属分组） */
+const MENU_GROUPS: { title: string; items: { key: string; label: string }[] }[] = [
+  {
+    title: '数据管理',
+    items: [
+      { key: 'products', label: '商品管理' },
+      { key: 'dicts', label: '数据字典' },
+      { key: 'settings', label: '配置中心' },
+    ],
+  },
+  {
+    title: '运行时',
+    items: [
+      { key: 'cron', label: '定时任务' },
+      { key: 'async', label: '异步任务' },
+      { key: 'health', label: '健康检查' },
+    ],
+  },
+  {
+    title: '系统',
+    items: [{ key: 'files', label: '文件上传' }],
+  },
 ]
 
+const MENU_LABELS: Record<string, string> = Object.fromEntries(
+  MENU_GROUPS.flatMap((g) => g.items.map((i) => [i.key, i.label])),
+)
+
+/** 从 URL hash 读取当前页 key（如 #dicts），非法值回落到 products。 */
+function readKeyFromHash(): string {
+  const key = window.location.hash.replace(/^#/, '')
+  return key && PAGES[key] ? key : 'products'
+}
+
 export default function App() {
-  const [activeKey, setActiveKey] = useState<string>('products')
+  const [activeKey, setActiveKey] = useState<string>(readKeyFromHash)
   const ActivePage = PAGES[activeKey] ?? ProductsPage
+
+  // 切页时同步到 URL hash，支持刷新保持与直接分享定位
+  useEffect(() => {
+    window.location.hash = activeKey
+  }, [activeKey])
+
+  const menuItems = MENU_GROUPS.map((g) => ({
+    type: 'group' as const,
+    key: g.title,
+    label: <span style={{ fontSize: 11, letterSpacing: '.06em', textTransform: 'uppercase' }}>{g.title}</span>,
+    children: g.items.map((i) => ({ key: i.key, label: i.label })),
+  }))
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Sider width={220} style={{ background: tokens.sidebarBg }}>
+      <Sider
+        width={236}
+        style={{
+          background: tokens.cardBg,
+          borderRight: `1px solid ${tokens.border}`,
+        }}
+      >
         <div
           style={{
-            height: 56,
+            height: 60,
             display: 'flex',
             alignItems: 'center',
-            padding: '0 20px',
-            color: tokens.headerBg,
-            fontWeight: 600,
-            fontSize: 15,
+            gap: 10,
+            padding: '0 18px',
+            borderBottom: `1px solid ${tokens.border}`,
           }}
         >
-          ark-go-starter
+          <span
+            style={{
+              width: 30,
+              height: 30,
+              borderRadius: 9,
+              background: tokens.gradient,
+              display: 'grid',
+              placeItems: 'center',
+              color: tokens.headerBg,
+              fontWeight: 800,
+              fontSize: 15,
+            }}
+          >
+            a
+          </span>
+          <div style={{ lineHeight: 1.15 }}>
+            <div style={{ fontSize: 14, fontWeight: 680, color: tokens.text }}>
+              ark-go-starter
+            </div>
+            <div style={{ fontSize: 11, color: tokens.textPlaceholder }}>
+              demo 控制台
+            </div>
+          </div>
         </div>
         <Menu
-          theme="dark"
           mode="inline"
           selectedKeys={[activeKey]}
-          items={MENU_ITEMS}
+          items={menuItems}
           onClick={({ key }) => setActiveKey(key)}
-          style={{ background: tokens.sidebarBg, borderInlineEnd: 'none' }}
+          style={{
+            background: tokens.cardBg,
+            borderInlineEnd: 'none',
+            padding: '8px 0',
+          }}
         />
       </Sider>
       <Layout>
@@ -66,14 +132,20 @@ export default function App() {
           style={{
             display: 'flex',
             alignItems: 'center',
+            justifyContent: 'space-between',
+            background: tokens.headerBg,
             borderBottom: `1px solid ${tokens.border}`,
+            paddingInline: 24,
           }}
         >
-          <Typography.Title level={5} style={{ color: tokens.text, margin: 0 }}>
-            {MENU_ITEMS.find((m) => m.key === activeKey)?.label ?? ''}
-          </Typography.Title>
+          <Typography.Text style={{ color: tokens.textPlaceholder, fontSize: 13 }}>
+            数据管理 /{' '}
+            <Typography.Text strong style={{ color: tokens.text, fontSize: 13 }}>
+              {MENU_LABELS[activeKey] ?? ''}
+            </Typography.Text>
+          </Typography.Text>
         </Header>
-        <Content style={{ padding: 20 }}>
+        <Content style={{ padding: 24, background: tokens.bg }}>
           <ActivePage />
         </Content>
       </Layout>

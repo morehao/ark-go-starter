@@ -70,7 +70,7 @@ components:
 - **定位**：工程实践模板的前端基座，「冷白工程台」——浅色、数据密集、克制。
 - **画布**：页面底色 `{colors.surface-layout}`（冷白）；内容承载于白色圆角卡片 `{colors.surface-card}`，卡片以 `1px solid {colors.border-hairline}` hairline 描边分层、**不使用卡片阴影**（阴影仅留给 Modal 等浮层）。
 - **品牌**：靛蓝 `{colors.brand-primary}` 是唯一强调色（主按钮 / 链接 / 选中态 / 输入聚焦）；渐变 `{colors.brand-gradient}` 仅出现在品牌区与 Logo/头像（全站唯一「hero 大气层」）。
-- **导航**：约定左侧深色栏 `{colors.surface-sidebar}`（#0f172a，近黑蓝），菜单选中项用 `{colors.surface-selected-bg}` 柔和半透明高亮（非整块亮色）；顶部白 Header 56px。demo 已使用深色侧栏 + 顶部 Header 的多页骨架，侧栏令牌已实际落地。
+- **导航**：左侧白侧栏 `{colors.surface-card}` + 右侧 hairline 边框，品牌区（Logo 用 `{colors.brand-gradient}` 方块）+ 分组菜单（数据管理 / 运行时 / 系统），菜单选中项用主色淡底 + 主色文字（`colorPrimary` 派生）；顶部白 Header 56px 放面包屑。深色侧栏令牌 `{colors.surface-sidebar}` 保留在 tokens 中（供品牌区/未来深色场景），demo 当前已切为白侧栏骨架。
 - **基调**：以「表格 + 搜索 + 抽屉/弹窗」构成业务页；页面表面一律**中性灰阶**（禁用靛蓝淡底 tint），把主色当作稀有资源；全站开启 `tabular-nums` 让 ID/时间/数字等宽对齐。
 
 > **参照锚点**：方法论受 **Stripe**（数据表格骨架、`tabular-nums`、ink-mute 灰阶文字）与 **Vercel**（精确灰阶分层、渐变只出现在品牌区这一个「hero 大气层」）启发，纪律细节参考 **Linear / Supabase**（主色稀有、hairline 层级）。非照搬任何具体品牌配色。
@@ -155,18 +155,26 @@ components:
 
 - 所有管理页用 `PageContainer` 包裹：`title`（必填）+ `description` + `extra`（右上操作区，如刷新、主操作）+ 内容。
 - 内容卡由组件内建（白底、hairline 边、12px 圆角、20px 内边距），页面不要重复套 Card。
+- 可选槽位（按需用，不传则不渲染）：
+  - `summary`：标题与内容卡之间的概要区（如指标卡条），页面自备内容，典型用 `StatRow` + `StatCard`；
+  - `toolbar`：内容卡顶部工具条（分段 Tab / 搜索筛选区），与内容卡共享外框、底部 hairline 分隔，保证「工具条紧贴表格」的观感。
+- 指标卡用 `StatCard`（左侧 3px 彩条 + 名称 + 大号数值 + 说明；`accent` 传 `tokens.*`；`danger` 使说明文字用错误色），外层用 `StatRow` 做等宽网格（`auto-fit minmax(200px,1fr)`，窄屏自动换行）。彩条默认主色，可按语义传 `tokens.success` / `tokens.purple` 等，但同屏不宜超过 4 种。
 
 ### 7.3 列表页模板
 
 按以下顺序书写，保证各列表页观感一致：
 
 ```
-PageContainer(title, description, extra=刷新 + 主操作[type=primary])
-  ├─ 搜索区（Input.Search 240 / Select 筛选）
+PageContainer(title, description, extra=刷新 + 主操作[type=primary],
+              summary=StatRow(StatCard…)?,      // 概要区（可选）
+              toolbar=搜索/筛选区?)              // 工具条（可选）
+  ├─ 搜索区（Input.Search 240 / InputNumber / Select 筛选）
   ├─ Table(rowKey, loading, tableLayout="fixed", scroll={{ x: 列宽之和 }}, pagination.showTotal + showSizeChanger)
   └─ 新建/编辑 Modal（layout="vertical" + confirmLoading）
      详情 Drawer（Descriptions bordered size="small"）
 ```
+
+> 切页靠 `App.tsx` 的菜单 + `useState`，并同步到 URL hash（如 `#products`），支持刷新保持与直接分享定位；业务页 URL 可回退的完整路由仍待引入。
 
 **列宽硬规则**
 
@@ -223,6 +231,6 @@ PageContainer(title, description, extra=刷新 + 主操作[type=primary])
 ## Known Gaps
 
 1. `theme.ts` 与本文档（design-language.md）为**人工同步**，暂无 lint/test 强制一致。
-2. 当前 `packages/ui` 仅落地 `theme` / `AppShell` / `PageContainer` 三项；状态 Tag 字典、列宽工厂（`idColumn` / `timeColumn` / `actionColumn`）、`TimeCell`、`IDCell`、`RemoteSelect` 等按业务需要再逐步引入，并同步补充本文件。
-3. demo 已使用深色侧栏 + 顶部 Header 多页骨架（业务页切换仍用菜单 + `useState`，但 `apps/web/src/auth/` 已引入 `react-router-dom` 的 `BrowserRouter` 承载登录回调路由），侧栏令牌已落地；登录页已落地（`@morehao/ark-iam-react/login`，op/rp/disabled 三态）。
-4. 业务页暂未走路由库、未接入状态管理库；如需多页应用 URL 可定位/可回退，先补 `AppShell` 之外的 `MainLayout` 规范再落地。
+2. 当前 `packages/ui` 已落地 `theme` / `AppShell` / `PageContainer`（含 `summary` / `toolbar` 槽位）/ `StatCard` + `StatRow`；状态 Tag 字典、列宽工厂（`idColumn` / `timeColumn` / `actionColumn`）、`TimeCell`、`IDCell`、`RemoteSelect` 等按业务需要再逐步引入，并同步补充本文件。
+3. demo 侧栏已由深色改为**白侧栏**（品牌区 + 分组菜单：数据管理 / 运行时 / 系统），顶栏改为面包屑；业务页切换用菜单 + `useState` 并同步 URL hash；`apps/web/src/auth/` 已引入 `react-router-dom` 的 `BrowserRouter` 承载登录回调路由；登录页已落地（`@morehao/ark-iam-react/login`，op/rp/disabled 三态）。
+4. 业务页暂未走路由库（当前用 hash 记忆当前页，非完整路由）、未接入状态管理库；如需业务页 URL 可回退/可深链的完整路由，先补 `AppShell` 之外的 `MainLayout` 规范再落地。

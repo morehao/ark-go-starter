@@ -121,12 +121,20 @@ function withPaging<T extends PageQuery>(params: T): Record<string, unknown> {
 
 // ============================ 商品 Product ============================
 
+/** 商品列表筛选参数：分页 + 名称（精确匹配）/ 分类 id */
+export interface ProductListQuery extends PageQuery {
+  // 商品名称（精确匹配，可选）
+  name?: string
+  // 分类 id（可选）
+  categoryID?: number
+}
+
 /** 商品分页列表 GET /demo/products */
-export function getProducts(params: PageQuery = {}) {
+export function getProducts(params: ProductListQuery = {}) {
   return request<PageResult<ProductPageListItem>>({
     url: '/demo/products',
     method: 'get',
-    params: toPageQuery(params),
+    params: withPaging(params),
   })
 }
 
