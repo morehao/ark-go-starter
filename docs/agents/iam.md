@@ -13,7 +13,7 @@
 - **rp**：对接外部 ark-iam 服务，本进程只做本地验签（Relying Party）。
 
 > ⚠️ **注意区分「选项默认」与「仓库自带配置」**：`mode` 留空时的回落值是 `disabled`，但
-> **仓库自带的 dev 配置 `backend/apps/demo/config/config.yaml` 显式写的是 `mode: op`（登录强制）**，
+> **仓库自带的 dev 配置 `apps/api/config/config.yaml` 显式写的是 `mode: op`（登录强制）**，
 > 自带的 prod 配置 `config.prod.yaml` 才是 `disabled`。所以按 quickstart 跑起来时，浏览器会强制
 > 跳 `/iam/login`（用 quickstart 打印的账号密码登录），而不是免登录。
 
@@ -38,7 +38,7 @@
 
 ---
 
-## 1. 相关源码（均在 `backend/apps/demo`）
+## 1. 相关源码（均在 `apps/api`）
 
 | 文件 | 职责 |
 |------|------|
@@ -46,8 +46,8 @@
 | `iam_setup.go`（`SetupIAM`） | 单一装配入口：按 `mode` 分派 disabled / op / rp，返回 `io.Closer` |
 | `app.go`（`Routers` / `buildAuthMiddleware`） | 按 `mode` 装配鉴权中间件（op/rp 共用 `OIDCAuth`） |
 | `internal/middleware/oidc_auth.go` | 业务接口 OIDC 本地验签中间件（依赖 `contract.KeySource`） |
-| `backend/pkg/iamlink/*` | IAM string 身份 ↔ 本地 BIGINT 用户 ID 的映射层（与形态无关，三态通用） |
-| `backend/scripts/sql/table_init.sql` | 业务表 DDL（含 `biz_iam_user_map`）；不含 `iam_` 表 |
+| `libs/go/iamlink/*` | IAM string 身份 ↔ 本地 BIGINT 用户 ID 的映射层（与形态无关，三态通用） |
+| `tools/sql/table_init.sql` | 业务表 DDL（含 `biz_iam_user_map`）；不含 `iam_` 表 |
 
 ---
 
@@ -175,7 +175,7 @@ require (
 )
 ```
 
-- `backend/go.work` 只 `use ./apps/demo` 与 `./pkg`（本仓自己的模块），不涉及外部源码。
+- `go.work` 只 `use ./apps/api` 与 `./libs/go`（本仓自己的模块），不涉及外部源码。
 - 下游模板用户：`go mod download` 即可，无需任何本地源码准备。
 - `sdk` 会传递引入 `backend/apps/{auth,platformadmin,tenantadmin}` 作为 indirect 依赖——这是 ark-iam 内部分层，消费者无需感知。
 
@@ -199,7 +199,7 @@ biz_iam_user_map
 ```
 
 - 写入走幂等 upsert（`ON CONFLICT (iam_user_id) DO UPDATE ... RETURNING local_uid`），单语句原子、并发安全。
-- 首次登录自动分配 `local_uid`，已存在则原样返回；`pkg/iamlink.Svc.EnsureLocalUser` 是唯一入口，带 30 分钟 Redis 缓存。
+- 首次登录自动分配 `local_uid`，已存在则原样返回；`libs/go/iamlink.Svc.EnsureLocalUser` 是唯一入口，带 30 分钟 Redis 缓存。
 - 该映射层**与 iam.mode 无关**（op/rp 都用它），op/rp 切形态不触碰 `iamlink`、业务表、审计列。
 
 > 边界：本地 `local_uid` 与业务表主键是**两套 ID 空间**——映射表只负责把「谁」投影成本地 uint，业务侧对 IAM 零感知。

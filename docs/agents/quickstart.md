@@ -12,8 +12,8 @@
 
 ## 0. 你需要准备什么
 
-- **Go** **1.27.3+**（`backend/go.work` 与各 `go.mod` 均为 `go 1.27.3` 指令，无 `toolchain` 行；低于此版本 `go work`/构建会直接报 `requires go >= 1.27.3`）
-- **Node** **≥26** 与 **pnpm** **12**（`frontend/package.json` 的 `engines.node >=26`、`packageManager: pnpm@12.10.1`，`.nvmrc` 为 26.13.0；Node 20/22 会因引擎校验导致 `pnpm install` 失败）
+- **Go** **1.27.4+**（`go.work` 与各 `go.mod` 均为 `go 1.27.4` 指令，无 `toolchain` 行；低于此版本 `go work`/构建会直接报 `requires go >= 1.27.4`）
+- **Node** **≥26** 与 **pnpm** **12**（根 `package.json` 的 `engines.node >=26`、`packageManager: pnpm@12.10.1`，`.nvmrc` 为 26.13.0；Node 20/22 会因引擎校验导致 `pnpm install` 失败）
 - 依赖二选一：
   - **有 Docker（推荐）**：无需自备 PG/Redis，`make quickstart` 会自动拉起。
   - **无 Docker**：自备本机 **PostgreSQL(5432)** 与 **Redis(6379)**，用 `make quickstart-local`。
@@ -40,7 +40,7 @@ make quickstart-local
 脚本会依次：
 
 1. 探测/拉起依赖（PostgreSQL + Redis），端口已被占则自动降级为「复用现有实例」；
-2. `createdb demo`（不存在才建）→ 执行 `backend/scripts/sql/table_init.sql`（幂等建表）；
+2. `createdb demo`（不存在才建）→ 执行 `tools/sql/table_init.sql`（幂等建表）；
 3. 后台起后端（:8099），等待 `/iam/install/status` 就绪；
 4. 首次运行时自动调用 `/iam/install/initialize` 创建管理员（**已初始化则跳过，不重置数据**）；
 5. 前台起前端（:3000），并在终端打印访问地址与登录账号密码。
@@ -100,7 +100,7 @@ make quickstart-verify IAM_ADMIN_USER=admin IAM_ADMIN_PASS='你的密码'
 ## 5. 常见坑（Troubleshooting）
 
 - **登录后一直停在 8099 的「接口不存在」/404**：`iam.issuer` 必须指向前端 origin
-  `http://localhost:3000/iam/oidc`（`backend/apps/demo/config/config.yaml` 已配好）。
+  `http://localhost:3000/iam/oidc`（`apps/api/config/config.yaml` 已配好）。
   这是因为登录页 SPA 跑在前端 3000，issuer 若按后端端口推导会去 8099 找登录页。
 - **`/iam/install/status` 的 `schemaReady=false`**：业务表没建出来。确认 `table_init.sql`
   已执行（`make quickstart` 会自动执行；手动跑见下）。
@@ -129,7 +129,7 @@ docker compose -f docker-compose.dev.yml up -d
 
 # 2) 建库建表
 docker exec -i ark-go-starter-postgres psql -U postgres -c 'CREATE DATABASE demo'   # 已存在可忽略
-docker exec -i ark-go-starter-postgres psql -U postgres -d demo -f - < backend/scripts/sql/table_init.sql
+docker exec -i ark-go-starter-postgres psql -U postgres -d demo -f - < tools/sql/table_init.sql
 
 # 3) 起后端（BOOTSTRAP_TOKEN 与 config.yaml 的 install.bootstrapToken 一致即可）
 BOOTSTRAP_TOKEN=dev-bootstrap-token make run APP=demo   # :8099
@@ -160,4 +160,4 @@ make dev-frontend   # 或 make dev-all 一起起
 
 - [docs/agents/iam.md](./iam.md)：可选 IAM（disabled/op/rp 三态）接入与登录排查
 - [docs/agents/commands.md](./commands.md)：完整命令大全
-- [frontend/DESIGN.md](../../frontend/DESIGN.md)：前端设计语言（改样式前必读）
+- [docs/design-language.md](../../docs/design-language.md)：前端设计语言（改样式前必读）

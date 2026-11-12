@@ -36,16 +36,16 @@ make quickstart-verify IAM_ADMIN_USER=admin IAM_ADMIN_PASS='<your password>'
 
 # Features
 
-* **Clear Project Structure**: Inspired by [project-layout](https://github.com/golang-standards/project-layout), follows layered architecture principles. Frontend and backend are separated (`backend/` + `frontend/`), organized for team collaboration and long-term maintenance.
+* **Clear Project Structure**: Inspired by [project-layout](https://github.com/golang-standards/project-layout), follows layered architecture principles. Monorepo layout: `apps/` (applications: `apps/api` Go backend, `apps/web` React frontend), `libs/` (`libs/go` shared Go layer, `libs/ts` shared frontend packages), `tests/e2e`, `tools/`, `infra/`, organized for team collaboration and long-term maintenance.
 * **Common Component Integration**: Includes built-in examples for PostgreSQL, Redis, and Elasticsearch.
 * **Full Link Logging**: Provides a custom logging package `glog` based on `zap`, supporting full trace ID propagation across PostgreSQL, Redis, ES, and HTTP calls.
 * **Code Generation Tool**: Comes with a command-line tool `gocli` that can generate standardized code (including model, dao, object, dto, code, service, controller, router layers) based on config.
 * **Swagger API Documentation**: Automatically generate interactive API docs using `swaggo` for easier frontend-backend collaboration and testing.
-* **Frontend Monorepo**: Shared `packages/` (tsconfig/types/api) via pnpm workspace; business apps live in `apps/`.
+* **Frontend Monorepo**: Shared `libs/ts/` (tsconfig/types/api/ui) via pnpm workspace; the business app lives in `apps/web`.
 * **Docker Support**: Includes a basic `Dockerfile` for containerized deployment.
 * **Makefile Toolchain**: Provides a rich set of make commands to simplify code build, run, generation, Swagger docs, Docker deployment, and frontend startup.
 * **Growing Golib Library**: Common utility components are abstracted and reusable via the [golib](https://github.com/morehao/golib) package.
-* **Optional Account Auth (ark-iam, three modes)**: Choose via `iam.mode` — `disabled` (no auth), `op` (embed an OIDC Provider in this process — this project *is* the IAM), or `rp` (delegate to an external ark-iam, local verify only). **The shipped dev config (`backend/apps/demo/config/config.yaml`) uses `op`, so login is enforced** (quickstart prints the admin credentials); the shipped prod config uses `disabled`, and an empty `mode` also falls back to `disabled`. See [docs/agents/iam.md](./docs/agents/iam.md).
+* **Optional Account Auth (ark-iam, three modes)**: Choose via `iam.mode` — `disabled` (no auth), `op` (embed an OIDC Provider in this process — this project *is* the IAM), or `rp` (delegate to an external ark-iam, local verify only). **The shipped dev config (`apps/api/config/config.yaml`) uses `op`, so login is enforced** (quickstart prints the admin credentials); the shipped prod config uses `disabled`, and an empty `mode` also falls back to `disabled`. See [docs/agents/iam.md](./docs/agents/iam.md).
 
 ---
 
@@ -55,30 +55,32 @@ Follows [project-layout](https://github.com/golang-standards/project-layout). Cu
 
 ```bash
 .
-├── backend                 # Go backend project (go.work multi-module)
-│   ├── apps
-│   │   └── demo            # Demo example app
-│   │       ├── cmd         # Entry point
-│   │       ├── client      # External clients
-│   │       ├── config      # Config
-│   │       ├── dao         # Data access layer
-│   │       ├── model       # Data models
-│   │       ├── docs        # Swagger docs
-│   │       ├── internal    # controller / dto / router / service / middleware
-│   │       ├── object      # Base objects
-│   │       └── scripts     # Dockerfile etc.
-│   ├── pkg                 # Shared packages (code / dbclient / testsetup / token)
-│   ├── go.work             # Go workspace file
-│   └── output              # Build output
-├── frontend                # React frontend project (pnpm monorepo)
-│   ├── apps
-│   │   └── demo-web        # Demo frontend app (Vite + React + AntD)
-│   ├── packages            # Shared packages (ui / api / types / tsconfig)
-│   └── DESIGN.md           # Frontend design language (single source of visual truth)
-├── Makefile                # Root Makefile (backend + frontend commands)
-├── AGENTS.md               # AI agent entry (conventions index)
-└── docs                    # Documentation
-    └── agents              # Development conventions (split from AGENTS.md)
+├── apps
+│   ├── api                     # Go backend app (Gin, :8099; logical name demo → dir api)
+│   │   ├── cmd                 # Entry point
+│   │   ├── client              # External clients
+│   │   ├── config              # Config
+│   │   ├── dao                 # Data access layer
+│   │   ├── model               # Data models
+│   │   ├── docs                # Swagger docs
+│   │   ├── e2e                 # Backend e2e (real port)
+│   │   ├── internal            # controller / dto / router / service / middleware
+│   │   └── object              # Base objects
+│   └── web                     # React frontend app (Vite + React + AntD, :3000)
+├── libs
+│   ├── go                      # Shared Go layer (code / dbclient / testsetup / token / ginhelper / iamlink / operator)
+│   └── ts                      # Shared frontend packages (api / types / ui / tsconfig)
+├── tests
+│   └── e2e                     # E2E tests (Playwright specs + A4 golden)
+├── tools                       # Scripts & SQL (quickstart.sh, sql/table_init.sql)
+├── infra                       # Container & orchestration (docker/api.Dockerfile, compose/dev.yml)
+├── contracts                   # Contract plane (P5, not yet created)
+├── docs                        # Documentation (agents/ conventions, design-language.md)
+├── go.work                     # Root Go workspace
+├── package.json                # Root frontend workspace manifest
+├── pnpm-workspace.yaml         # Root pnpm workspace definition
+├── Makefile                    # Root Makefile (backend + frontend commands)
+└── AGENTS.md                   # AI agent entry (conventions index)
 ```
 
 ---
@@ -93,7 +95,7 @@ Install the CLI tool:
 go install github.com/morehao/gocli@latest
 ```
 
-Ensure a `code_gen.yaml` config file exists under the application directory, e.g., `ark-go-starter/apps/demo/config/code_gen.yaml`.
+Ensure a `code_gen.yaml` config file exists under the application directory, e.g., `apps/api/config/code_gen.yaml`.
 
 Run code generation commands:
 
@@ -136,15 +138,14 @@ http://localhost:8099/demo/redocs
 
 ## Frontend Development
 
-Install dependencies and start dev server under `frontend/`:
+Install dependencies and start the dev server from the **repo root** (pnpm workspace root):
 
 ```bash
-cd frontend
 pnpm install
 pnpm dev        # default :3000, proxies /v1 → http://localhost:8099
 ```
 
-Or from the repo root: `make dev-frontend` to start, `make stop-frontend` to stop.
+Or use `make dev-frontend` to start and `make stop-frontend` to stop.
 > The frontend depends on the backend; start the backend first via `make run APP=demo`.
 
 ---

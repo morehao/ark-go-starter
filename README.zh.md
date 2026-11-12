@@ -31,46 +31,48 @@ make quickstart-verify IAM_ADMIN_USER=admin IAM_ADMIN_PASS='你的密码'
 `ark-go-starter` 是一个前后端一体的 Go Web 全栈工程实践项目：后端基于 [Gin](https://github.com/gin-gonic/gin) + GORM（Go workspace 多模块），前端基于 React + Vite + Ant Design（pnpm monorepo），提供分层清晰、可维护、可扩展的多应用服务结构。
 # 项目特点
 
-- 清晰的项目结构：参考了[project-layout](https://github.com/golang-standards/project-layout)，遵循分层架构思想，前后端分离（`backend/` + `frontend/`），目录组织合理，便于团队协作与长期维护。
+- 清晰的项目结构：参考了[project-layout](https://github.com/golang-standards/project-layout)，遵循分层架构思想，采用 monorepo 布局：`apps/`（应用：`apps/api` Go 后端、`apps/web` React 前端）、`libs/`（`libs/go` Go 公共层、`libs/ts` 前端共享包）、`tests/e2e`、`tools/`、`infra/`，目录组织合理，便于团队协作与长期维护。
 - 常用组件集成：PostgreSQL、Redis、ES。
 - 全链路日志追踪：基于`zap`封装的日志组件`glog`,支持链路 ID 贯穿 PostgreSQL、Redis、ES、Http 调用。
 - 代码生成工具：提供`gocli`命令行工具，支持根据配置快速生成标准代码（包括 model、dao、object、dto、code、service、controller、router层代码）。
 - `Swagger`文档支持：使用`swaggo`自动生成 API 文档，方便前后端联调与测试。
-- 前端 Monorepo：基于 pnpm workspace 共享 `packages/`（tsconfig/types/api），业务应用放在 `apps/`。
+- 前端 Monorepo：基于 pnpm workspace 共享 `libs/ts/`（tsconfig/types/api/ui），业务应用放在 `apps/web`。
 - Docker 支持： 提供基础的`Dockerfile`，实现容器化部署
 - 丰富的`Makefile`工具链：支持`make`命令快速构建、运行、代码生成、接口文档生成、docker 部署、前端启动等基础操作。
 - 逐渐丰富的`golib`库：对常用组件封装，使用更友好。
-- 可选账号认证（ark-iam 三态）：由 `iam.mode` 决定——`disabled`（不接入）、`op`（本进程内嵌 OIDC Provider，本项目自身就是 IAM）、`rp`（对接外部 ark-iam，本地验签）。**仓库自带的 dev 配置（`backend/apps/demo/config/config.yaml`）为 `op`，即登录强制**（quickstart 会打印管理员账号密码）；自带 prod 配置为 `disabled`，`mode` 留空时也回落为 `disabled`。详见 [docs/agents/iam.md](./docs/agents/iam.md)。
+- 可选账号认证（ark-iam 三态）：由 `iam.mode` 决定——`disabled`（不接入）、`op`（本进程内嵌 OIDC Provider，本项目自身就是 IAM）、`rp`（对接外部 ark-iam，本地验签）。**仓库自带的 dev 配置（`apps/api/config/config.yaml`）为 `op`，即登录强制**（quickstart 会打印管理员账号密码）；自带 prod 配置为 `disabled`，`mode` 留空时也回落为 `disabled`。详见 [docs/agents/iam.md](./docs/agents/iam.md)。
 
 # 项目结构
 
 参考了[project-layout](https://github.com/golang-standards/project-layout)。当前项目结构如下：
 ```bash
 .
-├── backend                 # Go 后端项目（go.work 多模块）
-│   ├── apps
-│   │   └── demo            # Demo 示例应用
-│   │       ├── cmd         # 入口函数
-│   │       ├── client      # 外部客户端
-│   │       ├── config      # 配置
-│   │       ├── dao         # 数据访问层
-│   │       ├── model       # 数据模型
-│   │       ├── docs        # Swagger 文档
-│   │       ├── internal    # controller / dto / router / service / middleware
-│   │       ├── object      # 基础对象
-│   │       └── scripts     # Dockerfile 等
-│   ├── pkg                 # 公共包（code / dbclient / testsetup / token）
-│   ├── go.work             # Go workspace 管理文件
-│   └── output              # 构建产物
-├── frontend                # React 前端项目（pnpm monorepo）
-│   ├── apps
-│   │   └── demo-web        # 演示前端应用（Vite + React + AntD）
-│   ├── packages            # 共享包（ui / api / types / tsconfig）
-│   └── DESIGN.md           # 前端设计语言（视觉规范事实源）
-├── Makefile                # 根 Makefile（backend + frontend 双端命令）
-├── AGENTS.md               # AI 代理入口（开发规范索引）
-└── docs                    # 文档
-    └── agents              # 开发规范正文（由 AGENTS.md 拆分）
+├── apps
+│   ├── api                     # Go 后端应用（Gin，:8099；逻辑名 demo → 目录 api）
+│   │   ├── cmd                 # 入口函数
+│   │   ├── client              # 外部客户端
+│   │   ├── config              # 配置
+│   │   ├── dao                 # 数据访问层
+│   │   ├── model               # 数据模型
+│   │   ├── docs                # Swagger 文档
+│   │   ├── e2e                 # 后端真端口 e2e
+│   │   ├── internal            # controller / dto / router / service / middleware
+│   │   └── object              # 基础对象
+│   └── web                     # React 前端应用（Vite + React + AntD，:3000）
+├── libs
+│   ├── go                      # Go 公共层（code / dbclient / testsetup / token / ginhelper / iamlink / operator）
+│   └── ts                      # 前端共享包（api / types / ui / tsconfig）
+├── tests
+│   └── e2e                     # 端到端测试（Playwright specs + A4 golden）
+├── tools                       # 脚本与 SQL（quickstart.sh、sql/table_init.sql）
+├── infra                       # 容器与编排（docker/api.Dockerfile、compose/dev.yml）
+├── contracts                   # 契约平面（P5 规划，暂未创建）
+├── docs                        # 文档（agents/ 规范、design-language.md 设计语言）
+├── go.work                     # 根 Go workspace
+├── package.json                # 根前端 workspace 清单
+├── pnpm-workspace.yaml         # 根 pnpm workspace 定义
+├── Makefile                    # 根 Makefile（后端 + 前端命令）
+└── AGENTS.md                   # AI 代理入口（开发规范索引）
 ```
 
 # 基础功能
@@ -81,7 +83,7 @@ make quickstart-verify IAM_ADMIN_USER=admin IAM_ADMIN_PASS='你的密码'
 ```bash
 go install github.com/morehao/gocli@latest
 ```
-确保项目应用目录下有代码生成配置文件，示例：`ark-go-starter/apps/demo/config/code_gen.yaml`。代码生成命令如下：
+确保项目应用目录下有代码生成配置文件，示例：`apps/api/config/code_gen.yaml`。代码生成命令如下：
 ```bash
 # 基于表生成整个功能模块
 make codegen APP=demo COMMAND=module
@@ -107,13 +109,12 @@ make swag APP=demo
 
 ## 前端开发
 
-进入 `frontend/` 目录安装依赖并启动：
+在**仓库根**（pnpm workspace 根）安装依赖并启动：
 ```bash
-cd frontend
 pnpm install
 pnpm dev        # 默认 :3000，代理 /v1 → http://localhost:8099
 ```
-也可在项目根目录通过 `make dev-frontend` 启动、`make stop-frontend` 停止。
+也可通过 `make dev-frontend` 启动、`make stop-frontend` 停止。
 > 前端依赖后端服务，请先执行 `make run APP=demo` 启动后端。
 
 ## 项目部署

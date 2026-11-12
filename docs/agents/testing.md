@@ -5,7 +5,7 @@
 ## 约定
 
 - 测试文件放在同包或 `_test` 包中，**文件名与被测源文件同名**（`user.go` → `user_test.go`），不要按函数名命名
-- 使用 `pkg/testsetup` 初始化测试环境：`testsetup.Initialize(testsetup.AppNameDemo)` / `testsetup.Close(testsetup.AppNameDemo)`；需要带身份的 ctx 用 `testsetup.NewContext(...)`。详见 [pkg/testsetup/README.md](../../backend/pkg/testsetup/README.md)
+- 使用 `libs/go/testsetup` 初始化测试环境：`testsetup.Initialize(testsetup.AppNameDemo)` / `testsetup.Close(testsetup.AppNameDemo)`；需要带身份的 ctx 用 `testsetup.NewContext(...)`。详见 [libs/go/testsetup/README.md](../../libs/go/testsetup/README.md)
 - 使用标准库 `testing` 包和 `testify`（`assert` / `require`）
 
 ```go
@@ -58,13 +58,13 @@ func TestDbcheckVerify(t *testing.T) {
 
 | 层 | 位置 | build tag / 命令 | 说明 |
 | --- | --- | --- | --- |
-| 后端集成级 e2e | `apps/demo/internal/controller/ctrproduct/product_e2e_test.go` | `//go:build integration`，`make test-integration` | 进程内真栈（httptest）+ 真库，快、定位准 |
-| 后端真端口 e2e | `apps/demo/e2e/` | `//go:build e2e`，`make e2e-backend` | 真实 TCP 端口 + 真库，验证二进制可起、端口可通 |
-| 前端 Playwright e2e | `frontend/e2e/` | `make e2e-frontend` | 真浏览器 + 前端服务 + 真后端，覆盖核心用户路径 |
+| 后端集成级 e2e | `apps/api/internal/controller/ctrproduct/product_e2e_test.go` | `//go:build integration`，`make test-integration` | 进程内真栈（httptest）+ 真库，快、定位准 |
+| 后端真端口 e2e | `apps/api/e2e/` | `//go:build e2e`，`make e2e-backend` | 真实 TCP 端口 + 真库，验证二进制可起、端口可通 |
+| 前端 Playwright e2e | `tests/e2e/` | `make e2e-frontend` | 真浏览器 + 前端服务 + 真后端，覆盖核心用户路径 |
 
 **硬性规则**：
 - 后端 e2e 用例必须加 `//go:build e2e`，`go test ./...` 与 `make test` 默认不执行，不污染单元信号。
-- 前端 e2e 的数据统一加 `e2e-` 前缀 + 时间戳保证唯一，并在 `frontend/e2e/support/teardown.ts` 兜底清理，避免脏数据留在真实库。
+- 前端 e2e 的数据统一加 `e2e-` 前缀 + 时间戳保证唯一，并在 `tests/e2e/support/teardown.ts` 兜底清理，避免脏数据留在真实库。
 - 前端 Playwright 依赖后端运行在 `http://localhost:8099`（vite `/v1` 代理转发）；由 Makefile / CI 负责拉起后端。
 
 ```bash
@@ -82,7 +82,7 @@ make e2e-frontend            # 前端 Playwright（需先启动后端 8099，Pla
 make e2e-deps-check
 ```
 
-> 复用本地 PG/Redis 的策略：e2e 沿用 `backend/apps/demo/config/config.yaml` 指向的本地实例，
+> 复用本地 PG/Redis 的策略：e2e 沿用 `apps/api/config/config.yaml` 指向的本地实例，
 > 未就绪时 `make e2e-deps-check` 会明确报错，不自动起库。
 
 ## 断言约定
@@ -107,18 +107,18 @@ make test APP=demo
 # 集成测试（需本地 PostgreSQL(5432)/Redis(6379)）
 make test-integration APP=demo
 
-# 在 backend/ 下按模块单独跑
-cd backend/pkg && go test -race ./...
-cd backend/pkg && go test -race -tags=integration ./...
+# 在仓库根按模块单独跑（apps/api 与 libs/go 各自为独立 module）
+cd libs/go && go test -race ./...
+cd libs/go && go test -race -tags=integration ./...
 
 # 运行单个测试函数
-go test ./apps/demo/internal/service/svcuser -run TestGeneratePassword -v
+go test ./apps/api/internal/service/svcproduct -run TestGeneratePassword -v
 ```
 
 ## 环境依赖
 
 - 默认 `go test ./...` / `make test` **不依赖任何外部服务**；连库用例已被 `//go:build integration` 排除。
-- `make test-integration` 需要本地 PostgreSQL(5432) / Redis(6379)，且库表已按 `backend/scripts/sql/table_init.sql` 初始化；未启动时失败属环境问题而非代码问题。
+- `make test-integration` 需要本地 PostgreSQL(5432) / Redis(6379)，且库表已按 `tools/sql/table_init.sql` 初始化；未启动时失败属环境问题而非代码问题。
 - 本项目不连接 Elasticsearch。
 
 ## 相关文档

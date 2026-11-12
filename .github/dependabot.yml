@@ -3,7 +3,7 @@ version: 2
 updates:
   # ── Go：workspace 两个模块需分别声明（Dependabot 按 go.mod 目录识别） ──
   - package-ecosystem: "gomod"
-    directory: "/backend/pkg"
+    directory: "/libs/go"
     schedule:
       interval: "weekly"
       day: "monday"
@@ -23,7 +23,7 @@ updates:
         update-types: ["minor", "patch"]
 
   - package-ecosystem: "gomod"
-    directory: "/backend/apps/demo"
+    directory: "/apps/api"
     schedule:
       interval: "weekly"
       day: "monday"
@@ -41,9 +41,9 @@ updates:
         patterns: ["*"]
         update-types: ["minor", "patch"]
 
-  # ── 前端：pnpm workspace 根目录（pnpm-lock.yaml 在 frontend/） ──
+  # ── 前端：pnpm workspace 根目录在仓库根（pnpm-lock.yaml 在根） ──
   - package-ecosystem: "npm"
-    directory: "/frontend"
+    directory: "/"
     schedule:
       interval: "weekly"
       day: "monday"

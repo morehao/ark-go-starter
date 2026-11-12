@@ -3,6 +3,22 @@ packages:
   - 'libs/ts/*'
   - 'tests/e2e'
 
+# 版本收敛（P3-T4）：TypeScript / react / antd 及类型包统一走 catalog，成员用 `catalog:` 引用。
+# TS 统一到 5.9.3：api/types/e2e 原先声明 ^7.0.2（native 预览线），web/ui 为 5.x；
+# 5.9.3 在全仓（含 api/types/e2e）`tsc --noEmit` 均通过，收敛到 5.x 更稳妥。
+catalog:
+  typescript: 5.9.3
+  react: ^19.3.1
+  react-dom: ^19.3.1
+  antd: ^6.7.0
+  '@types/react': ^19.3.0
+  '@types/react-dom': ^19.3.0
+
+# 额外用 overrides 全局兜底：tests/e2e 的 package.json 不在本任务写范围（仍声明 ^7.0.2），
+# 用 overrides 强制全仓只解析到 5.9.3 这一个 TS 版本，确保 lock 无重复 TS。
+overrides:
+  typescript: 5.9.3
+
 allowBuilds:
   esbuild: true
 
