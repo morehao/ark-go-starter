@@ -89,7 +89,7 @@ export default function PartsDebug({ defaultFileId }: PartsDebugProps) {
   ]
 
   return (
-    <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+    <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
       <div style={{ color: tokens.text, fontSize: tokens.fontSizeBody, fontWeight: 500 }}>分片会话调试</div>
       <Space wrap align="end">
         <div>
