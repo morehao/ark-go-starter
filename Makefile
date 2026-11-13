@@ -336,7 +336,8 @@ stop-dev:
 	echo "✅ 清理完成"
 
 # 同时启动后端与前端开发服务（后端后台运行、verbose 日志写入 .local/log/dev-all-backend.log；
-# 前端前台输出；前端就绪后打印明确的访问地址，Ctrl+C 一并停止）
+# 前端前台输出；探测到前端端口后再等待后端 :8099 健康检查通过，随后打印明确的访问地址，
+# 避免「前端已就绪、后端还在编译/迁移」的窗口期访问导致 /iam 代理 ECONNREFUSED；Ctrl+C 一并停止）
 # 用法：make dev-all [APP=demo]
 # 注意：启动前会先调用 stop-dev 杀掉既有的后端/前端进程，保证端口干净再启动。
 dev-all: stop-dev
@@ -352,24 +353,51 @@ dev-all: stop-dev
 	( cd apps/$$appdir/cmd && go run . ) > ./.local/log/dev-all-backend.log 2>&1 & \
 	backend_pid=$$!; \
 	trap 'echo ""; echo "🛑 正在停止后端 [$$app]..."; kill $$backend_pid 2>/dev/null; wait $$backend_pid 2>/dev/null; echo "✅ 已停止"; exit 0' INT TERM; \
-	( for _ in $$(seq 1 120); do \
+	( fe_port=""; \
+	for _ in $$(seq 1 120); do \
 		for p in 3000 3001 3002 3003 3004 3005 3006 3007 3008 3009 3010; do \
 			if echo " $$before_ports " | grep -q " $$p "; then \
 				continue; \
 			fi; \
 			if nc -z -w 1 127.0.0.1 $$p >/dev/null 2>&1 || nc -z -w 1 ::1 $$p >/dev/null 2>&1; then \
-				echo ""; \
-				echo "=============================================="; \
-				echo "  🌐 前端访问地址: http://localhost:$$p"; \
-				echo "  🔌 后端接口:     http://localhost:8099"; \
-				echo "  📄 后端日志:     .local/log/dev-all-backend.log"; \
-				echo "=============================================="; \
-				echo ""; \
-				exit 0; \
+				fe_port=$$p; \
+				break; \
 			fi; \
 		done; \
+		[ -n "$$fe_port" ] && break; \
 		sleep 1; \
-	done ) & \
+	done; \
+	if [ -z "$$fe_port" ]; then \
+		echo ""; \
+		echo "⚠️  未探测到前端端口（3000-3010），请确认前端是否启动成功。"; \
+		exit 0; \
+	fi; \
+	echo ""; \
+	echo "⏳ 前端已就绪(:$$fe_port)，等待后端 :8099 就绪（首次 go run 需编译+迁移，可能较久）..."; \
+	backend_ready=0; \
+	for _ in $$(seq 1 180); do \
+		if curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8099/v1/$$app/health 2>/dev/null | grep -q '^[2-5][0-9][0-9]$$'; then \
+			backend_ready=1; break; \
+		fi; \
+		if nc -z -w 1 127.0.0.1 8099 >/dev/null 2>&1; then \
+			backend_ready=1; break; \
+		fi; \
+		sleep 1; \
+	done; \
+	echo ""; \
+	echo "=============================================="; \
+	echo "  🌐 前端访问地址: http://localhost:$$fe_port"; \
+	echo "  🔌 后端接口:     http://localhost:8099"; \
+	echo "  📄 后端日志:     .local/log/dev-all-backend.log"; \
+	if [ "$$backend_ready" = "1" ]; then \
+		echo "  ✅ 前后端均已就绪，可以访问"; \
+	else \
+		echo "  ⚠️  后端 :8099 仍未就绪（详见上方日志），此时访问前端可能报 /iam 代理错误"; \
+		echo "     可在后端起来后刷新浏览器，日志：.local/log/dev-all-backend.log"; \
+	fi; \
+	echo "=============================================="; \
+	echo ""; \
+	) & \
 	watcher_pid=$$!; \
 	( pnpm dev ); \
 	kill $$watcher_pid 2>/dev/null; \
