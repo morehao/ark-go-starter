@@ -256,9 +256,7 @@ jobs:
   test:
     name: Test
     needs: changes
-    if: >-
-      github.event_name != 'push'
-      && (needs.changes.result != 'success' || needs.changes.outputs.go == 'true')
+    if: needs.changes.result != 'success' || needs.changes.outputs.go == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -271,21 +269,34 @@ jobs:
           cache: false
 
       - name: Restore Go cache
+        id: go-cache
         uses: actions/cache/restore@v4
         with:
           path: |
             ~/.cache/go-build
             ~/go/pkg/mod
-          key: go-test-${{ env.GO_CACHE_VERSION }}-${{ hashFiles('go.work.sum') }}
+          # 非 race 产物单独一个 flavor：直接复用 race 缓存会"命中但全 miss"（实测单元测试因此跑到 112s）
+          key: go-unit-${{ env.GO_CACHE_VERSION }}-${{ hashFiles('go.work.sum') }}
           restore-keys: |
-            go-test-${{ env.GO_CACHE_VERSION }}-
+            go-unit-${{ env.GO_CACHE_VERSION }}-
             go-lint-${{ env.GO_CACHE_VERSION }}-
 
-      # 单元测试（不带 integration tag，故不需要 PB/Redis 服务）
+      # 单元测试（不带 integration tag，故不需要 PG/Redis 服务）
       - name: Test pkg (unit)
         run: cd pkg && go test ./...
       - name: Test demo (unit)
         run: cd apps/api && go test ./...
+
+      - name: Save Go cache (unit flavor)
+        if: >-
+          (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
+          && steps.go-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: go-unit-${{ env.GO_CACHE_VERSION }}-${{ hashFiles('go.work.sum') }}
 
   # ── 主干深检：integration + race（PR 门禁已移出的部分在这里闭环） ─────────
   deep-test:
@@ -333,9 +344,10 @@ jobs:
           path: |
             ~/.cache/go-build
             ~/go/pkg/mod
-          key: go-test-${{ env.GO_CACHE_VERSION }}-${{ hashFiles('go.work.sum') }}
+          key: go-race-${{ env.GO_CACHE_VERSION }}-${{ hashFiles('go.work.sum') }}
           restore-keys: |
-            go-test-${{ env.GO_CACHE_VERSION }}-
+            go-race-${{ env.GO_CACHE_VERSION }}-
+            go-unit-${{ env.GO_CACHE_VERSION }}-
             go-lint-${{ env.GO_CACHE_VERSION }}-
 
       - name: Init PostgreSQL schema
@@ -359,7 +371,7 @@ jobs:
           path: |
             ~/.cache/go-build
             ~/go/pkg/mod
-          key: go-test-${{ env.GO_CACHE_VERSION }}-${{ hashFiles('go.work.sum') }}
+          key: go-race-${{ env.GO_CACHE_VERSION }}-${{ hashFiles('go.work.sum') }}
 
   # ── 安全扫描：只在依赖变更时进 PR 门禁（govulncheck 的发现几乎都由依赖驱动）──
   # 主干 push 与每周 schedule 会全量跑，兜住代码层调用图变化。
