@@ -25,7 +25,7 @@ allowBuilds:
   nx: true
 
 minimumReleaseAgeExclude:
-  - '@morehao/ark-iam-react@0.2.0 || 0.3.0 || 0.3.1'
+  - '@morehao/ark-iam-react@0.2.0 || 0.3.0 || 0.3.1 || 0.3.2'
   - '@typescript-eslint/eslint-plugin@8.72.2'
   - '@typescript-eslint/parser@8.72.2'
   - '@typescript-eslint/project-service@8.72.2'
