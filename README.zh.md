@@ -13,7 +13,7 @@ make quickstart-local
 ```
 
 然后打开 **http://localhost:3000**，会自动跳到登录页；用命令终端打印的账号密码登录
-（dev 缺省：`admin` / `admin123456`，可用 `IAM_ADMIN_USER` / `IAM_ADMIN_PASS` 覆盖）。
+（dev 缺省：`admin` / `Admin123456`，可用 `IAM_ADMIN_USER` / `IAM_ADMIN_PASS` 覆盖）。
 命令幂等，可重复执行不报错、不重置数据。
 
 验证全流程（登录 → 商品 CRUD → 字典 → 文件上传 → 异步 → 定时）：

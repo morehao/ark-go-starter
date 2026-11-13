@@ -14,7 +14,7 @@ import { test, expect } from '../fixtures/base'
  */
 const IAM_ENABLED = process.env.E2E_IAM === '1'
 const ADMIN_USER = process.env.E2E_IAM_ADMIN_USER ?? 'admin'
-const ADMIN_PASS = process.env.E2E_IAM_ADMIN_PASS ?? 'Adm1n@Strong!Pass'
+const ADMIN_PASS = process.env.E2E_IAM_ADMIN_PASS ?? 'Admin123456'
 
 test.describe('内嵌 IAM 登录（浏览器级）', () => {
   test.skip(!IAM_ENABLED, '未设置 E2E_IAM=1（默认跳过，仅 IAM ON 时运行）')
