@@ -52,7 +52,7 @@ COMPOSE_PROJECT_TAG="ark-go-starter"
 
 # 管理员账号：dev 缺省口令用「强口令示例」，可被环境变量覆盖（绝不写进 config/README 当内置默认）
 IAM_ADMIN_USER="${IAM_ADMIN_USER:-admin}"
-IAM_ADMIN_PASS="${IAM_ADMIN_PASS:-Adm1n@Strong!Pass}"
+IAM_ADMIN_PASS="${IAM_ADMIN_PASS:-admin123456}"
 IAM_ADMIN_EMAIL="${IAM_ADMIN_EMAIL:-admin@example.com}"
 IAM_ADMIN_NAME="${IAM_ADMIN_NAME:-平台管理员}"
 IAM_TENANT_NAME="${IAM_TENANT_NAME:-Acme}"

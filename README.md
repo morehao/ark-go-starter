@@ -14,7 +14,7 @@ make quickstart-local
 ```
 
 Then open **http://localhost:3000** — you'll be redirected to the login page; log in with the
-credentials printed by the command (dev default: `admin` / `Adm1n@Strong!Pass`, overridable via
+credentials printed by the command (dev default: `admin` / `admin123456`, overridable via
 `IAM_ADMIN_USER` / `IAM_ADMIN_PASS`). The command is idempotent and safe to re-run.
 
 Verify the whole flow (login → product CRUD → dict → file upload → async → cron) with:
