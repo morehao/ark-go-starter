@@ -97,17 +97,17 @@ jobs:
                   case "$f" in
                     # 文档/过程产物：不需要任何门禁
                     *.md|docs/*|.dsh/*|.history/*|.idea/*|LICENSE) ;;
+                    # 依赖文件必须排在目录通配之前，否则会被 apps/api/* / pkg/* 先吃掉
+                    apps/api/go.mod|apps/api/go.sum|pkg/go.mod|pkg/go.sum|go.work.sum) go=true; deps=true ;;
+                    package.json|pnpm-lock.yaml|pnpm-workspace.yaml) fe=true; deps=true ;;
                     # 契约面：Go client + TS schema 都由 spec 派生
-                    contracts/*) go=true; fe=true; ct=true ;;
+                    contracts/*|packages/api-client/*) go=true; fe=true; ct=true ;;
                     # Go 侧
                     apps/api/*|pkg/*) go=true ;;
-                    go.work|go.work.sum|.golangci.yml|Makefile) go=true ;;
-                    # 依赖变更：额外触发安全扫描
-                    apps/api/go.mod|apps/api/go.sum|pkg/go.mod|pkg/go.sum) go=true; deps=true ;;
+                    go.work|.golangci.yml|Makefile) go=true ;;
                     # 前端侧
                     apps/web/*|packages/*) fe=true ;;
                     tsconfig.base.json|nx.json|eslint.config.mjs) fe=true ;;
-                    package.json|pnpm-lock.yaml|pnpm-workspace.yaml) fe=true; deps=true ;;
                     # 未分类路径：保守全量
                     *) matched=false ;;
                   esac
