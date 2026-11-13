@@ -160,4 +160,4 @@ make dev-frontend   # 或 make dev-all 一起起
 
 - [docs/agents/iam.md](./iam.md)：可选 IAM（disabled/op/rp 三态）接入与登录排查
 - [docs/agents/commands.md](./commands.md)：完整命令大全
-- [docs/design-language.md](../../docs/design-language.md)：前端设计语言（改样式前必读）
+- [docs/DESIGN.md](../../docs/DESIGN.md)：前端视觉规范（改样式前必读）

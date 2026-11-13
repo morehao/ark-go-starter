@@ -24,7 +24,7 @@ ark-go-starter/
 ├── tests/e2e/               # Playwright 端到端测试
 ├── deploy/                  # docker/api.Dockerfile、compose/dev.yml
 ├── scripts/                 # 仓库级脚本（quickstart.sh）
-├── docs/                    # 开发规范（docs/agents/…）与设计语言（docs/design-language.md）
+├── docs/                    # 开发规范（docs/agents/…）与视觉规范（docs/DESIGN.md）
 ├── go.work                  # Go workspace（use ./apps/api ./pkg）
 ├── package.json             # 根前端 workspace 清单
 ├── pnpm-workspace.yaml      # 根 pnpm workspace 定义（apps/web、packages/*、tests/e2e）
@@ -39,7 +39,7 @@ ark-go-starter/
 > `deploy/` 只放构建与部署资产（不进 `go.work` / `pnpm-workspace` / Nx 图，不参与编译）；代码侧基础设施层统一叫 `internal/infra/`，**当前预留不建**——命名边界与迁移纪律见 [backend-conventions.md](./backend-conventions.md#部署目录与基础设施层的命名边界)。
 
 后端应用内部的分层结构见 [backend-conventions.md](./backend-conventions.md)；
-前端包结构与样式规范见 [frontend-conventions.md](./frontend-conventions.md) 与 [`docs/design-language.md`](../../docs/design-language.md)。
+前端包结构与样式规范见 [frontend-conventions.md](./frontend-conventions.md) 与 [`docs/DESIGN.md`](../../docs/DESIGN.md)。
 
 ## 应用与端口
 

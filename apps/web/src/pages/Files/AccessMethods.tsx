@@ -92,7 +92,7 @@ export default function AccessMethods({ fileId, storageUri }: AccessMethodsProps
           <Button size="small" onClick={() => openTab(serveFileURL(fileId))}>
             打开 serve 直出
           </Button>
-          <span style={{ color: tokens.textPlaceholder, fontSize: 12 }}>
+          <span style={{ color: tokens.textPlaceholder, fontSize: tokens.fontSizeTag }}>
             local 驱动直接把文件流写回浏览器：{serveFileURL(fileId)}
           </span>
         </Space>
@@ -103,7 +103,7 @@ export default function AccessMethods({ fileId, storageUri }: AccessMethodsProps
           <Button size="small" onClick={() => openTab(redirectFileURL(fileId))}>
             打开 redirect 302
           </Button>
-          <span style={{ color: tokens.textPlaceholder, fontSize: 12 }}>
+          <span style={{ color: tokens.textPlaceholder, fontSize: tokens.fontSizeTag }}>
             浏览器跟随 302 跳转到实际文件 URL：{redirectFileURL(fileId)}
           </span>
         </Space>
@@ -125,7 +125,7 @@ export default function AccessMethods({ fileId, storageUri }: AccessMethodsProps
                   打开
                 </Button>
               </div>
-              <div style={{ color: tokens.textSecondary, fontSize: 12 }}>
+              <div style={{ color: tokens.textSecondary, fontSize: tokens.fontSizeTag }}>
                 方法：<span style={monoStyle}>{presign.method}</span>
                 {'　'}有效期：{presign.expires_in} 秒
               </div>
@@ -158,14 +158,14 @@ export default function AccessMethods({ fileId, storageUri }: AccessMethodsProps
               打开 redirect?query
             </Button>
           </Space>
-          <span style={{ color: tokens.textPlaceholder, fontSize: 12 }}>
+          <span style={{ color: tokens.textPlaceholder, fontSize: tokens.fontSizeTag }}>
             query 形式兼容 file_id 或 storage_uri，至少填写一个。
           </span>
         </Space>
       </Descriptions.Item>
 
       <Descriptions.Item label="存储协议端点">
-        <span style={{ color: tokens.textSecondary, fontSize: 12 }}>
+        <span style={{ color: tokens.textSecondary, fontSize: tokens.fontSizeTag }}>
           /objects/&#123;bucket&#125;/&#123;key&#125; 是分片 PUT/GET 直传所走的底层存储协议端点，
           由预签名地址内部使用，前端不提供手工调用入口。
         </span>

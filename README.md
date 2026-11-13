@@ -74,7 +74,7 @@ Follows [project-layout](https://github.com/golang-standards/project-layout). Cu
 ├── scripts                     # Repo-level scripts (quickstart.sh)
 ├── deploy                      # Container & orchestration (docker/api.Dockerfile, compose/dev.yml)
 ├── contracts                   # Contract plane (OpenAPI 3.1 spec + verify.sh)
-├── docs                        # Documentation (agents/ conventions, design-language.md)
+├── docs                        # Documentation (agents/ conventions, DESIGN.md visual spec)
 ├── go.work                     # Root Go workspace
 ├── package.json                # Root frontend workspace manifest
 ├── pnpm-workspace.yaml         # Root pnpm workspace definition

@@ -15,7 +15,7 @@ interface Props {
 
 /**
  * 管理页统一骨架：页标题 + 描述 + 右上操作区，下方白色内容卡。
- * 内容卡为 hairline-only（1px 冷调边框 + 12px 圆角 + 20px 内边距），不使用阴影。
+ * 内容卡为 hairline-only（1px 边框 + 8px 圆角 + 20px 内边距），不使用阴影。
  *
  * - summary：标题与内容卡之间的概要区（如指标卡），页面自备；
  * - toolbar：内容卡顶部工具条（分段 Tab / 搜索区），与内容卡共享边框，保证 D 版
@@ -54,7 +54,7 @@ export function PageContainer({
         style={{
           background: tokens.cardBg,
           border: `1px solid ${tokens.border}`,
-          borderRadius: 12,
+          borderRadius: tokens.radiusLg,
           overflow: toolbar ? 'hidden' : undefined,
         }}
       >

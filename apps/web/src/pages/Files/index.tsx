@@ -233,13 +233,13 @@ export default function FilesPage() {
         >
           <p style={{ margin: 0, color: tokens.textSecondary, fontSize: 28, lineHeight: 1 }}>⬆</p>
           <p style={{ margin: '8px 0 0', color: tokens.text }}>点击或拖拽文件到此处上传</p>
-          <p style={{ margin: '4px 0 0', color: tokens.textPlaceholder, fontSize: 12 }}>
+          <p style={{ margin: '4px 0 0', color: tokens.textPlaceholder, fontSize: tokens.fontSizeTag }}>
             单文件上传；超过 8 MB 自动切换分片上传；同内容文件自动秒传复用
           </p>
         </Upload.Dragger>
 
         {uploading && progressText ? (
-          <p style={{ margin: 0, color: tokens.textSecondary, fontSize: 12 }} role="status">
+          <p style={{ margin: 0, color: tokens.textSecondary, fontSize: tokens.fontSizeTag }} role="status">
             {progressText}
           </p>
         ) : null}

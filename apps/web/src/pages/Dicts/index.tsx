@@ -398,7 +398,7 @@ export default function DictsPage() {
                   style={{
                     border: `1px solid ${tokens.warningBorder}`,
                     background: tokens.warningBg,
-                    borderRadius: 8,
+                    borderRadius: tokens.radiusLg,
                     padding: '10px 12px',
                     color: tokens.text,
                     wordBreak: 'break-all',

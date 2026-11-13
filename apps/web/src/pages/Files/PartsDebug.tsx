@@ -90,10 +90,10 @@ export default function PartsDebug({ defaultFileId }: PartsDebugProps) {
 
   return (
     <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-      <div style={{ color: tokens.text, fontSize: 14, fontWeight: 500 }}>分片会话调试</div>
+      <div style={{ color: tokens.text, fontSize: tokens.fontSizeBody, fontWeight: 500 }}>分片会话调试</div>
       <Space wrap align="end">
         <div>
-          <div style={{ color: tokens.textSecondary, fontSize: 12, marginBottom: 4 }}>文件 ID</div>
+          <div style={{ color: tokens.textSecondary, fontSize: tokens.fontSizeTag, marginBottom: 4 }}>文件 ID</div>
           <Input
             placeholder="输入要列举分片的文件 ID"
             value={fileId}
@@ -103,7 +103,7 @@ export default function PartsDebug({ defaultFileId }: PartsDebugProps) {
           />
         </div>
         <div>
-          <div style={{ color: tokens.textSecondary, fontSize: 12, marginBottom: 4 }}>max_parts</div>
+          <div style={{ color: tokens.textSecondary, fontSize: tokens.fontSizeTag, marginBottom: 4 }}>max_parts</div>
           <InputNumber
             min={1}
             placeholder="可选"
@@ -113,7 +113,7 @@ export default function PartsDebug({ defaultFileId }: PartsDebugProps) {
           />
         </div>
         <div>
-          <div style={{ color: tokens.textSecondary, fontSize: 12, marginBottom: 4 }}>
+          <div style={{ color: tokens.textSecondary, fontSize: tokens.fontSizeTag, marginBottom: 4 }}>
             part_number_marker
           </div>
           <InputNumber
@@ -145,7 +145,7 @@ export default function PartsDebug({ defaultFileId }: PartsDebugProps) {
 
       {result?.is_truncated ? (
         <Space size={8} wrap>
-          <span style={{ color: tokens.textSecondary, fontSize: 12 }}>
+          <span style={{ color: tokens.textSecondary, fontSize: tokens.fontSizeTag }}>
             结果被截断，下一页起点：next_part_number_marker =
             <span style={monoStyle}>{result.next_part_number_marker ?? '-'}</span>
           </span>
