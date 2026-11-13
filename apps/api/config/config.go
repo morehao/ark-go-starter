@@ -112,6 +112,12 @@ type IAMConfig struct {
 	// op 形态下写入该 client 的 redirect_uris（seed 时生效；已初始化的库需手动更新库或清库重建）。
 	// 留空则沿用 ark-iam 内置缺省（本地开发默认 http://localhost:4001/auth/callback）。
 	RedirectURIs []string `yaml:"redirect_uris"`
+	// PostLogoutRedirectURIs 是内置控制台 platform_admin_web 的**登出回跳白名单**（完整 URL，可多个），
+	// op 形态下写入该 client 的 post_logout_redirect_uris（seed 时生效；已初始化的库需手动更新库或清库重建）。
+	// OP 的 /oidc/end_session 对该参数做**精确匹配**，未命中会返回 invalid_request 而非跳回。
+	// 前端「退出登录」回跳地址（如 http://localhost:3000/）必须登记在此。
+	// 留空则沿用 ark-iam 内置缺省（本地开发默认 http://localhost:4001/login）。
+	PostLogoutRedirectURIs []string `yaml:"post_logout_redirect_uris"`
 	// FrontendURL 是前端应用基址（如 http://localhost:3000），op 形态下用于拼内嵌登录页地址
 	// `{frontend_url}{prefix}/login`。前后端分离部署时**必须**配置，否则登录页会被导向 OP
 	// 自身的 host（后端端口），而登录页 SPA 实际由前端提供，导致 /iam/login 404。

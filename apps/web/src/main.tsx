@@ -4,7 +4,8 @@ import { AppShell } from '@ark-go-starter/ui'
 import { LoginPage } from '@morehao/ark-iam-react/login'
 import App from './App'
 import { detectIAMMode, type IAMMode } from './auth/config'
-import { AuthGuard, getIAMAuthProvider } from './auth'
+import { getIAMAuthProvider } from './auth'
+import { AuthedApp } from './auth/AuthedApp'
 
 /**
  * OP 内嵌账密登录页：`GET /iam/login?authRequestID=…` 由 OP（后端）下发，浏览器导航到本 SPA。
@@ -23,9 +24,10 @@ function IAMLoginPage() {
 
 /**
  * 应用根节点（三态 mode）。
- * - `disabled`：AppShell 直接包裹 App（免登录现状）；
- * - `op`：`/iam/login` 渲染 OP 账密页（不套守卫）；其余路径套 IAMAuthProvider + AuthGuard；
- * - `rp`：外部 OP 自带登录页，不在本站渲染账密页，全部路径套 IAMAuthProvider + AuthGuard。
+ * - `disabled`：AppShell 直接包裹 App（免登录现状，无个人中心/登出）；
+ * - `op`：`/iam/login` 渲染 OP 账密页（不套守卫）；其余路径套 IAMAuthProvider + AuthedApp
+ *   （AuthedApp 内含 AuthGuard，并向页面注入「个人中心 + 登出」页头入口）；
+ * - `rp`：外部 OP 自带登录页，不在本站渲染账密页，全部路径套 IAMAuthProvider + AuthedApp。
  */
 function Root({ mode }: { mode: IAMMode }) {
   if (mode === 'disabled') {
@@ -42,11 +44,13 @@ function Root({ mode }: { mode: IAMMode }) {
   const IAMAuthProvider = getIAMAuthProvider(mode)
   return (
     <IAMAuthProvider>
-      <AuthGuard>
-        <AppShell>
-          <App />
-        </AppShell>
-      </AuthGuard>
+      <AuthedApp
+        render={({ headerRight }) => (
+          <AppShell>
+            <App headerRight={headerRight} />
+          </AppShell>
+        )}
+      />
     </IAMAuthProvider>
   )
 }

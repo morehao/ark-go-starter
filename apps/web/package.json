@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@ant-design/icons": "catalog:",
     "@ark-go-starter/api": "workspace:*",
     "@ark-go-starter/types": "workspace:*",
     "@ark-go-starter/ui": "workspace:*",

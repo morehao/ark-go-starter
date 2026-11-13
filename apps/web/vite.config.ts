@@ -36,6 +36,15 @@ export default defineConfig({
   server: {
     port: 3000,
     proxy: {
+      // 个人中心 / 登出 / 会话等 ark-iam auth 接口：门面包（@morehao/ark-iam-react）内部 axios
+      // 单例固定打 `/v1/auth/*`，而本项目 op 模式下这些接口挂在 `{prefix}/v1/auth/*`（= /iam/v1/auth）。
+      // 故把 `/v1/auth` 重写到 `/iam/v1/auth`（仅登录态会用到；disabled 模式不渲染个人中心，不会打这里）。
+      // 这条更具体的前缀必须排在下面的宽泛 `/v1` 之前（vite 按 key 插入顺序命中，先中先止）。
+      '/v1/auth': {
+        target: 'http://localhost:8099',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/v1\/auth/, '/iam/v1/auth'),
+      },
       '/v1': {
         target: 'http://localhost:8099',
         changeOrigin: true,

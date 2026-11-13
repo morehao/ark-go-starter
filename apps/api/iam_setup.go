@@ -236,6 +236,11 @@ func buildRawConfig(issuer string, cfg config.IAMConfig) *pkgconfig.Config {
 	if len(cfg.RedirectURIs) > 0 {
 		raw.OIDC.Consoles.PlatformAdminWeb.RedirectURIs = cfg.RedirectURIs
 	}
+	// 登出回跳白名单：前端「退出登录」经 /oidc/end_session 回跳的地址必须登记在此（精确匹配）。
+	// 显式配置时覆盖内置缺省（本地 4001），与上面的回调白名单同样在 seed 时落库。
+	if len(cfg.PostLogoutRedirectURIs) > 0 {
+		raw.OIDC.Consoles.PlatformAdminWeb.PostLogoutRedirectURIs = cfg.PostLogoutRedirectURIs
+	}
 	return raw
 }
 

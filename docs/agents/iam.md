@@ -47,6 +47,7 @@
 | `app.go`（`Routers` / `buildAuthMiddleware`） | 按 `mode` 装配鉴权中间件（op/rp 共用 `OIDCAuth`） |
 | `internal/middleware/oidc_auth.go` | 业务接口 OIDC 本地验签中间件（依赖 `contract.KeySource`） |
 | `pkg/iamlink/*` | IAM string 身份 ↔ 本地 BIGINT 用户 ID 的映射层（与形态无关，三态通用） |
+| `apps/web/src/auth/{index,useGateShell,useGateShellBridge,AuthedApp}.tsx` | 前端登录态外壳：AuthProvider + 守卫 + 个人中心/登出（复用门面包 `ProfileCenter`/`useLogout`） |
 | `scripts/sql/table_init.sql` | 业务表 DDL（含 `biz_iam_user_map`）；不含 `iam_` 表 |
 
 ---
@@ -259,7 +260,7 @@ export type IAMMode = 'disabled' | 'op' | 'rp'
 
 - 后端 `MountConfig` 挂出 `{prefix}/config.json`（默认 `/iam/config.json`），下发 `issuer` / `clientId` / `callbackPath` 等。
 - 前端 `createAuthProvider` 用 **`runtimeConfigBase=/iam`** 探测并读取 `config.json`。
-- `main.tsx` 用 `IAMAuthProvider` + `AuthGuard` 包裹；令牌经 `AuthGuard` 注入 `@ark-go-starter/api`（`setTokenProvider`），401 时 `removeUser` + `signinRedirect`。
+- `main.tsx` 用 `IAMAuthProvider` + `AuthedApp` 包裹（`AuthedApp` 内含 `AuthGuard`）；令牌经 `AuthGuard` 注入 `@ark-go-starter/api`（`setTokenProvider`），401 时 `removeUser` + `signinRedirect`。
 - 登录页 / 控制台 UI 由 npm 包 `@morehao/ark-iam-react` 提供，**Go 不再托管前端静态资源**。
 
 ### rp 路径（对接外部 ark-iam）
@@ -268,9 +269,28 @@ export type IAMMode = 'disabled' | 'op' | 'rp'
 - 登录页来自**外部 ark-iam 控制台**（不是本仓库前端），本仓库前端只是 OIDC client 端。
 - `vite.config.ts` 里 `/iam` 代理**仅 op 需要**；rp 不需要（前端直连远端 issuer），保留也无害。
 
+### 个人中心 + 登出（op / rp 登录态，disabled 不出现）
+
+登录态下页头右侧出现「头像 + 下拉（个人中心 / 退出登录）」，**复用门面包组件、不重造轮子**：
+
+| 能力 | 来源（`@morehao/ark-iam-react`） | 实现位置 |
+|------|------|------|
+| 页头用户入口 | `getUserinfo`（取显示名）+ antd `Dropdown` | `apps/web/src/auth/AuthedApp.tsx` |
+| 个人中心（信息 / 改密 / 会话管理） | `ProfileCenter` | `apps/web/src/auth/useGateShell.tsx` |
+| 登出 | `useLogout()`（撤销会话 → 跳 OP `end_session` → 清本地态） | 同上 |
+
+三个**必须**注意的点（都已在代码里处理，勿删）：
+
+1. **API 路径桥接（vite proxy rewrite）**：门面包 `ProfileCenter` 用**它自己的 axios 单例**，`baseURL=/v1`，请求 `/v1/auth/*`；而 op 模式下这些接口挂在 `{prefix}/v1/auth/*`（= `/iam/v1/auth`）。因此 `vite.config.ts` 必须在宽泛 `/v1` 之前加一条 `/v1/auth → rewrite /iam/v1/auth` 的代理（按 key 插入顺序先中先止）。缺了它，个人中心一律 404/401。
+2. **令牌桥接（`setUserProvider`）**：`ProfileCenter` 的 `Authorization` 头来自包内全局 `userProvider`；`ProfileTokenBridge`（`apps/web/src/auth/useGateShellBridge.tsx`）在副作用里 `setUserProvider(() => ({ access_token }))`，否则 `/auth/me` 全 401。
+3. **登出回跳地址**：门面包 `postLogoutRedirectPath` 默认 `/login`，本模板 SPA 无此路由 → 在 `getIAMAuthProvider` 统一传 `/`（登出回首页，`AuthGuard` 判定未登录再 `signinRedirect` 回登录页）。且该地址必须逐字符命中客户端 `post_logout_redirect_uris` 白名单（见下）。
+
+**后端配套（已随本方案加入）**：`apps/api/config/config.go` 的 `IAMConfig` 新增 `post_logout_redirect_uris []string`（op 下写入内置控制台 `platform_admin_web` 的登出回跳白名单，seed 时生效），`iam_setup.go` 的 `buildRawConfig` 透传到 `raw.OIDC.Consoles.PlatformAdminWeb.PostLogoutRedirectURIs`。`config.yaml` 默认登记 `http://localhost:3000/`（及 3001）。**已初始化的库不会因改 yaml 生效**，需手动 `UPDATE iam_application_client SET post_logout_redirect_uris=...` 或清库重走 `/iam/install`。
+
 ### 通用
 
 - **redirect_uri 白名单**：门面包默认回调路径是 **`/auth/callback`**（`redirectPath=/auth/callback`，**不是** `/callback`）。demo-web 即 `http://localhost:3000/auth/callback`，必须登记到所用 OIDC 客户端 `redirect_uris` 白名单。
+- **post_logout_redirect_uri 白名单**：登出回跳默认 `/`，即 `http://localhost:3000/`，必须登记到客户端 `post_logout_redirect_uris`（OP `end_session` 精确匹配，未命中返回 `400 invalid_request`，不会回跳）。
 - **clientID**：op 下建议用门面包 `useRuntimeConfig: true` 从 `/iam/config.json` 下发，`VITE_OIDC_CLIENT_ID` 兜底；rp 下由 `VITE_OIDC_CLIENT_ID` 指定。
 - op 内嵌客户端建议建 **public client（PKCE，`tokenEndpointAuthMethod=none`）**，把其 `code` 配到 clientId。
 

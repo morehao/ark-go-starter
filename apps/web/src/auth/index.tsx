@@ -16,18 +16,25 @@ import type { IAMMode } from './config'
  *   直接使用 `VITE_OIDC_ISSUER` 作为 issuer、`VITE_OIDC_CLIENT_ID` 作为 clientID 直连远端 OP。
  */
 function createIAMAuthProvider(mode: IAMMode) {
+  // 登出回跳地址：门户包默认 `/login`，但本模板 SPA 没有 `/login` 路由（登录页在 `/iam/login`，
+  // 由 OP 下发），且该地址必须逐字符命中客户端 post_logout_redirect_uris 白名单。这里统一改为
+  // 回首页 `/`：登出后 AuthGuard 判定未登录 → 自动 signinRedirect 回登录页，体验等价且不会 400。
+  // 对应后端 config.yaml 的 iam.post_logout_redirect_uris 需登记 `http://localhost:3000/`。
+  const postLogoutRedirectPath = '/'
   if (mode === 'rp') {
     // 外部 issuer 绝对地址；config.ts 已保证 rp 时 VITE_OIDC_ISSUER 非空
     return createAuthProvider({
       useRuntimeConfig: false,
       issuer: import.meta.env.VITE_OIDC_ISSUER,
       clientID: import.meta.env.VITE_OIDC_CLIENT_ID,
+      postLogoutRedirectPath,
     })
   }
   // op（默认走内嵌 /iam runtime config）
   return createAuthProvider({
     useRuntimeConfig: true,
     runtimeConfigBase: '/iam',
+    postLogoutRedirectPath,
   })
 }
 
