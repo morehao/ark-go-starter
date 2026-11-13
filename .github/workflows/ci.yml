@@ -1,43 +1,61 @@
 name: CI
 
+# ─────────────────────────────────────────────────────────────────────────────
+# 门禁原则（2026-11 定稿）：
+#   1) PR 门禁只做「判定」：lint / typecheck / test / 安全扫描。
+#      不产出产物（vite build、go build、docker build），不现装工具（go install / npx）。
+#   2) 判定所需的「编译」不可避免（go test / golangci-lint / govulncheck 都要先编译），
+#      其重复成本靠构建缓存消除：PR 侧只 restore，save 只在 main push / 手动 dispatch。
+#   3) 合并后主干仍跑全量验证（四个 required job 一个不少）。
+#
+# 缓存为什么必须自己做（2026-11-13 实测）：
+#   actions/setup-go 的 key 只由 go.work.sum hash 决定，命中即 "not saving cache"，
+#   首次保存的残缺快照（164MB / 5060 文件）被永久复用；一份完整的 GOCACHE 是
+#   2.6GB / 22447 文件。实测 go vet：现状 93.6s、无缓存 161s、显式缓存命中 0.89s。
+#   故这里用 actions/cache 自行管理，并用 GO_CACHE_VERSION 作为手动失效开关。
+# ─────────────────────────────────────────────────────────────────────────────
+
 on:
   push:
     branches: [main, master, develop, dev]
   pull_request:
     branches: [main, master, develop, dev]
-  # E2E job 最慢（后端真端口 + Playwright，约数分钟），已从 push/PR 自动触发中移除，
-  # 仅在此手动触发时运行（e2e job 带 if 门控）。日常 PR 不再等待 E2E。
+  # merge queue 预留：仓库开启 merge queue 后由队列触发，无需再改本文件。
+  merge_group:
+  # E2E job 最慢（后端真端口 + Playwright），仅在手动触发时运行（e2e job 带 if 门控）。
   workflow_dispatch:
 
 permissions:
   contents: read
 
+# 同一 PR 连推多个 commit 时取消旧 run，避免重复消耗；main push 不取消（要留完整记录）。
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 env:
-  # 与 apps/api/config/config.yaml 中 db_configs / redis_config 保持一致，
-  # 供需要数据库的测试（pkg/dbclient、svcuser）使用。
+  # 与 apps/api/config/config.yaml 中 db_configs / redis_config 保持一致。
   GOLANGCI_LINT_VERSION: v2.15.0
+  GOVULNCHECK_VERSION: v1.9.0
+  OAPI_CODEGEN_VERSION: v2.4.1
+  # Go 缓存版本号：缓存命中后不再回写，需要强制刷新（依赖未变但缓存可疑）时把它 +1。
+  GO_CACHE_VERSION: v1
 
 jobs:
   frontend:
     name: Frontend
-    # P0.5 建的前端门禁（lint + typecheck + build），P4-T3 改为 **Nx affected** 驱动：
-    # 只在受影响的前端包上跑 typecheck/build，减少无关改动下的耗时。
-    # 硬约束：job id `frontend` / name `Frontend` 不变；顶层 on: 触发语义不变；其它 4 个 job 名不变。
-    # Nx 缓存：不启用 Nx Cloud（已定不做），用本地 .nx/cache；CI 内不跨 run 持久化，缓存命中仅 run 内。
-    # 说明：前端项目当前无 `lint` target（lint 是根 `pnpm lint`，非 nx target），故 lint 保持整跑（很快）；
-    #       typecheck/build 走 affected（真正的耗时项按受影响范围收敛）。
+    # 硬约束：job id `frontend` / name `Frontend` 不变（分支保护 required check 依赖名字）。
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
         with:
-          # Nx affected 需要 base..head 的 git 历史（计算 merge-base / 变更文件），浅克隆不够，故全量拉取。
+          # Nx affected 需要 base..head 的 git 历史（计算 merge-base / 变更文件），浅克隆不够。
           fetch-depth: 0
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
         with:
-          # 单一事实源：根 package.json 的 packageManager（pnpm@12.10.1）
           package_json_file: package.json
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -46,53 +64,70 @@ jobs:
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
 
-      # P5-T4：contracts-verify 里的 Go client 生成物校验需 go toolchain（go install oapi-codegen@v2.4.1）。
-      # 版本取仓库 go.work / go.mod 的 1.27.4。
-      - name: Set up Go (for contracts-verify)
-        uses: actions/setup-go@v7
-        with:
-          go-version-file: go.work
-          cache-dependency-path: |
-            go.work.sum
-
       - name: Install deps
         run: pnpm install --frozen-lockfile
 
-      # P5-T4：契约校验（spec 合法 + Go/TS 生成物与 spec 一致）。改 spec 不重生成生成物 → 此步红。
-      # verify 脚本内：Redocly 2.77.0 校验 + oapi-codegen v2.4.1 重生成 diff + openapi-typescript 7.13.0 重生成 diff。
-      # 预装 pin 版本的 oapi-codegen（CI GOBIN 在 PATH；脚本内仍有 go install 兜底）。
-      - name: Install oapi-codegen (pinned)
-        run: go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.4.1
-      - name: Contracts verify
-        run: make contracts-verify
-
-      # 计算 Nx affected 的 base/head：
-      #  - PR：base = origin/<base_ref>（与目标分支的 merge-base 由 nx 自动求），head = HEAD
-      #  - push 到主干：base = HEAD~1（对比上一个提交）
-      - name: Compute Nx affected base/head
+      # 契约校验只在真涉及契约面时跑（改 spec / 生成物），其余 PR 不再为此付 Go 工具链成本。
+      - name: Detect contract-relevant changes
+        id: contracts
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            BASE="${{ github.base_ref }}"
-            # fetch-depth:0 拉全历史，但 origin/<base_ref> 追踪 ref 不一定存在；显式确保它存在再用作 base
-            git fetch --no-tags origin "$BASE:refs/remotes/origin/$BASE" || true
-            BASE="origin/$BASE"
+          if [ -n "${{ github.base_ref }}" ]; then
+            base="origin/${{ github.base_ref }}"
+            git fetch --no-tags origin "${{ github.base_ref }}" >/dev/null 2>&1 || true
           else
-            BASE="HEAD~1"
+            base="HEAD~1"
           fi
-          echo "NX_BASE=$BASE" >> "$GITHUB_ENV"
-          echo "NX_HEAD=HEAD" >> "$GITHUB_ENV"
-          echo "Nx affected base=$BASE head=HEAD"
+          if git diff --quiet "$base" HEAD -- contracts pkg/client packages/api-client; then
+            echo "relevant=false" >> "$GITHUB_OUTPUT"
+            echo "契约面无变更，跳过 contracts-verify"
+          else
+            echo "relevant=true" >> "$GITHUB_OUTPUT"
+            echo "契约面有变更，将执行 contracts-verify"
+          fi
+
+      - name: Set up Go (contracts only)
+        if: steps.contracts.outputs.relevant == 'true'
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.work
+          cache: false
+
+      # 工具二进制缓存：命中即零安装；未命中由 verify.sh 按 pin 版本自行 go install 兜底。
+      - name: Cache oapi-codegen binary
+        if: steps.contracts.outputs.relevant == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/go/bin/oapi-codegen
+          key: oapi-codegen-${{ env.OAPI_CODEGEN_VERSION }}
+
+      - name: Contracts verify
+        if: steps.contracts.outputs.relevant == 'true'
+        run: make contracts-verify
 
       # lint：前端无 nx lint target，保持根 pnpm lint 整跑（apps/web + packages/*，ESLint 很快）。
       - name: Lint (ESLint)
         run: pnpm lint
 
-      # 受影响前端包只跑 typecheck/build（含其依赖的 build）。
-      # --exclude='*,!tag:lang:ts'：只保留 tag lang:ts 的项目（web、packages/*），排除 Go（api/pkg）与 contracts，
-      # 避免前端 job 误跑 Go 项目的 build（且 api 的 build 在 go.work 根下会失败，属 R1 project.json 范畴，本 job 不碰）。
-      - name: Affected typecheck + build (Nx, TS only)
+      # 计算 Nx affected 的 base/head：PR 用 origin/<base_ref>，push/merge_group 用 HEAD~1。
+      - name: Compute Nx affected base/head
         run: |
-          pnpm exec nx affected -t typecheck build \
+          base="${{ github.base_ref }}"
+          if [ -n "$base" ]; then
+            git fetch --no-tags origin "$base:refs/remotes/origin/$base" || true
+            base="origin/$base"
+          else
+            base="HEAD~1"
+          fi
+          echo "NX_BASE=$base" >> "$GITHUB_ENV"
+          echo "NX_HEAD=HEAD" >> "$GITHUB_ENV"
+          echo "Nx affected base=$base head=HEAD"
+
+      # 只跑 typecheck，不再跑 build：build 产出 dist 在门禁里无人消费；
+      # packages/{ui,types,api,api-client} 的 build 与 typecheck 命令本就完全相同（重复 tsc）。
+      # --exclude='*,!tag:lang:ts'：只保留前端项目，排除 Go（api/pkg）与 contracts。
+      - name: Affected typecheck (Nx, TS only)
+        run: |
+          pnpm exec nx affected -t typecheck \
             --base="$NX_BASE" --head="$NX_HEAD" \
             --exclude='*,!tag:lang:ts' \
             --output-style=static
@@ -100,7 +135,7 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
 
@@ -108,8 +143,18 @@ jobs:
         uses: actions/setup-go@v7
         with:
           go-version-file: go.work
-          cache-dependency-path: |
-            go.work.sum
+          cache: false # 内置缓存是"命中即冻结"的残缺快照，改用下面的显式缓存
+
+      - name: Restore Go cache
+        id: go-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: go-lint-${{ env.GO_CACHE_VERSION }}-${{ hashFiles('go.work.sum') }}
+          restore-keys: |
+            go-lint-${{ env.GO_CACHE_VERSION }}-
 
       - name: gofmt check
         run: |
@@ -120,26 +165,35 @@ jobs:
             exit 1
           fi
 
-      - name: go vet
-        run: |
-          (cd pkg && go vet ./...)
-          (cd apps/api && go vet ./...)
-
-      - name: golangci-lint
+      # 不再单独跑 `go vet`：.golangci.yml 已启用 govet linter，且 CI 在两个模块各跑一次；
+      # 独立 vet 只是把编译成本重复付一遍（实测曾占 Lint job 的 146/189 秒）。
+      - name: golangci-lint (pkg)
         uses: golangci/golangci-lint-action@v9
         with:
           version: ${{ env.GOLANGCI_LINT_VERSION }}
           working-directory: pkg
-      - name: golangci-lint (demo)
+      - name: golangci-lint (apps/api)
         uses: golangci/golangci-lint-action@v9
         with:
           version: ${{ env.GOLANGCI_LINT_VERSION }}
           working-directory: apps/api
 
+      - name: Save Go cache
+        # 只有 main push / 手动 dispatch 回写；PR 只读，避免每个 PR 各写一份 2.6GB。
+        if: >-
+          (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
+          && steps.go-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: go-lint-${{ env.GO_CACHE_VERSION }}-${{ hashFiles('go.work.sum') }}
+
   test:
     name: Test
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     services:
       postgres:
         image: postgres:16
@@ -170,8 +224,19 @@ jobs:
         uses: actions/setup-go@v7
         with:
           go-version-file: go.work
-          cache-dependency-path: |
-            go.work.sum
+          cache: false
+
+      - name: Restore Go cache (race flavor)
+        id: go-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: go-test-${{ env.GO_CACHE_VERSION }}-${{ hashFiles('go.work.sum') }}
+          restore-keys: |
+            go-test-${{ env.GO_CACHE_VERSION }}-
+            go-lint-${{ env.GO_CACHE_VERSION }}-
 
       - name: Init PostgreSQL schema
         env:
@@ -179,17 +244,28 @@ jobs:
         run: |
           psql -h 127.0.0.1 -U postgres -d demo -f apps/api/db/table_init.sql
 
-      # 依赖 DB/Redis 的用例已用 //go:build integration 标记，必须带 tag 才会执行，
-      # 否则本 job 提供的 postgres/redis service 形同虚设。
+      # 依赖 DB/Redis 的用例已用 //go:build integration 标记，必须带 tag 才会执行。
+      # 两个模块保持串行：pkg 与 apps/api 的集成用例共用同一个 demo 库，并行可能互相污染。
       - name: Test pkg (unit + integration)
         run: cd pkg && go test -race -tags=integration ./...
       - name: Test demo (unit + integration)
         run: cd apps/api && go test -race -tags=integration ./...
 
+      - name: Save Go cache (race flavor)
+        if: >-
+          (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
+          && steps.go-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: go-test-${{ env.GO_CACHE_VERSION }}-${{ hashFiles('go.work.sum') }}
+
   security:
     name: Security (govulncheck)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
 
@@ -197,22 +273,37 @@ jobs:
         uses: actions/setup-go@v7
         with:
           go-version-file: go.work
-          cache-dependency-path: |
-            go.work.sum
+          cache: false
+
+      - name: Restore Go cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: go-lint-${{ env.GO_CACHE_VERSION }}-${{ hashFiles('go.work.sum') }}
+          restore-keys: |
+            go-lint-${{ env.GO_CACHE_VERSION }}-
+
+      # 锁定版本保证结果可复现；二进制走缓存，命中即零安装。
+      - name: Cache govulncheck binary
+        uses: actions/cache@v4
+        with:
+          path: ~/go/bin/govulncheck
+          key: govulncheck-${{ env.GOVULNCHECK_VERSION }}
 
       - name: govulncheck
-        env:
-          # 锁定 govulncheck 版本，保证扫描结果可复现（不再用 @latest，避免上游版本漂移导致门禁时红时绿）。
-          # v1.9.0 = 本次修复时本地实测通过的版本。升级需同步复核后改这里。
-          GOVULNCHECK_VERSION: v1.9.0
         run: |
-          go install golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}
+          if ! command -v govulncheck >/dev/null 2>&1; then
+            GOBIN="$HOME/go/bin" go install "golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}"
+            export PATH="$HOME/go/bin:$PATH"
+          fi
           (cd pkg && govulncheck ./...)
           (cd apps/api && govulncheck ./...)
 
   e2e:
     name: E2E
-    # 仅手动触发（workflow_dispatch）时运行；push/PR 自动触发不再跑 E2E（太慢）。
+    # 仅手动触发（workflow_dispatch）时运行；push/PR 不跑 E2E（太慢）。
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -252,12 +343,10 @@ jobs:
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
         with:
-          # P1：读取根 package.json 的 packageManager（pnpm@12.10.1），单一事实源在仓库根。
           package_json_file: package.json
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          # 与根 package.json 的 engines.node（>=26）对齐；Node 26 为当前 LTS。
           node-version: 26
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
@@ -274,6 +363,7 @@ jobs:
           go test -tags=e2e ./apps/api/e2e/... -v -count=1
 
       # 前端 Playwright 需要一个真实后端在 8099：构建二进制并后台启动
+      # （E2E 是手动触发的发布前验证，允许产出构建物，不属于 PR 门禁范畴）
       - name: Build & start backend for frontend e2e
         run: |
           go build -o output/build/demo ./apps/api/cmd
@@ -286,7 +376,6 @@ jobs:
 
       - name: Install frontend deps
         run: |
-          # P3-T5：统一用 --frozen-lockfile（根 lockfile 已冻结，安装不可漂移；clean checkout 下 lockfile 与 package.json 一致）
           pnpm install --frozen-lockfile
           pnpm --filter @ark-go-starter/e2e exec playwright install --with-deps chromium
 
