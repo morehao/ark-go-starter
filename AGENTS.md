@@ -34,14 +34,14 @@
 ```
 ark-go-starter/
 ├── apps/
-│   ├── api/                 # Go 后端应用（Gin，:8099；逻辑名 demo→目录 api；db/ 存建表 DDL）
+│   ├── api/                 # Go 后端应用（Gin，:8099；逻辑名 demo→目录 api）
 │   └── web/                 # React 前端应用（Vite，:3000，代理 /v1 → http://localhost:8099）
 ├── packages/                # 前端共享包（api/api-client/types/ui/tsconfig），pnpm workspace 成员
 ├── pkg/                     # Go 公共层（code/dbclient/testsetup/token/ginhelper/iamlink/operator/client）
 ├── contracts/               # 契约平面（单一事实源）：openapi/openapi.json + verify.sh（生成物一致性校验）
 ├── tests/
 │   └── e2e/                 # 端到端测试（前端 Playwright specs + A4 golden）
-├── scripts/                 # 仓库级脚本（quickstart.sh）
+├── scripts/                 # 仓库级脚本（quickstart.sh、sql/ 建表 DDL）
 ├── deploy/                  # 容器与编排（docker/api.Dockerfile、compose/dev.yml）
 ├── docs/                    # 文档（agents/ 开发规范、DESIGN.md 视觉规范事实源）
 ├── go.work                  # 根 Go workspace（use ./apps/api ./pkg）
@@ -103,11 +103,11 @@ ark-go-starter/
 7. **路由**：`/{版本}/{app}/{资源复数}`，RESTful + HTTP 方法，如 `GET /v1/demo/products`；路径参数 `:xxxID`；**层级不超过 4 层**。详见 [api-conventions.md](./docs/agents/api-conventions.md)。
 8. **Swagger**：新增接口需补 `@Tags/@Summary/@Param/@Success/@Router` 注解，并执行 `make swag APP=demo`。详见 [api-conventions.md](./docs/agents/api-conventions.md#swagger-文档)。
 9. **测试**：同包或 `_test` 包，用 `testsetup.Initialize(testsetup.AppNameDemo)` 初始化环境（基于 `pkg/testsetup`，详见 [pkg/testsetup/README.md](./pkg/testsetup/README.md)），标准库 `testing` + `testify`；**依赖 DB/Redis/外网的用例必须加 `//go:build integration`**（否则 `go test ./...` 在无库环境全红）；错误断言用 `assert.NoError` 而非 `assert.Nil`。详见 [testing.md](./docs/agents/testing.md#集成测试必须隔离硬性要求)。
-10. **工具链**：数据库 GORM + PostgreSQL（**唯一目标库**；DDL 见 `apps/api/db/table_init.sql`，model tag 禁写其它方言类型；两者逐列一致由 `make test` 的 `ddl_consistency_test.go` 守护）。缓存 Redis，日志 golib/glog，链路 OpenTelemetry。详见 [toolchain.md](./docs/agents/toolchain.md) 与 [模型字段类型规范](./docs/agents/backend-conventions.md#模型字段类型规范postgresql)。
+10. **工具链**：数据库 GORM + PostgreSQL（**唯一目标库**；DDL 见 `scripts/sql/table_init.sql`，model tag 禁写其它方言类型；两者逐列一致由 `make test` 的 `ddl_consistency_test.go` 守护）。缓存 Redis，日志 golib/glog，链路 OpenTelemetry。详见 [toolchain.md](./docs/agents/toolchain.md) 与 [模型字段类型规范](./docs/agents/backend-conventions.md#模型字段类型规范postgresql)。
 11. **前端**：`main.tsx` 必须用 `AppShell` 包裹，管理页用 `PageContainer`；颜色/圆角/间距一律取 `@ark-go-starter/ui` 的 `tokens` 或 antd token，**禁止裸色值**；卡片无阴影、Table 必须 `tableLayout="fixed"` + 显式列宽。详见 [frontend-conventions.md](./docs/agents/frontend-conventions.md)；视觉规范事实源是 [docs/DESIGN.md](./docs/DESIGN.md)（Ant Design 原生风格，改 `theme.ts` tokens 与它必须同步）。
 12. **注释**：每个包必须有 `// Package xxx` 注释，每个导出符号必须有以符号名开头的 godoc；`internal/dto/` 下结构体字段必须有行内中文注释；DDL 字段必须有行尾 `--` 注释 + `COMMENT ON COLUMN`（两份保持一致）。详见 [backend-conventions.md](./docs/agents/backend-conventions.md#注释规范)。
 13. **提交前自检**：`gofmt -w .` + `make lint`（必须 0 issues）+ `make test APP=demo` 三项全过再提交；`%w` 包装错误、blank import 写用途注释、连接池显式配置。详见 [backend-conventions.md](./docs/agents/backend-conventions.md#提交前自检硬性要求)。
-14. **目录命名**：`deploy/` 只放构建与部署资产（不进 `go.work` / `pnpm-workspace` / Nx 图；**不含建表 SQL，DDL 归 `apps/api/db/`**），代码侧基础设施层统一叫 `internal/infra/`（当前预留不建；一旦建，`dao` / `client` / `storage` 必须同 PR 迁完删除）。详见 [backend-conventions.md](./docs/agents/backend-conventions.md#部署目录与基础设施层的命名边界)。
+14. **目录命名**：`deploy/` 只放构建与部署资产（不进 `go.work` / `pnpm-workspace` / Nx 图；**不含建表 SQL**）；建表 DDL 统一放仓库根 `scripts/sql/`（`table_init.sql`，不参与编译、需手动执行，由 `ddl_consistency_test.go` 按仓库根相对路径读取比对）。代码侧基础设施层统一叫 `internal/infra/`（当前预留不建；一旦建，`dao` / `client` / `storage` 必须同 PR 迁完删除）。详见 [backend-conventions.md](./docs/agents/backend-conventions.md#部署目录与基础设施层的命名边界)。
 15. **CI 门禁边界**：PR 门禁只做**判定**，且**按变更范围只跑相关 job**（文档/纯 md → 全跳过；前端 → ESLint + Nx affected typecheck；Go → gofmt + golangci-lint + **单元测试**；依赖变更 → 追加 govulncheck；契约面变更 → 追加 contracts-verify）。**不产生产物**（`vite build` / `go build` / `docker build`）、**不现装工具**（`go install` / `npx` 必须有缓存或路径条件）。判定必需的**编译**用 `actions/cache` 显式缓存 `~/.cache/go-build` + `~/go/pkg/mod`：**PR 侧只 restore，save 只在 main push**（缓存按分支写入，PR 各写一份会打爆 10GB 配额）。**集成测试与 `-race` 不在 PR 门禁**，由主干 `Deep test` 与每周 schedule 兜底；主干 push 永远全量。落点见 [`.github/workflows/ci.yml`](./.github/workflows/ci.yml) 顶部注释。
 
 ## 维护本文件

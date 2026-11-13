@@ -1,12 +1,13 @@
 -- ============================================================================
 -- 初始化脚本（PostgreSQL）
 --
--- 本文件是业务表结构的唯一事实源，位于「拥有这些表的服务」apps/api 内，
--- 并通过同目录 db.go 的 go:embed 打进包（model 包的一致性用例直接读它）。
+-- 本文件是业务表结构的唯一事实源，集中存放于仓库根 scripts/sql/ 下。
+-- 它**不参与编译**（不再 go:embed），需由用户手动执行；model 包的一致性用例
+-- （apps/api/model/ddl_consistency_test.go）在测试时按仓库根相对路径读取本文件原文比对。
 --
 -- 本项目以 PostgreSQL 为样板库。首次使用：
 --   createdb demo
---   psql -d demo -f apps/api/db/table_init.sql
+--   psql -d demo -f scripts/sql/table_init.sql
 --
 -- 注意：product 表名在 PostgreSQL 中非关键字，SQL 中可直接写 product（无需像保留字那样加双引号）。
 -- Go 侧 model.TableNameProduct 是**不带引号**的逻辑表名，传给 gormdao.NewDao 即可，

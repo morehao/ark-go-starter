@@ -365,7 +365,7 @@ jobs:
         env:
           PGPASSWORD: "123456"
         run: |
-          psql -h 127.0.0.1 -U postgres -d demo -f apps/api/db/table_init.sql
+          psql -h 127.0.0.1 -U postgres -d demo -f scripts/sql/table_init.sql
 
       - name: Test ${{ matrix.module }} (unit + integration, race)
         run: cd ${{ matrix.dir }} && go test -race -tags=integration ./...
@@ -500,7 +500,7 @@ jobs:
         env:
           PGPASSWORD: "123456"
         run: |
-          psql -h 127.0.0.1 -U postgres -d demo -f apps/api/db/table_init.sql
+          psql -h 127.0.0.1 -U postgres -d demo -f scripts/sql/table_init.sql
 
       # 后端真端口 e2e：用例内部用 testsetup + Routers 自起随机端口，不依赖外部进程
       - name: Backend e2e (real port)

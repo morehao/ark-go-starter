@@ -36,15 +36,17 @@ pkg/                      # 公共包（跨应用共享）
 | 仓库根 | `deploy/` | 构建与部署资产：Dockerfile、compose、k8s/Helm 清单、发布脚本 | 否（不进 `go.work` / `pnpm-workspace` / Nx project graph） |
 | 代码内 | `internal/infra/`（预留，当前不建） | 基础设施层 / 适配器实现：持久化、缓存、消息队列、外部 HTTP、对象存储 | 是 |
 
-**建表 SQL 不进 `deploy/`，DDL 跟服务走**
+**建表 SQL 不进 `deploy/`，DDL 集中放 `scripts/sql/`**
 
-DDL（`apps/api/db/table_init.sql`）是「拥有这些表的服务」的数据定义，放 `apps/api/db/`，既不进 `deploy/`，也不放仓库根的 `scripts/`。判断口径：
+DDL（`scripts/sql/table_init.sql`）是全仓业务表结构的唯一事实源，统一放在仓库根 `scripts/sql/` 下，不进 `deploy/`。判断口径：
 
 - 由**容器 / 编排工具**读取的（Dockerfile、compose、k8s/Helm 清单）→ `deploy/`
-- 由**仓库级工具**在根上执行的（quickstart、初始化、发布脚本）→ `scripts/`
-- **表的定义**（DDL）→ 拥有该表的 app 内（当前即 `apps/api/db/`）
+- 由**仓库级工具**在根上执行的（quickstart、建表、初始化、发布脚本）→ `scripts/`（SQL 放 `scripts/sql/`）
+- 脚本（shell / sql）统一收敛到 `scripts/`，不再散落在各 app 内
 
-为什么放模块内而不是 `scripts/`：DDL 同时要被 Go 代码读到（`model` 包的一致性用例），而 `//go:embed` 只能嵌入本包目录下的文件、模式里不能写 `..`。放进模块内，用例直接 `db.TableInitDDL` 取原文，不依赖测试工作目录；放在模块外就只能写 `../../..` 这种相对路径，换目录就跑不起来。
+DDL **不参与编译**（不再 `//go:embed`），需由用户 / CI 手动执行（`psql -f scripts/sql/table_init.sql`，quickstart 与 CI 建表步骤均执行这一份）。`model` 包的一致性用例（`apps/api/model/ddl_consistency_test.go`）在测试时用 `runtime.Caller` 定位仓库根、按相对路径读取本文件原文比对，因此既不依赖测试工作目录、也不需要把 DDL 塞进某个 Go 包。
+
+> `table_init.sql` 只放**业务表 + `biz_iam_user_map`**。ark-iam 的 `iam_` 前缀域表由 op 模式启动时 AutoMigrate 自动创建、其管理员/租户等运行期数据由 `/iam/install` 初始化，**都不写进这份 DDL**——详见 [iam.md §6.1](./iam.md#61-各类数据分别怎么初始化速查)。
 
 **1. 唯一住所，禁止并存**
 
@@ -156,7 +158,7 @@ type UserPageListResp struct {
 
 ### SQL 字段注释（硬性要求）
 
-DDL（`apps/api/db/table_init.sql`）中**每个字段都必须有注释**，且要写两份、保持一致：
+DDL（`scripts/sql/table_init.sql`）中**每个字段都必须有注释**，且要写两份、保持一致：
 
 1. 字段行尾的 `-- 中文说明`：保证脚本本身可读；
 2. 建表后的 `COMMENT ON COLUMN`：把同一份说明写进库元数据，`psql` 里 `\d+ 表名`、以及各类客户端都能看到。
@@ -178,8 +180,9 @@ COMMENT ON COLUMN "user".deleted_at IS '删除时间（软删除）';
 ### DDL 与 model 的一致性门禁
 
 同一列在两处各写一遍（model 的 gorm tag、DDL 的列定义），靠人同步必然漂移。门禁在
-`apps/api/model/ddl_consistency_test.go`，`make test` 即跑、**不连库**：DDL 由 `apps/api/db`
-包 `go:embed` 打进包（`db.TableInitDDL`），用例直接解析原文比对。
+`apps/api/model/ddl_consistency_test.go`，`make test` 即跑、**不连库**：DDL 放在仓库根
+`scripts/sql/table_init.sql`（不参与编译），用例用 `runtime.Caller` 定位仓库根后按相对路径
+读取原文比对，不依赖测试工作目录。
 
 守的清单是 `postgresModels`（`apps/api/model/pg_dialect_test.go`），跨模块的 model 也登记
 （如 `pkg/iamlink.IAMUserMapEntity`）。新增 model 时**必须**把它加进这个清单，否则不受保护。
@@ -208,7 +211,7 @@ DDL 里新增表而暂时不建 model：必须在用例的 `tablesWithoutModel` 
 
 ## 模型字段类型规范（PostgreSQL）
 
-**本仓库唯一目标库是 PostgreSQL**：建表事实源是 `apps/api/db/table_init.sql`（PG 语法），model 的 gorm tag **必须显式写 `type:`，且取值只能是 PostgreSQL 合法类型**（与脚本同款，结构体自描述、读模型即知列类型），不得写其它方言的字面量。
+**本仓库唯一目标库是 PostgreSQL**：建表事实源是 `scripts/sql/table_init.sql`（PG 语法），model 的 gorm tag **必须显式写 `type:`，且取值只能是 PostgreSQL 合法类型**（与脚本同款，结构体自描述、读模型即知列类型），不得写其它方言的字面量。
 
 | 想要的效果 | 写法 | PG 生成的列 |
 |-----------|------|-------------|
