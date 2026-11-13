@@ -46,7 +46,7 @@ BACKEND_PORT="8099"
 FRONTEND_HOST="${FRONTEND_HOST:-localhost}"
 FRONTEND_PORT="${FRONTEND_PORT:-3000}"
 API_BASE="http://127.0.0.1:${BACKEND_PORT}"
-TABLE_INIT_SQL="$REPO_ROOT/apps/api/db/table_init.sql"
+TABLE_INIT_SQL="$REPO_ROOT/scripts/sql/table_init.sql"
 COMPOSE_FILE="$REPO_ROOT/deploy/compose/dev.yml"
 COMPOSE_PROJECT_TAG="ark-go-starter"
 

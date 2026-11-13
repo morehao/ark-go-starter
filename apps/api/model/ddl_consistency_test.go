@@ -1,7 +1,10 @@
 package model
 
 import (
+	"os"
+	"path/filepath"
 	"regexp"
+	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -10,19 +13,19 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm/schema"
-
-	"github.com/morehao/ark-go-starter/apps/api/db"
 )
 
 // 本文件是「model ↔ DDL 逐列一致」的门禁。
 //
-// 背景：同一列在两处各写一遍——model 的 gorm tag 与 apps/api/db/table_init.sql。
+// 背景：同一列在两处各写一遍——model 的 gorm tag 与 scripts/sql/table_init.sql。
 // 两份漂移时，单元测试与 lint 都不会报（它们不读 DDL），错误要等到运行期才炸：
 //   - model 多一列、DDL 没加   → 查询报 column "xxx" does not exist
 //   - 两边类型/长度不一致      → 应用照跑，写入时才报 value too long for type ...
 //   - DDL 有列、model 没有     → 不报错，但那一列永远没人写
 //
-// DDL 由 apps/api/db 包 go:embed 打进包，所以本用例不依赖测试工作目录、不连库。
+// DDL 不再 go:embed 进包，改为本用例按仓库根相对路径读取 scripts/sql/table_init.sql；
+// 用 runtime.Caller 定位本测试文件所在路径反推仓库根，因此不依赖测试的工作目录、不连库。
+// DDL 由用户手动执行（quickstart 脚本或 psql -f），不再是编译期产物。
 //
 // 比对口径（刻意的松紧边界）：
 //   - 写了 type: tag 的列：类型、NOT NULL、DEFAULT、注释、主键标记全部严格比对；
@@ -37,6 +40,38 @@ var (
 	commentColRE  = regexp.MustCompile(`(?i)^COMMENT ON COLUMN\s+([a-z_][a-z0-9_]*)\.([a-z_][a-z0-9_]*)\s+IS\s+'(.*)'\s*;`)
 	constraintRE  = regexp.MustCompile(`(?i)^(?:CONSTRAINT|PRIMARY|UNIQUE|FOREIGN|CHECK|KEY|INDEX)\b`)
 )
+
+// ddlPath 返回建表脚本 scripts/sql/table_init.sql 的绝对路径。
+//
+// 用 runtime.Caller 取本测试文件的路径，逐级上溯找到含 go.work 的仓库根，再拼上
+// scripts/sql/table_init.sql。这样无论从哪个工作目录跑 go test，都能定位到同一份 DDL，
+// 不靠 ../../.. 这类写死的相对层级。
+func ddlPath(t *testing.T) string {
+	t.Helper()
+
+	_, thisFile, _, ok := runtime.Caller(0)
+	require.True(t, ok, "无法获取当前测试文件路径")
+
+	dir := filepath.Dir(thisFile) // apps/api/model
+	for {
+		if _, err := os.Stat(filepath.Join(dir, "go.work")); err == nil {
+			return filepath.Join(dir, "scripts", "sql", "table_init.sql")
+		}
+		parent := filepath.Dir(dir)
+		require.NotEqual(t, parent, dir, "从 %s 向上未找到仓库根（含 go.work）", filepath.Dir(thisFile))
+		dir = parent
+	}
+}
+
+// readDDL 读取并返回建表脚本原文。
+func readDDL(t *testing.T) string {
+	t.Helper()
+
+	path := ddlPath(t)
+	content, err := os.ReadFile(path)
+	require.NoErrorf(t, err, "读取建表脚本失败：%s", path)
+	return string(content)
+}
 
 // tablesWithoutModel 列出 DDL 中刻意不建 Go model 的表；新增表若不建 model 必须先登记。
 var tablesWithoutModel = map[string]string{
@@ -63,7 +98,7 @@ type ddlTable struct {
 func TestModelsMatchDDL(t *testing.T) {
 	t.Parallel()
 
-	tables := parseDDL(db.TableInitDDL)
+	tables := parseDDL(readDDL(t))
 
 	for _, dest := range postgresModels {
 		entity, err := schema.Parse(dest, &sync.Map{}, schema.NamingStrategy{})
@@ -71,7 +106,7 @@ func TestModelsMatchDDL(t *testing.T) {
 
 		tableName := entity.Table
 		table, ok := tables[tableName]
-		require.Truef(t, ok, "DDL（apps/api/db/table_init.sql）里没有表 %q", tableName)
+		require.Truef(t, ok, "DDL（scripts/sql/table_init.sql）里没有表 %q", tableName)
 		if !ok {
 			continue
 		}
@@ -95,7 +130,7 @@ func TestModelsMatchDDL(t *testing.T) {
 func TestDDLTablesAreModeled(t *testing.T) {
 	t.Parallel()
 
-	tables := parseDDL(db.TableInitDDL)
+	tables := parseDDL(readDDL(t))
 
 	modeled := make(map[string]struct{}, len(postgresModels))
 	for _, dest := range postgresModels {
@@ -120,7 +155,7 @@ func TestDDLTablesAreModeled(t *testing.T) {
 func TestDDLColumnCommentsInSync(t *testing.T) {
 	t.Parallel()
 
-	tables := parseDDL(db.TableInitDDL)
+	tables := parseDDL(readDDL(t))
 
 	for _, tableName := range sortedKeys(tables) {
 		table := tables[tableName]

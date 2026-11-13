@@ -47,7 +47,7 @@
 | `app.go`（`Routers` / `buildAuthMiddleware`） | 按 `mode` 装配鉴权中间件（op/rp 共用 `OIDCAuth`） |
 | `internal/middleware/oidc_auth.go` | 业务接口 OIDC 本地验签中间件（依赖 `contract.KeySource`） |
 | `pkg/iamlink/*` | IAM string 身份 ↔ 本地 BIGINT 用户 ID 的映射层（与形态无关，三态通用） |
-| `apps/api/db/table_init.sql` | 业务表 DDL（含 `biz_iam_user_map`）；不含 `iam_` 表 |
+| `scripts/sql/table_init.sql` | 业务表 DDL（含 `biz_iam_user_map`）；不含 `iam_` 表 |
 
 ---
 
@@ -214,6 +214,20 @@ biz_iam_user_map
 - 同库共存：op 用 `SameDatabase: true`，IAM 表与业务表在同一 PG 库；ark-iam 有同库撞名检测，届时按提示显式配置。
 
 > op 首次在空库启用：先执行 `table_init.sql`（建业务表 + `biz_iam_user_map`），再以 `mode: op` 启动（`RunMigrations` 建 `iam_` 表）。
+
+### 6.1 各类「数据」分别怎么初始化（速查）
+
+IAM 相关的表与数据分三层，初始化入口各不相同，**不要混用**：
+
+| 层面 | 具体内容 | 初始化方式 | 是否可写进 `scripts/sql/table_init.sql` |
+|------|----------|-----------|----------------------------------------|
+| **建表 · IAM 域表** | `iam_person`/`iam_user`/`iam_tenant`/`iam_application_client` 等 `iam_` 前缀表 | op 模式启动时 `RunMigrations`（AutoMigrate）**自动创建** | **否**（写了会与 AutoMigrate 冲突，宿主项目不要写） |
+| **建表 · 业务表 + 映射表** | `product` 等业务表、`biz_iam_user_map`（含独立序列 `biz_iam_user_map_local_uid_seq` 与唯一索引） | 手动执行 `psql -f scripts/sql/table_init.sql`（幂等，quickstart 与 CI 建表均执行这一份） | **是**（唯一存放处） |
+| **数据 · 管理员 / 租户 / client** | 平台管理员账号、租户、OIDC 客户端等**运行期数据** | op 模式调 `POST /iam/install/initialize`（见第 9 节）；`make quickstart` 首次运行自动完成 | **否**（ark-iam 不内置默认账号/口令，密码 bcrypt 库内生成；SQL 直插既不合规也过不了强度校验） |
+
+一句话顺序（空库 → 能登录）：`psql -f scripts/sql/table_init.sql`（业务表+映射表）→ `iam.mode=op` 启动（`RunMigrations` 建 `iam_` 表）→ `POST /iam/install/initialize`（建管理员/租户/client）。`make quickstart` 会把这三步一次跑完且幂等。
+
+> 数据库里**没有**「IAM 域表/管理员」的初始化 SQL 文件——这是设计如此：建表交给 AutoMigrate、数据交给 install 接口。`scripts/sql/` 下只有 `table_init.sql` 这一份，管的是业务表与映射表。
 
 ---
 

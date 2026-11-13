@@ -118,9 +118,9 @@ go test ./apps/api/internal/service/svcproduct -run TestGeneratePassword -v
 ## 环境依赖
 
 - 默认 `go test ./...` / `make test` **不依赖任何外部服务**；连库用例已被 `//go:build integration` 排除。
-- `make test-integration` 需要本地 PostgreSQL(5432) / Redis(6379)，且库表已按 `apps/api/db/table_init.sql` 初始化；未启动时失败属环境问题而非代码问题。
+- `make test-integration` 需要本地 PostgreSQL(5432) / Redis(6379)，且库表已按 `scripts/sql/table_init.sql` 初始化；未启动时失败属环境问题而非代码问题。
 - 本项目不连接 Elasticsearch。
-- model ↔ DDL 一致性用例（`apps/api/model/ddl_consistency_test.go`）随 `make test` 跑，不连库：改了 gorm tag 或 `apps/api/db/table_init.sql` 都要跑一遍。
+- model ↔ DDL 一致性用例（`apps/api/model/ddl_consistency_test.go`）随 `make test` 跑，不连库：改了 gorm tag 或 `scripts/sql/table_init.sql` 都要跑一遍。
 
 ## 相关文档
 
