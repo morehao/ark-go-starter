@@ -56,7 +56,13 @@ function readKeyFromHash(): string {
   return key && PAGES[key] ? key : 'products'
 }
 
-export default function App() {
+/**
+ * 应用主布局。
+ *
+ * `headerRight` 是可选的页头右侧插槽：登录态（op/rp）由 `AuthedApp` 注入「头像 + 个人中心 /
+ * 退出登录」入口；disabled 模式不传，页头保持原样（免登录现状）。
+ */
+export default function App({ headerRight }: { headerRight?: React.ReactNode } = {}) {
   const [activeKey, setActiveKey] = useState<string>(readKeyFromHash)
   const ActivePage = PAGES[activeKey] ?? ProductsPage
 
@@ -145,6 +151,7 @@ export default function App() {
               {MENU_LABELS[activeKey] ?? ''}
             </Typography.Text>
           </Typography.Text>
+          {headerRight}
         </Header>
         <Content style={{ padding: 24, background: tokens.bg }}>
           <ActivePage />

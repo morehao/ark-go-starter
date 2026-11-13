@@ -127,6 +127,13 @@ iam:
     - "http://localhost:3000/auth/callback"
     - "http://localhost:3001/auth/callback"
     - "http://localhost:4001/auth/callback"
+  # 登出回跳白名单（前端「退出登录」经 /oidc/end_session 回跳，OP 精确匹配）：
+  # 前端登出后跳回首页，AuthGuard 判定未登录 → 自动 signinRedirect 回登录页。
+  # 必须与前端 postLogoutRedirectPath（本模板用 '/'）拼出的完整地址逐字符一致。
+  post_logout_redirect_uris:
+    - "http://localhost:3000/"
+    - "http://localhost:3001/"
+    - "http://localhost:4001/login"
   # 前端应用基址：op 下用于拼内嵌登录页 `{frontend_url}/iam/login`。
   # 前后端分离部署（后端 8099、前端 3000）必须配置，否则登录页会被导向 8099 而 404。
   frontend_url: "http://localhost:3000"
