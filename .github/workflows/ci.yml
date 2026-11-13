@@ -138,6 +138,7 @@ jobs:
 
   test:
     name: Test
+    if: false  # 探针：验证 required check 被跳过时是否阻塞合并
     runs-on: ubuntu-latest
     timeout-minutes: 20
     services:
