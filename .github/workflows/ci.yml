@@ -22,8 +22,14 @@ on:
     branches: [main, master, develop, dev]
   # merge queue 预留：仓库开启 merge queue 后由队列触发，无需再改本文件。
   merge_group:
-  # E2E job 最慢（后端真端口 + Playwright），仅在手动触发时运行（e2e job 带 if 门控）。
+  # E2E job 最慢（后端真端口 + Playwright），仅在手动触发且显式勾选 run_e2e 时运行。
+  # 这样手动 dispatch 也可以只跑常规门禁（例如预热/验证构建缓存）。
   workflow_dispatch:
+    inputs:
+      run_e2e:
+        description: "同时运行 E2E（后端真端口 + Playwright，约 10-25 分钟）"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -303,8 +309,8 @@ jobs:
 
   e2e:
     name: E2E
-    # 仅手动触发（workflow_dispatch）时运行；push/PR 不跑 E2E（太慢）。
-    if: github.event_name == 'workflow_dispatch'
+    # 仅手动触发且勾选 run_e2e 时运行；push/PR 不跑 E2E（太慢）。
+    if: github.event_name == 'workflow_dispatch' && inputs.run_e2e
     runs-on: ubuntu-latest
     timeout-minutes: 25
     services:
