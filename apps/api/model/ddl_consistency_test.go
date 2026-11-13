@@ -68,7 +68,8 @@ func readDDL(t *testing.T) string {
 	t.Helper()
 
 	path := ddlPath(t)
-	content, err := os.ReadFile(path)
+	// path 由 runtime.Caller 推导得到的仓库内固定 DDL 路径，非外部输入，G304（路径穿越）为误报。
+	content, err := os.ReadFile(path) // #nosec G304
 	require.NoErrorf(t, err, "读取建表脚本失败：%s", path)
 	return string(content)
 }
