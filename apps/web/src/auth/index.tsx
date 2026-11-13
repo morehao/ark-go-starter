@@ -89,7 +89,7 @@ export function AuthGuard({ children }: { children: ReactNode }) {
           justifyContent: 'center',
         }}
       >
-        <Spin size="large" tip="正在跳转登录…">
+        <Spin size="large" description="正在跳转登录…">
           <div style={{ width: 120, height: 40 }} />
         </Spin>
       </div>

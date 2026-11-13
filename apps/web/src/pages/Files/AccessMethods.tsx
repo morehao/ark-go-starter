@@ -88,7 +88,7 @@ export default function AccessMethods({ fileId, storageUri }: AccessMethodsProps
   return (
     <Descriptions bordered column={1} size="small" title="下载与访问方式" styles={{ label: { width: 160, color: tokens.textSecondary } }}>
       <Descriptions.Item label="① serve 直出（路径）">
-        <Space direction="vertical" size={4}>
+        <Space orientation="vertical" size={4}>
           <Button size="small" onClick={() => openTab(serveFileURL(fileId))}>
             打开 serve 直出
           </Button>
@@ -99,7 +99,7 @@ export default function AccessMethods({ fileId, storageUri }: AccessMethodsProps
       </Descriptions.Item>
 
       <Descriptions.Item label="② redirect 302（路径）">
-        <Space direction="vertical" size={4}>
+        <Space orientation="vertical" size={4}>
           <Button size="small" onClick={() => openTab(redirectFileURL(fileId))}>
             打开 redirect 302
           </Button>
@@ -110,12 +110,12 @@ export default function AccessMethods({ fileId, storageUri }: AccessMethodsProps
       </Descriptions.Item>
 
       <Descriptions.Item label="③ presign-url">
-        <Space direction="vertical" size={8} style={{ width: '100%' }}>
+        <Space orientation="vertical" size={8} style={{ width: '100%' }}>
           <Button size="small" loading={presignLoading} onClick={handlePresign}>
             获取预签名下载地址
           </Button>
           {presign ? (
-            <Space direction="vertical" size={4} style={{ width: '100%' }}>
+            <Space orientation="vertical" size={4} style={{ width: '100%' }}>
               <div>
                 <span style={{ color: tokens.textSecondary }}>URL：</span>
                 <Tooltip title={presign.url}>
@@ -135,7 +135,7 @@ export default function AccessMethods({ fileId, storageUri }: AccessMethodsProps
       </Descriptions.Item>
 
       <Descriptions.Item label="④ serve / redirect（query）">
-        <Space direction="vertical" size={8} style={{ width: '100%' }}>
+        <Space orientation="vertical" size={8} style={{ width: '100%' }}>
           <Input
             placeholder="file_id（可选）"
             value={queryFileId}

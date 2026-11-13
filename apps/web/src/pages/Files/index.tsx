@@ -220,7 +220,7 @@ export default function FilesPage() {
       title="文件上传"
       description="演示 golib ginupload 的完整路由能力：普通上传 / 分片上传（> 8 MB 自动分片）、文件详情、四种取回方式（serve / redirect / presign-url / query）与分片会话调试"
     >
-      <Space direction="vertical" size="large" style={{ width: '100%' }}>
+      <Space orientation="vertical" size="large" style={{ width: '100%' }}>
         {/* ① 上传区 */}
         <Upload.Dragger
           name="file"

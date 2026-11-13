@@ -319,11 +319,11 @@ export type IAMMode = 'disabled' | 'op' | 'rp'
 
 **本地默认账号（仅本机 dev 库，非项目内置）**：
 
-> ark-iam **不内置任何默认口令**。`make quickstart` 首次运行会通过 `/iam/install/initialize` 创建 `admin` 账号，密码取 `IAM_ADMIN_PASS`（**dev 缺省 `Adm1n@Strong!Pass`**，可用环境变量覆盖，见 [quickstart.md](./quickstart.md)）。该账号存在于数据库 `iam_person` 表，**不随代码发布**，换库/清库/重建后即失效。生产环境绝不可沿用。
+> ark-iam **不内置任何默认口令**。`make quickstart` 首次运行会通过 `/iam/install/initialize` 创建 `admin` 账号，密码取 `IAM_ADMIN_PASS`（**dev 缺省 `admin123456`**，可用环境变量覆盖，见 [quickstart.md](./quickstart.md)）。该账号存在于数据库 `iam_person` 表，**不随代码发布**，换库/清库/重建后即失效。生产环境绝不可沿用。
 
 | 用户名 | 密码（quickstart dev 缺省） | 邮箱 | 手机 |
 |--------|------|------|------|
-| `admin` | `Adm1n@Strong!Pass` | admin@example.com | 13800000000 |
+| `admin` | `admin123456` | admin@example.com | 13800000000 |
 
 - 前端登录地址：`http://localhost:3000`（op 模式下自动跳 `/iam/login` 账密页）。
 - 忘记密码：无法从库反查（bcrypt 存储），需重置 `iam_person.password_encrypted`（bcrypt cost 10）或清库重走 `/iam/install`。
@@ -337,7 +337,7 @@ curl -s http://localhost:8099/iam/install/status
 # 初始化平台管理员（口令有强度校验；adminEmail/adminPhone 至少一项）
 curl -s -X POST http://localhost:8099/iam/install/initialize \
   -H 'Content-Type: application/json' -H "X-Bootstrap-Token: $BOOTSTRAP_TOKEN" \
-  -d '{"adminUsername":"admin","adminPassword":"Adm1n@Strong!Pass","adminEmail":"admin@example.com","tenantName":"Acme"}'
+  -d '{"adminUsername":"admin","adminPassword":"admin123456","adminEmail":"admin@example.com","tenantName":"Acme"}'
 ```
 
 **rp 联调**：`config.yaml` 设 `iam.mode: rp` + `issuer`（远端 ark-iam），前端设 `VITE_IAM_MODE=rp` + `VITE_OIDC_ISSUER` + `VITE_OIDC_CLIENT_ID`；不建库、不挂 `/iam/*`，登录跳远端 ark-iam。
