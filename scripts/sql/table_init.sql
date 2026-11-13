@@ -14,6 +14,9 @@
 -- 生成的 SQL 形如 SELECT count(*) FROM "product" WHERE "product"."deleted_at" IS NULL。
 --
 -- 其余表（core_file、core_file_upload）由 golib/filestore 在应用启动时 AutoMigrate 创建。
+-- IAM 账号不在本文件内：iam_* 表由 ark-iam sdk 启动时 RunMigrations 创建，管理员由
+-- `make quickstart`（POST /iam/install/initialize）创建；dev 缺省 admin / Admin123456，
+-- 口令必须满足强度校验（8~128 位，且同时含大写、小写、数字）。
 --
 -- 字段注释规范（见 docs/agents/backend-conventions.md）：每个字段都必须有行内 `--` 注释，
 -- 并在建表后用 `COMMENT ON COLUMN` 把同一份说明写入库元数据（psql 里 \d+ 表名 可见）。

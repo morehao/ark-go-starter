@@ -3,7 +3,7 @@
 > 上级入口：[AGENTS.md](../../AGENTS.md)　·　文档中心：[docs/agents/README.md](./README.md)
 >
 > 反映 ark-iam（`sdk/server` 门面 + 独立 `contract` module）的**三态**接入方式；
-> 依赖版本：`sdk v0.5.0` / `contract v0.1.0` / `pkg v0.4.0`（均已发布到 Go proxy）。
+> 依赖版本：`sdk v0.6.0` / `contract v0.1.0` / `pkg v0.4.1`（均已发布到 Go proxy）。
 
 本模板支持**可选接入** [ark-iam](https://github.com/morehao/ark-iam) 账号认证体系。是否接入、以什么形态接入，
 完全由 `config.yaml` 的 `iam.mode` 决定（`mode` 留空时回落为 `disabled`，对业务零副作用）。接入形态有三种：
@@ -169,15 +169,15 @@ ark-iam 的三态能力已发布到 Go proxy，本项目**直接 `go get` 真实
 
 ```go
 require (
-    github.com/morehao/ark-iam/sdk      v0.5.0   // 门面 sdk/server + RP sdk/rp
+    github.com/morehao/ark-iam/sdk      v0.6.0   // 门面 sdk/server + RP sdk/rp
     github.com/morehao/ark-iam/contract v0.1.0   // 契约 module
-    github.com/morehao/ark-iam/pkg      v0.4.0   // 公共层（随 sdk 传递引入，通常无需直接 require）
+    github.com/morehao/ark-iam/pkg      v0.4.1   // 公共层（随 sdk 传递引入，通常无需直接 require）
 )
 ```
 
 - `go.work` 只 `use ./apps/api` 与 `./pkg`（本仓自己的模块），不涉及外部源码。
 - 下游模板用户：`go mod download` 即可，无需任何本地源码准备。
-- `sdk` 会传递引入 `backend/apps/{auth,platformadmin,tenantadmin}` 作为 indirect 依赖——这是 ark-iam 内部分层，消费者无需感知。
+- `sdk` 会传递引入 `apps/{auth,platformadmin,tenantadmin}`（v0.1.0）作为 indirect 依赖——这是 ark-iam 内部分层，消费者无需感知。旧路径 `backend/apps/*` 已迁移至 `apps/*`，历史 tag 仍可拉取但不再推荐。
 
 > 版本号如有更新，以后续 ark-iam 发布为准；`make test` 与 `make lint` 均基于已发布版本，CI 无需特殊处理。
 
@@ -300,7 +300,7 @@ export type IAMMode = 'disabled' | 'op' | 'rp'
 3. **`iam` 模块已删除**：入口从 `iam.New` 改为 **`sdk/server.New`**。`New`/`Mount`/`RunMigrations`/`KeySource`/`Close` 名字基本 1:1 保留，只是包名变了。
 4. **redirect_uri 白名单**：回调必须是 `/auth/callback`（不是 `/callback`），且登记在客户端 `redirect_uris`。内置种子客户端 `platform_admin_web` 默认只登记了控制台回调（如 `http://localhost:4001/auth/callback`），拿它跑 demo-web 会卡在回调对齐——需补登 `http://localhost:3000/auth/callback` 或另建 public client。
 5. **issuer 必须与挂载前缀一致**：op 下 issuer 形如 `{scheme}://{host}{prefix}/oidc`，否则 OP 公布的 issuer 与端点不符，验签因 `iss` 不匹配失败。rp 下 `issuer` 必须等于远端 OP 的 issuer。
-6. **依赖**：`sdk`/`contract`/`pkg` 已发布到 proxy，直接 `go get`（`sdk v0.5.0` / `contract v0.1.0` / `pkg v0.4.0`）；无需 `replace`，`go.work` 只 `use` 本仓模块。
+6. **依赖**：`sdk`/`contract`/`pkg` 已发布到 proxy，直接 `go get`（`sdk v0.6.0` / `contract v0.1.0` / `pkg v0.4.1`）；无需 `replace`，`go.work` 只 `use` 本仓模块。
 
 ---
 
@@ -320,7 +320,7 @@ export type IAMMode = 'disabled' | 'op' | 'rp'
 | rp 验签 | `sdk/rp.NewKeys`/`NewVerifier` | 不变（`sdk/rp` 接口稳定） |
 | rp 形态 | 不支持（只有内嵌/关闭） | 新增 `setupRP()`：仅 `rp.NewKeys`，不建库不挂路由 |
 | 生产安全校验 | 宿主/`iam.New` 内 `validateNonDevSecurityConfig` | SDK 在 `server.New` 内自动 fail-closed，宿主不再重复 |
-| Go 依赖模块 | `ark-iam/iam` + `ark-iam/pkg` + `ark-iam/sdk` v0.3.0 | `ark-iam/sdk` v0.5.0 + `ark-iam/contract` v0.1.0 + `ark-iam/pkg` v0.4.0（均已发布，直接 go get） |
+| Go 依赖模块 | `ark-iam/iam` + `ark-iam/pkg` + `ark-iam/sdk` v0.3.0 | `ark-iam/sdk` v0.6.0 + `ark-iam/contract` v0.1.0 + `ark-iam/pkg` v0.4.1（均已发布，直接 go get；域库在 `ark-iam/apps/*`） |
 | 鉴权中间件 import | `.../ark-iam/sdk/contract` | `.../ark-iam/contract` |
 
 **后端调用面 80% 可平移**（`New/Mount/RunMigrations/KeySource/Close` 名字不变，仅包名 `iam` → `sdk/server`）；真正的破坏点是：① `MountFrontend` 删除、② `contract` 独立 module 的 import 路径、③ `go.mod` 模块集合变化。
@@ -333,11 +333,11 @@ export type IAMMode = 'disabled' | 'op' | 'rp'
 
 **本地默认账号（仅本机 dev 库，非项目内置）**：
 
-> ark-iam **不内置任何默认口令**。`make quickstart` 首次运行会通过 `/iam/install/initialize` 创建 `admin` 账号，密码取 `IAM_ADMIN_PASS`（**dev 缺省 `admin123456`**，可用环境变量覆盖，见 [quickstart.md](./quickstart.md)）。该账号存在于数据库 `iam_person` 表，**不随代码发布**，换库/清库/重建后即失效。生产环境绝不可沿用。
+> ark-iam **不内置任何默认口令**。`make quickstart` 首次运行会通过 `/iam/install/initialize` 创建 `admin` 账号，密码取 `IAM_ADMIN_PASS`（**dev 缺省 `Admin123456`**，满足 ark-iam 强度校验：含大写/小写/数字，可用环境变量覆盖，见 [quickstart.md](./quickstart.md)）。该账号存在于数据库 `iam_person` 表，**不随代码发布**，换库/清库/重建后即失效。生产环境绝不可沿用。
 
 | 用户名 | 密码（quickstart dev 缺省） | 邮箱 | 手机 |
 |--------|------|------|------|
-| `admin` | `admin123456` | admin@example.com | 13800000000 |
+| `admin` | `Admin123456` | admin@example.com | 13800000000 |
 
 - 前端登录地址：`http://localhost:3000`（op 模式下自动跳 `/iam/login` 账密页）。
 - 忘记密码：无法从库反查（bcrypt 存储），需重置 `iam_person.password_encrypted`（bcrypt cost 10）或清库重走 `/iam/install`。
@@ -351,7 +351,7 @@ curl -s http://localhost:8099/iam/install/status
 # 初始化平台管理员（口令有强度校验；adminEmail/adminPhone 至少一项）
 curl -s -X POST http://localhost:8099/iam/install/initialize \
   -H 'Content-Type: application/json' -H "X-Bootstrap-Token: $BOOTSTRAP_TOKEN" \
-  -d '{"adminUsername":"admin","adminPassword":"admin123456","adminEmail":"admin@example.com","tenantName":"Acme"}'
+  -d '{"adminUsername":"admin","adminPassword":"Admin123456","adminEmail":"admin@example.com","tenantName":"Acme"}'
 ```
 
 **rp 联调**：`config.yaml` 设 `iam.mode: rp` + `issuer`（远端 ark-iam），前端设 `VITE_IAM_MODE=rp` + `VITE_OIDC_ISSUER` + `VITE_OIDC_CLIENT_ID`；不建库、不挂 `/iam/*`，登录跳远端 ark-iam。

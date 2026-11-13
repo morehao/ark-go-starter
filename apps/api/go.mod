@@ -56,9 +56,9 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
-	github.com/morehao/ark-iam/backend/apps/auth v0.5.0 // indirect
-	github.com/morehao/ark-iam/backend/apps/platformadmin v0.4.2 // indirect
-	github.com/morehao/ark-iam/backend/apps/tenantadmin v0.4.2 // indirect
+	github.com/morehao/ark-iam/apps/auth v0.1.0 // indirect
+	github.com/morehao/ark-iam/apps/platformadmin v0.1.0 // indirect
+	github.com/morehao/ark-iam/apps/tenantadmin v0.1.0 // indirect
 	github.com/muhlemmer/gu v0.3.1 // indirect
 	github.com/muhlemmer/httpforwarded v0.1.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.3.0 // indirect
@@ -114,8 +114,8 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/morehao/ark-go-starter/pkg v0.0.0-00010101000000-000000000000
 	github.com/morehao/ark-iam/contract v0.1.0
-	github.com/morehao/ark-iam/pkg v0.4.0
-	github.com/morehao/ark-iam/sdk v0.5.0
+	github.com/morehao/ark-iam/pkg v0.4.1
+	github.com/morehao/ark-iam/sdk v0.6.0
 	github.com/morehao/golib v1.34.2
 	github.com/stretchr/testify v1.12.1
 	github.com/swaggo/swag v1.16.6

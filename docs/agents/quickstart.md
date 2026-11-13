@@ -57,7 +57,7 @@ make quickstart-local
 打开 **http://localhost:3000**：
 
 - 未登录会自动跳转到内嵌登录页 `/iam/login`；
-- 用 `make quickstart` 终端打印的账号密码登录（dev 缺省：`admin` / `admin123456`，
+- 用 `make quickstart` 终端打印的账号密码登录（dev 缺省：`admin` / `Admin123456`，
   可在启动时用 `IAM_ADMIN_USER` / `IAM_ADMIN_PASS` 覆盖）；
 - 登录成功回跳到业务页，即可开始操作。
 
@@ -138,7 +138,7 @@ BOOTSTRAP_TOKEN=dev-bootstrap-token make run APP=demo   # :8099
 curl -s http://localhost:8099/iam/install/status
 curl -s -X POST http://localhost:8099/iam/install/initialize \
   -H 'Content-Type: application/json' -H 'X-Bootstrap-Token: dev-bootstrap-token' \
-  -d '{"adminUsername":"admin","adminPassword":"admin123456","adminEmail":"admin@example.com"}'
+  -d '{"adminUsername":"admin","adminPassword":"Admin123456","adminEmail":"admin@example.com"}'
 
 # 5) 起前端
 make dev-frontend   # 或 make dev-all 一起起
