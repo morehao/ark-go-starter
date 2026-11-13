@@ -368,7 +368,7 @@ export default function DictsPage() {
 
       <Drawer
         title={drawerTitle}
-        width={820}
+        size={820}
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
       >
@@ -385,7 +385,7 @@ export default function DictsPage() {
 
       <Drawer
         title={integrityTitle}
-        width={860}
+        size={860}
         open={integrityOpen}
         onClose={() => setIntegrityOpen(false)}
       >
@@ -398,7 +398,7 @@ export default function DictsPage() {
                   style={{
                     border: `1px solid ${tokens.warningBorder}`,
                     background: tokens.warningBg,
-                    borderRadius: 8,
+                    borderRadius: tokens.radiusLg,
                     padding: '10px 12px',
                     color: tokens.text,
                     wordBreak: 'break-all',

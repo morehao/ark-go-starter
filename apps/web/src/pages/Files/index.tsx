@@ -220,7 +220,7 @@ export default function FilesPage() {
       title="文件上传"
       description="演示 golib ginupload 的完整路由能力：普通上传 / 分片上传（> 8 MB 自动分片）、文件详情、四种取回方式（serve / redirect / presign-url / query）与分片会话调试"
     >
-      <Space direction="vertical" size="large" style={{ width: '100%' }}>
+      <Space orientation="vertical" size="large" style={{ width: '100%' }}>
         {/* ① 上传区 */}
         <Upload.Dragger
           name="file"
@@ -233,13 +233,13 @@ export default function FilesPage() {
         >
           <p style={{ margin: 0, color: tokens.textSecondary, fontSize: 28, lineHeight: 1 }}>⬆</p>
           <p style={{ margin: '8px 0 0', color: tokens.text }}>点击或拖拽文件到此处上传</p>
-          <p style={{ margin: '4px 0 0', color: tokens.textPlaceholder, fontSize: 12 }}>
+          <p style={{ margin: '4px 0 0', color: tokens.textPlaceholder, fontSize: tokens.fontSizeTag }}>
             单文件上传；超过 8 MB 自动切换分片上传；同内容文件自动秒传复用
           </p>
         </Upload.Dragger>
 
         {uploading && progressText ? (
-          <p style={{ margin: 0, color: tokens.textSecondary, fontSize: 12 }} role="status">
+          <p style={{ margin: 0, color: tokens.textSecondary, fontSize: tokens.fontSizeTag }} role="status">
             {progressText}
           </p>
         ) : null}

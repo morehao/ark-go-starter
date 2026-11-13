@@ -2,17 +2,17 @@
 
 > 上级入口：[AGENTS.md](../../AGENTS.md)　·　文档中心：[docs/agents/README.md](./README.md)
 >
-> **前端视觉/设计规范的事实源是 [`docs/design-language.md`](../../docs/design-language.md)**（「冷白工程台」设计语言全文，228 行，含色彩/排版/间距/圆角/组件规格/Do's and Don'ts）。
-> 本文只写**工程约定 + 硬规则索引**，不复制任何设计值 —— 避免 `theme.ts` / `docs/design-language.md` / 本文三处漂移。
+> **前端视觉/设计规范的事实源是 [`docs/DESIGN.md`](../../docs/DESIGN.md)**（Ant Design 原生风格全文，遵循 Google DESIGN.md 官方格式规范，含配色/排版/间距/圆角/层级/组件规格/Do's and Don'ts）。可用 `npx @google/design.md lint docs/DESIGN.md` 校验。
+> 本文只写**工程约定 + 硬规则索引**，不复制任何设计值 —— 避免 `theme.ts` / `docs/DESIGN.md` / 本文三处漂移。
 
 ## 事实源与同步链
 
 ```
-packages/ui/src/theme.ts 的 tokens  ←(唯一代码事实源)→  docs/design-language.md front matter  ←→  页面实际取值
+packages/ui/src/theme.ts 的 tokens  ←(唯一代码事实源)→  docs/DESIGN.md front matter  ←→  页面实际取值
 ```
 
-- 改任何色值 / 圆角 / 间距：**先改 `tokens`，再同步 `docs/design-language.md` front matter**，顺序不可颠倒。
-- 二者为**人工同步**，项目内暂无 lint/test 强制一致（见 `docs/design-language.md` `Known Gaps`），因此每次改动都必须人工核对两处。
+- 改任何色值 / 圆角 / 间距：**先改 `tokens`，再同步 `docs/DESIGN.md` front matter**，顺序不可颠倒。
+- 二者为**人工同步**；`docs/DESIGN.md` 可用 `npx @google/design.md lint docs/DESIGN.md` 做结构/对比度校验，但 token 具体取值仍需人工核对两处。
 - 页面与组件一律引用 `tokens` 或 antd token，**禁止出现裸色值**。
 
 ## 技术栈与包结构
@@ -54,16 +54,16 @@ import { AppShell, PageContainer, tokens } from '@ark-go-starter/ui'
 
 | # | 规则 | 详情位置 |
 |---|------|----------|
-| 1 | 每个 app 的 `main.tsx` **必须**用 `AppShell` 包裹（全局主题唯一挂载点：`ConfigProvider` + antd `App` + 根容器 `tabular-nums`） | [DESIGN.md §7.1](../../docs/design-language.md#71-全局骨架appshell) |
-| 2 | 所有管理页用 `PageContainer` 包裹（`title` 必填），**页面不要再重复套 Card** | [DESIGN.md §7.2](../../docs/design-language.md#72-页面容器pagecontainer) |
-| 3 | 禁止硬编码色值（`#4f6ef7`、`#e6e9ef`、`#94a3b8`、`rgba(...)` 品牌投影等） | [DESIGN.md §8 Don't](../../docs/design-language.md#8-dos-and-donts) |
-| 4 | 主色靛蓝是**稀有资源**：只用于主按钮/链接/选中态/焦点环/品牌区；页面表面一律中性灰阶，禁止主色淡底 tint | [DESIGN.md §2](../../docs/design-language.md#2-色彩) |
-| 5 | 卡片与内容区 **hairline-only 无阴影**；阴影只给 Modal / Dropdown / Drawer 等浮层 | [DESIGN.md §5](../../docs/design-language.md#5-层级与阴影) |
-| 6 | Table 一律 `tableLayout="fixed"` + **每列显式列宽** + `scroll={{ x: 列宽之和 }}`；长文本省略号截断 | [DESIGN.md §7.3](../../docs/design-language.md#73-列表页模板) |
-| 7 | 禁止新增 css 文件承载后台样式，样式以 inline style + tokens 表达 | [DESIGN.md §7.1](../../docs/design-language.md#71-全局骨架appshell) |
-| 8 | 状态色走语义 token，禁止用传统色名 Tag（`color="green"/"red"`） | [DESIGN.md §8 Don't](../../docs/design-language.md#8-dos-and-donts) |
-| 9 | 左右分栏用原生 flex（`display:flex; gap:16`，左栏 `flexShrink:0`、右栏 `flex:1`），**禁止用 `<Space>` 依赖内层 `flex:1` 撑满** | [DESIGN.md §4](../../docs/design-language.md#4-布局与间距) |
-| 10 | 删除无引用 import，避免 `noUnusedLocals` 报错 | [DESIGN.md §8 Do](../../docs/design-language.md#8-dos-and-donts) |
+| 1 | 每个 app 的 `main.tsx` **必须**用 `AppShell` 包裹（全局主题唯一挂载点：`ConfigProvider` + antd `App` + 根容器 `tabular-nums`） | [DESIGN.md §Components](../../docs/DESIGN.md#components) |
+| 2 | 所有管理页用 `PageContainer` 包裹（`title` 必填），**页面不要再重复套 Card** | [DESIGN.md §Layout](../../docs/DESIGN.md#layout) |
+| 3 | 禁止硬编码色值（如主色 `#1677ff`、边框 `#f0f0f0`、文字 `rgba(0,0,0,0.65)` 等）；一律走 `tokens` | [DESIGN.md §Do's and Don'ts](../../docs/DESIGN.md#dos-and-donts) |
+| 4 | 主色蓝 `primary` 是**稀有资源**：只用于主按钮/链接/选中态/焦点环/分页当前页；页面表面一律中性灰阶，禁止主色淡底 tint 铺满 | [DESIGN.md §Colors](../../docs/DESIGN.md#colors) |
+| 5 | 卡片与内容区 **hairline-only 无阴影**；阴影只给 Modal / Dropdown / message 等浮层 | [DESIGN.md §Elevation & Depth](../../docs/DESIGN.md#elevation--depth) |
+| 6 | Table 一律 `tableLayout="fixed"` + **每列显式列宽** + `scroll={{ x: 列宽之和 }}`；长文本省略号截断 | [DESIGN.md §Layout](../../docs/DESIGN.md#layout) |
+| 7 | 禁止新增 css 文件承载后台样式，样式以 inline style + tokens 表达 | [DESIGN.md §Components](../../docs/DESIGN.md#components) |
+| 8 | 状态色走语义 token，禁止用传统色名 Tag（`color="green"/"red"`） | [DESIGN.md §Do's and Don'ts](../../docs/DESIGN.md#dos-and-donts) |
+| 9 | 左右分栏用原生 flex（`display:flex; gap:16`，左栏 `flexShrink:0`、右栏 `flex:1`），**禁止用 `<Space>` 依赖内层 `flex:1` 撑满** | [DESIGN.md §Layout](../../docs/DESIGN.md#layout) |
+| 10 | 删除无引用 import，避免 `noUnusedLocals` 报错 | [DESIGN.md §Do's and Don'ts](../../docs/DESIGN.md#dos-and-donts) |
 
 ## 新增页面检查清单
 
@@ -74,16 +74,16 @@ import { AppShell, PageContainer, tokens } from '@ark-go-starter/ui'
 5. 跑一次 `pnpm typecheck` 确认无未使用变量与类型错误；
 6. 跑一次 `pnpm lint`（或根目录 `make lint-frontend`），必须 0 error。
 
-## 已知空白（与 `docs/design-language.md` `Known Gaps` 一致）
+## 已知空白
 
-- `packages/ui` 目前仅落地 `theme` / `AppShell` / `PageContainer`；状态 Tag 字典、列宽工厂（`idColumn` / `timeColumn` / `actionColumn`）、`TimeCell` / `IDCell` / `RemoteSelect` 待按业务引入；
-- demo 已落地多页骨架：深色 `Sider`（侧栏）+ 顶部 `Header` + `Content`，侧栏令牌（`surface-sidebar` / `selected-bg` / 渐变）已实际使用；当前菜单有**商品管理 / 数据字典 / 配置中心 / 定时任务 / 异步任务 / 健康检查 / 文件上传**七个（对应 `apps/web/src/pages/{Products,Dicts,Settings,Cron,Async,Health,Files}`，切页仍用 `antd` `Menu` + `useState`）；`apps/web/src/auth/` 已落地 IAM 登录/provider 装配（`config.ts` + `index.tsx`，含 `react-router-dom` 的 `BrowserRouter`），业务页切换本身仍未走路由库；
+- `packages/ui` 目前仅落地 `theme` / `AppShell` / `PageContainer` / `StatCard` / `StatRow`；状态 Tag 字典、列宽工厂（`idColumn` / `timeColumn` / `actionColumn`）、`TimeCell` / `IDCell` / `RemoteSelect` 待按业务引入；
+- demo 已落地多页骨架：深色 `Sider`（`#001529`）+ 顶部 `Header`（64px）+ `Content`；当前菜单有**商品管理 / 数据字典 / 配置中心 / 定时任务 / 异步任务 / 健康检查 / 文件上传**七个（对应 `apps/web/src/pages/{Products,Dicts,Settings,Cron,Async,Health,Files}`，切页仍用 `antd` `Menu` + `useState`）；`apps/web/src/auth/` 已落地 IAM 登录/provider 装配（`config.ts` + `index.tsx`，含 `react-router-dom` 的 `BrowserRouter`），业务页切换本身仍未走路由库；
 - IAM 登录页已落地（`@morehao/ark-iam-react/login`，op/rp/disabled 三态，见 [iam.md](./iam.md)）；`apps/web/src/main.tsx` 用 `IAMAuthProvider` + `AuthGuard` 包裹；
 - 尚未接入状态管理库；如需业务页 URL 可定位/可回退的完整前端路由，先补 `AppShell` 之外的 `MainLayout` 规范再落地；
-- 引入上述内容时，同步更新 `docs/design-language.md`，本文的空白清单也应一并核对。
+- 引入上述内容时，同步更新 `docs/DESIGN.md`，本文的空白清单也应一并核对。
 
 ## 相关文档
 
-- 前端设计语言全文：[docs/design-language.md](../../docs/design-language.md)
+- 前端视觉规范全文：[docs/DESIGN.md](../../docs/DESIGN.md)
 - 后端代码规范：[backend-conventions.md](./backend-conventions.md)
 - 命令大全：[commands.md](./commands.md)

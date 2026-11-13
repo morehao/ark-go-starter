@@ -13,7 +13,7 @@ make quickstart-local
 ```
 
 然后打开 **http://localhost:3000**，会自动跳到登录页；用命令终端打印的账号密码登录
-（dev 缺省：`admin` / `Adm1n@Strong!Pass`，可用 `IAM_ADMIN_USER` / `IAM_ADMIN_PASS` 覆盖）。
+（dev 缺省：`admin` / `admin123456`，可用 `IAM_ADMIN_USER` / `IAM_ADMIN_PASS` 覆盖）。
 命令幂等，可重复执行不报错、不重置数据。
 
 验证全流程（登录 → 商品 CRUD → 字典 → 文件上传 → 异步 → 定时）：
@@ -66,7 +66,7 @@ make quickstart-verify IAM_ADMIN_USER=admin IAM_ADMIN_PASS='你的密码'
 ├── scripts                     # 仓库级脚本（quickstart.sh）
 ├── deploy                      # 容器与编排（docker/api.Dockerfile、compose/dev.yml）
 ├── contracts                   # 契约平面（OpenAPI 3.1 契约源 + verify.sh）
-├── docs                        # 文档（agents/ 规范、design-language.md 设计语言）
+├── docs                        # 文档（agents/ 规范、DESIGN.md 视觉规范）
 ├── go.work                     # 根 Go workspace
 ├── package.json                # 根前端 workspace 清单
 ├── pnpm-workspace.yaml         # 根 pnpm workspace 定义

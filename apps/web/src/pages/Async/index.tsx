@@ -217,7 +217,7 @@ export default function AsyncPage() {
 
       <Drawer
         title={drawerTitle}
-        width={900}
+        size={900}
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
       >

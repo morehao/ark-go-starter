@@ -22,7 +22,7 @@ export function StatCard({ label, value, hint, accent, danger }: Props) {
         position: 'relative',
         background: tokens.cardBg,
         border: `1px solid ${tokens.border}`,
-        borderRadius: 12,
+        borderRadius: tokens.radiusLg,
         padding: '14px 16px 14px 18px',
         overflow: 'hidden',
       }}
@@ -37,7 +37,7 @@ export function StatCard({ label, value, hint, accent, danger }: Props) {
           background: accent ?? tokens.primary,
         }}
       />
-      <div style={{ fontSize: 12.5, color: tokens.textSecondary }}>{label}</div>
+      <div style={{ fontSize: tokens.fontSizeSmall, color: tokens.textSecondary }}>{label}</div>
       <div
         style={{
           fontSize: 25,
@@ -53,7 +53,7 @@ export function StatCard({ label, value, hint, accent, danger }: Props) {
       {hint ? (
         <div
           style={{
-            fontSize: 12,
+            fontSize: tokens.fontSizeTag,
             marginTop: 8,
             color: danger ? tokens.error : tokens.success,
           }}

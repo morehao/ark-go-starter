@@ -75,31 +75,31 @@ export default function App() {
   return (
     <Layout style={{ minHeight: '100vh' }}>
       <Sider
-        width={236}
+        width={208}
+        theme="dark"
         style={{
-          background: tokens.cardBg,
-          borderRight: `1px solid ${tokens.border}`,
+          background: tokens.sidebarBg,
         }}
       >
         <div
           style={{
-            height: 60,
+            height: 64,
             display: 'flex',
             alignItems: 'center',
             gap: 10,
-            padding: '0 18px',
-            borderBottom: `1px solid ${tokens.border}`,
+            padding: '0 20px',
+            borderBottom: '1px solid rgba(255,255,255,0.08)',
           }}
         >
           <span
             style={{
-              width: 30,
-              height: 30,
-              borderRadius: 9,
-              background: tokens.gradient,
+              width: 28,
+              height: 28,
+              borderRadius: tokens.radiusMd,
+              background: tokens.primary,
               display: 'grid',
               placeItems: 'center',
-              color: tokens.headerBg,
+              color: '#ffffff',
               fontWeight: 800,
               fontSize: 15,
             }}
@@ -107,21 +107,22 @@ export default function App() {
             a
           </span>
           <div style={{ lineHeight: 1.15 }}>
-            <div style={{ fontSize: 14, fontWeight: 680, color: tokens.text }}>
+            <div style={{ fontSize: tokens.fontSizeBody, fontWeight: 600, color: 'rgba(255,255,255,0.92)' }}>
               ark-go-starter
             </div>
-            <div style={{ fontSize: 11, color: tokens.textPlaceholder }}>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>
               demo 控制台
             </div>
           </div>
         </div>
         <Menu
           mode="inline"
+          theme="dark"
           selectedKeys={[activeKey]}
           items={menuItems}
           onClick={({ key }) => setActiveKey(key)}
           style={{
-            background: tokens.cardBg,
+            background: tokens.sidebarBg,
             borderInlineEnd: 'none',
             padding: '8px 0',
           }}
@@ -138,9 +139,9 @@ export default function App() {
             paddingInline: 24,
           }}
         >
-          <Typography.Text style={{ color: tokens.textPlaceholder, fontSize: 13 }}>
+          <Typography.Text style={{ color: tokens.textSecondary, fontSize: tokens.fontSizeSmall }}>
             数据管理 /{' '}
-            <Typography.Text strong style={{ color: tokens.text, fontSize: 13 }}>
+            <Typography.Text strong style={{ color: tokens.text, fontSize: tokens.fontSizeSmall }}>
               {MENU_LABELS[activeKey] ?? ''}
             </Typography.Text>
           </Typography.Text>

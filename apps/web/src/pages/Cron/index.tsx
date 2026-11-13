@@ -268,7 +268,7 @@ export default function CronPage() {
 
       <Drawer
         title={detailTitle}
-        width={720}
+        size={720}
         open={detailOpen}
         onClose={() => setDetailOpen(false)}
         loading={detailLoading}
@@ -278,7 +278,7 @@ export default function CronPage() {
 
       <Drawer
         title={drawerTitle}
-        width={900}
+        size={900}
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
       >

@@ -233,7 +233,7 @@ export default function ProductsPage() {
                 .filter(Boolean)
                 .join(' · ') || '未设置筛选条件'
             }
-            accent={tokens.purple}
+            accent={tokens.primary}
           />
         </StatRow>
       }

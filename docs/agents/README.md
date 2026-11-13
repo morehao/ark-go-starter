@@ -13,7 +13,7 @@
 | [commands.md](./commands.md) | 构建 / 运行 / 测试 / Lint / 代码生成 / Swagger / Docker 命令 | 需要执行命令时 |
 | [backend-conventions.md](./backend-conventions.md) | 后端分层结构、命名、注释（DTO 字段 / SQL 字段 comment）、模型字段类型（PostgreSQL）、常量、Import 排序、接口与依赖注入、错误处理、事务、Controller 返回 | 编写后端代码前 |
 | [frontend-conventions.md](./frontend-conventions.md) | 前端 monorepo 包结构、命令、`AppShell`/`PageContainer`/`tokens` 硬规则、新增页面检查清单 | 编写前端代码前 |
-| [../docs/design-language.md](../../docs/design-language.md) | 前端设计语言：色彩/排版/间距/圆角/组件规格/Do's and Don'ts（视觉规范事实源） | 改样式、配色、布局前 |
+| [../docs/DESIGN.md](../../docs/DESIGN.md) | 前端视觉规范：配色/排版/间距/圆角/层级/组件规格/Do's and Don'ts（Ant Design 原生风格，视觉规范事实源） | 改样式、配色、布局前 |
 | [api-conventions.md](./api-conventions.md) | 路由路径规范、路由注册、Swagger 注解 | 新增或修改接口时 |
 | [testing.md](./testing.md) | 测试文件组织、测试环境初始化、断言写法 | 编写测试时 |
 | [golib.md](./golib.md) | golib 公共组件库能力说明：项目内封装层、golib 组件速查（已用/可用）、驱动注册、内置表与升级约定 | 写新功能、引入通用组件前（能力复用） |
@@ -24,7 +24,7 @@
 
 1. 先读入口 [AGENTS.md](../../AGENTS.md)：项目概述、命令速查、硬性规则速查；
 2. 写后端代码 → [backend-conventions.md](./backend-conventions.md)；
-3. 写前端代码 → [frontend-conventions.md](./frontend-conventions.md)，改样式再读 [`docs/design-language.md`](../../docs/design-language.md)；
+3. 写前端代码 → [frontend-conventions.md](./frontend-conventions.md)，改样式再读 [`docs/DESIGN.md`](../../docs/DESIGN.md)；
 4. 动接口 → [api-conventions.md](./api-conventions.md)；
 5. 需要通用能力（日志 / HTTP / 锁 / 限流 / 任务 / Excel 等）→ [golib.md](./golib.md)；
 6. 补测试 → [testing.md](./testing.md)。
