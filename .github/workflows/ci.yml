@@ -1,18 +1,27 @@
 name: CI
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 门禁原则（2026-11 定稿）：
-#   1) PR 门禁只做「判定」：lint / typecheck / test / 安全扫描。
-#      不产出产物（vite build、go build、docker build），不现装工具（go install / npx）。
-#   2) 判定所需的「编译」不可避免（go test / golangci-lint / govulncheck 都要先编译），
-#      其重复成本靠构建缓存消除：PR 侧只 restore，save 只在 main push / 手动 dispatch。
-#   3) 合并后主干仍跑全量验证（四个 required job 一个不少）。
+# 分层门禁（2026-11 定稿，方案 2）：
 #
-# 缓存为什么必须自己做（2026-11-13 实测）：
-#   actions/setup-go 的 key 只由 go.work.sum hash 决定，命中即 "not saving cache"，
-#   首次保存的残缺快照（164MB / 5060 文件）被永久复用；一份完整的 GOCACHE 是
-#   2.6GB / 22447 文件。实测 go vet：现状 93.6s、无缓存 161s、显式缓存命中 0.89s。
-#   故这里用 actions/cache 自行管理，并用 GO_CACHE_VERSION 作为手动失效开关。
+#   PR 门禁 = 快检，按变更范围只跑相关 job（无关 job 主动 skip）：
+#     - 文档/纯 md          → changes 判定后全部 skip，~5s
+#     - 前端改动            → Frontend（eslint + nx affected typecheck）
+#     - Go 改动             → Lint（gofmt + golangci-lint）+ Test（单元测试，无 DB/无 -race）
+#     - 依赖变更            → 追加 Security（govulncheck）
+#     - 契约面变更          → 追加 contracts-verify（在 Frontend 内条件执行）
+#   主干 = 深检，push 到主干跑 Deep test（integration + -race）+ 上述全部；
+#   另加每周定时全量扫描一次（schedule 事件同样视为"全量"）。
+#
+# 为什么不再追求更多缓存：warm run 实测 53s 中约 33s 是"起环境"
+#   （PG/Redis 16s + 拉 Go 工具链 9s + restore 缓存 8s），真正测试只有 8s。
+#   所以降耗的唯一有效杠杆是"不跑无关 job"，而不是继续堆缓存。
+#
+# 机制依据（2026-11-13 实测 PR #99）：required check 被 skip 时结论为 SKIPPED，
+#   GitHub 给出 mergeStateStatus=CLEAN/MERGEABLE —— 不阻塞合并，故按范围跳过是安全的。
+#
+# 缓存：actions/setup-go 内置缓存命中即冻结（残缺快照永久复用），改用显式 actions/cache；
+#   PR 侧只 restore，save 只在主干 push / 手动 dispatch，避免每 PR 各写一份打爆 10GB 配额。
+#   GO_CACHE_VERSION 为手动失效开关（+1 即重建）。
 # ─────────────────────────────────────────────────────────────────────────────
 
 on:
@@ -22,8 +31,10 @@ on:
     branches: [main, master, develop, dev]
   # merge queue 预留：仓库开启 merge queue 后由队列触发，无需再改本文件。
   merge_group:
-  # E2E job 最慢（后端真端口 + Playwright），仅在手动触发且显式勾选 run_e2e 时运行。
-  # 这样手动 dispatch 也可以只跑常规门禁（例如预热/验证构建缓存）。
+  # 每周一次全量（含 govulncheck 与深层测试），兜住"依赖/代码漏洞只在时间维度暴露"的风险。
+  schedule:
+    - cron: "0 2 * * 1"
+  # 手动触发：默认只跑常规门禁；勾选 run_e2e 才跑 E2E。
   workflow_dispatch:
     inputs:
       run_e2e:
@@ -34,29 +45,100 @@ on:
 permissions:
   contents: read
 
-# 同一 PR 连推多个 commit 时取消旧 run，避免重复消耗；main push 不取消（要留完整记录）。
+# 同一 PR 连推多个 commit 时取消旧 run；主干 push 不取消（保留完整记录）。
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
-  # 与 apps/api/config/config.yaml 中 db_configs / redis_config 保持一致。
   GOLANGCI_LINT_VERSION: v2.15.0
   GOVULNCHECK_VERSION: v1.9.0
   OAPI_CODEGEN_VERSION: v2.4.1
-  # Go 缓存版本号：缓存命中后不再回写，需要强制刷新（依赖未变但缓存可疑）时把它 +1。
   GO_CACHE_VERSION: v1
 
 jobs:
+  # ── 变更范围判定：决定哪些 job 需要跑 ──────────────────────────────────────
+  # 非 PR 事件（push / merge_group / schedule / dispatch）一律全量，主干永远是全量验证。
+  # 判定失败或无法取基线时，同样按全量执行（fail-safe，绝不因判定错误放行）。
+  changes:
+    name: Changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      go: ${{ steps.detect.outputs.go }}
+      frontend: ${{ steps.detect.outputs.frontend }}
+      contracts: ${{ steps.detect.outputs.contracts }}
+      deps: ${{ steps.detect.outputs.deps }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - name: Detect changed areas
+        id: detect
+        run: |
+          set -uo pipefail
+          go=false; fe=false; ct=false; deps=false
+          all() { go=true; fe=true; ct=true; deps=true; }
+
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            all; echo "非 PR 事件（${{ github.event_name }}）：全量执行"
+          else
+            base="${{ github.base_ref }}"
+            if ! git fetch --no-tags --depth=1 origin "$base" >/dev/null 2>&1; then
+              all; echo "无法获取基线 origin/$base：全量执行"
+            else
+              changed=$(git diff --name-only FETCH_HEAD HEAD 2>/dev/null || true)
+              if [ -z "$changed" ]; then
+                all; echo "变更文件为空：全量执行"
+              else
+                while IFS= read -r f; do
+                  matched=true
+                  case "$f" in
+                    # 文档/过程产物：不需要任何门禁
+                    *.md|docs/*|.dsh/*|.history/*|.idea/*|LICENSE) ;;
+                    # 契约面：Go client + TS schema 都由 spec 派生
+                    contracts/*) go=true; fe=true; ct=true ;;
+                    # Go 侧
+                    apps/api/*|pkg/*) go=true ;;
+                    go.work|go.work.sum|.golangci.yml|Makefile) go=true ;;
+                    # 依赖变更：额外触发安全扫描
+                    apps/api/go.mod|apps/api/go.sum|pkg/go.mod|pkg/go.sum) go=true; deps=true ;;
+                    # 前端侧
+                    apps/web/*|packages/*) fe=true ;;
+                    tsconfig.base.json|nx.json|eslint.config.mjs) fe=true ;;
+                    package.json|pnpm-lock.yaml|pnpm-workspace.yaml) fe=true; deps=true ;;
+                    # 未分类路径：保守全量
+                    *) matched=false ;;
+                  esac
+                  if [ "$matched" = false ]; then
+                    echo "未分类变更 $f：全量执行"
+                    all
+                  fi
+                done <<< "$changed"
+                echo "变更文件："; echo "$changed" | head -40
+              fi
+            fi
+          fi
+
+          echo "go=$go" >> "$GITHUB_OUTPUT"
+          echo "frontend=$fe" >> "$GITHUB_OUTPUT"
+          echo "contracts=$ct" >> "$GITHUB_OUTPUT"
+          echo "deps=$deps" >> "$GITHUB_OUTPUT"
+          echo "判定结果：go=$go frontend=$fe contracts=$ct deps=$deps"
+
+  # ── 前端：eslint + affected typecheck（不做产物构建） ─────────────────────
   frontend:
     name: Frontend
-    # 硬约束：job id `frontend` / name `Frontend` 不变（分支保护 required check 依赖名字）。
+    needs: changes
+    # changes 失败时按全量跑（fail-safe）
+    if: needs.changes.result != 'success' || needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
         with:
-          # Nx affected 需要 base..head 的 git 历史（计算 merge-base / 变更文件），浅克隆不够。
+          # Nx affected 需要 base..head 的 git 历史（计算 merge-base / 变更文件）。
           fetch-depth: 0
 
       - name: Set up pnpm
@@ -73,49 +155,31 @@ jobs:
       - name: Install deps
         run: pnpm install --frozen-lockfile
 
-      # 契约校验只在真涉及契约面时跑（改 spec / 生成物），其余 PR 不再为此付 Go 工具链成本。
-      - name: Detect contract-relevant changes
-        id: contracts
-        run: |
-          if [ -n "${{ github.base_ref }}" ]; then
-            base="origin/${{ github.base_ref }}"
-            git fetch --no-tags origin "${{ github.base_ref }}" >/dev/null 2>&1 || true
-          else
-            base="HEAD~1"
-          fi
-          if git diff --quiet "$base" HEAD -- contracts pkg/client packages/api-client; then
-            echo "relevant=false" >> "$GITHUB_OUTPUT"
-            echo "契约面无变更，跳过 contracts-verify"
-          else
-            echo "relevant=true" >> "$GITHUB_OUTPUT"
-            echo "契约面有变更，将执行 contracts-verify"
-          fi
-
+      # 契约校验只在真涉及契约面时跑，工具走缓存、未命中由 verify.sh 自行兜底。
       - name: Set up Go (contracts only)
-        if: steps.contracts.outputs.relevant == 'true'
+        if: needs.changes.outputs.contracts == 'true'
         uses: actions/setup-go@v7
         with:
           go-version-file: go.work
           cache: false
 
-      # 工具二进制缓存：命中即零安装；未命中由 verify.sh 按 pin 版本自行 go install 兜底。
       - name: Cache oapi-codegen binary
-        if: steps.contracts.outputs.relevant == 'true'
+        if: needs.changes.outputs.contracts == 'true'
         uses: actions/cache@v4
         with:
           path: ~/go/bin/oapi-codegen
           key: oapi-codegen-${{ env.OAPI_CODEGEN_VERSION }}
 
       - name: Contracts verify
-        if: steps.contracts.outputs.relevant == 'true'
+        if: needs.changes.outputs.contracts == 'true'
         run: make contracts-verify
 
-      # lint：前端无 nx lint target，保持根 pnpm lint 整跑（apps/web + packages/*，ESLint 很快）。
       - name: Lint (ESLint)
         run: pnpm lint
 
-      # 计算 Nx affected 的 base/head：PR 用 origin/<base_ref>，push/merge_group 用 HEAD~1。
-      - name: Compute Nx affected base/head
+      # 只跑 typecheck，不跑 build：build 产物在门禁里无人消费；
+      # packages/{ui,types,api,api-client} 的 build 与 typecheck 命令本就完全相同。
+      - name: Affected typecheck (Nx, TS only)
         run: |
           base="${{ github.base_ref }}"
           if [ -n "$base" ]; then
@@ -124,22 +188,16 @@ jobs:
           else
             base="HEAD~1"
           fi
-          echo "NX_BASE=$base" >> "$GITHUB_ENV"
-          echo "NX_HEAD=HEAD" >> "$GITHUB_ENV"
-          echo "Nx affected base=$base head=HEAD"
-
-      # 只跑 typecheck，不再跑 build：build 产出 dist 在门禁里无人消费；
-      # packages/{ui,types,api,api-client} 的 build 与 typecheck 命令本就完全相同（重复 tsc）。
-      # --exclude='*,!tag:lang:ts'：只保留前端项目，排除 Go（api/pkg）与 contracts。
-      - name: Affected typecheck (Nx, TS only)
-        run: |
           pnpm exec nx affected -t typecheck \
-            --base="$NX_BASE" --head="$NX_HEAD" \
+            --base="$base" --head=HEAD \
             --exclude='*,!tag:lang:ts' \
             --output-style=static
 
+  # ── Go 静态检查：gofmt + golangci-lint（含 govet，故不再单独跑 go vet） ────
   lint:
     name: Lint
+    needs: changes
+    if: needs.changes.result != 'success' || needs.changes.outputs.go == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -149,7 +207,7 @@ jobs:
         uses: actions/setup-go@v7
         with:
           go-version-file: go.work
-          cache: false # 内置缓存是"命中即冻结"的残缺快照，改用下面的显式缓存
+          cache: false
 
       - name: Restore Go cache
         id: go-cache
@@ -171,8 +229,6 @@ jobs:
             exit 1
           fi
 
-      # 不再单独跑 `go vet`：.golangci.yml 已启用 govet linter，且 CI 在两个模块各跑一次；
-      # 独立 vet 只是把编译成本重复付一遍（实测曾占 Lint job 的 146/189 秒）。
       - name: golangci-lint (pkg)
         uses: golangci/golangci-lint-action@v9
         with:
@@ -185,7 +241,6 @@ jobs:
           working-directory: apps/api
 
       - name: Save Go cache
-        # 只有 main push / 手动 dispatch 回写；PR 只读，避免每个 PR 各写一份 2.6GB。
         if: >-
           (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
           && steps.go-cache.outputs.cache-hit != 'true'
@@ -196,10 +251,49 @@ jobs:
             ~/go/pkg/mod
           key: go-lint-${{ env.GO_CACHE_VERSION }}-${{ hashFiles('go.work.sum') }}
 
+  # ── PR 门禁的单测：无 DB/Redis、无 -race（拿掉固定开销 16s + race 编译） ───
+  # 集成与 race 交给 deep-test（主干）。
   test:
     name: Test
+    needs: changes
+    if: >-
+      github.event_name != 'push'
+      && (needs.changes.result != 'success' || needs.changes.outputs.go == 'true')
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.work
+          cache: false
+
+      - name: Restore Go cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: go-test-${{ env.GO_CACHE_VERSION }}-${{ hashFiles('go.work.sum') }}
+          restore-keys: |
+            go-test-${{ env.GO_CACHE_VERSION }}-
+            go-lint-${{ env.GO_CACHE_VERSION }}-
+
+      # 单元测试（不带 integration tag，故不需要 PB/Redis 服务）
+      - name: Test pkg (unit)
+        run: cd pkg && go test ./...
+      - name: Test demo (unit)
+        run: cd apps/api && go test ./...
+
+  # ── 主干深检：integration + race（PR 门禁已移出的部分在这里闭环） ─────────
+  deep-test:
+    name: Deep test (integration + race)
+    needs: changes
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     services:
       postgres:
         image: postgres:16
@@ -250,11 +344,10 @@ jobs:
         run: |
           psql -h 127.0.0.1 -U postgres -d demo -f apps/api/db/table_init.sql
 
-      # 依赖 DB/Redis 的用例已用 //go:build integration 标记，必须带 tag 才会执行。
       # 两个模块保持串行：pkg 与 apps/api 的集成用例共用同一个 demo 库，并行可能互相污染。
-      - name: Test pkg (unit + integration)
+      - name: Test pkg (unit + integration, race)
         run: cd pkg && go test -race -tags=integration ./...
-      - name: Test demo (unit + integration)
+      - name: Test demo (unit + integration, race)
         run: cd apps/api && go test -race -tags=integration ./...
 
       - name: Save Go cache (race flavor)
@@ -268,8 +361,12 @@ jobs:
             ~/go/pkg/mod
           key: go-test-${{ env.GO_CACHE_VERSION }}-${{ hashFiles('go.work.sum') }}
 
+  # ── 安全扫描：只在依赖变更时进 PR 门禁（govulncheck 的发现几乎都由依赖驱动）──
+  # 主干 push 与每周 schedule 会全量跑，兜住代码层调用图变化。
   security:
     name: Security (govulncheck)
+    needs: changes
+    if: needs.changes.result != 'success' || needs.changes.outputs.deps == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -291,7 +388,6 @@ jobs:
           restore-keys: |
             go-lint-${{ env.GO_CACHE_VERSION }}-
 
-      # 锁定版本保证结果可复现；二进制走缓存，命中即零安装。
       - name: Cache govulncheck binary
         uses: actions/cache@v4
         with:
@@ -300,16 +396,21 @@ jobs:
 
       - name: govulncheck
         run: |
-          if ! command -v govulncheck >/dev/null 2>&1; then
-            GOBIN="$HOME/go/bin" go install "golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}"
-            export PATH="$HOME/go/bin:$PATH"
+          BIN="$HOME/go/bin/govulncheck"
+          if [ ! -x "$BIN" ]; then
+            BIN="$(command -v govulncheck || true)"
           fi
-          (cd pkg && govulncheck ./...)
-          (cd apps/api && govulncheck ./...)
+          if [ -z "$BIN" ] || [ ! -x "$BIN" ]; then
+            GOBIN="$HOME/go/bin" go install "golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}"
+            BIN="$HOME/go/bin/govulncheck"
+          fi
+          echo "using $BIN"
+          (cd pkg && "$BIN" ./...)
+          (cd apps/api && "$BIN" ./...)
 
+  # ── E2E：仅手动触发且勾选 run_e2e 时运行 ──────────────────────────────────
   e2e:
     name: E2E
-    # 仅手动触发且勾选 run_e2e 时运行；push/PR 不跑 E2E（太慢）。
     if: github.event_name == 'workflow_dispatch' && inputs.run_e2e
     runs-on: ubuntu-latest
     timeout-minutes: 25

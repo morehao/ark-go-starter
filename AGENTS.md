@@ -108,8 +108,7 @@ ark-go-starter/
 12. **注释**：每个包必须有 `// Package xxx` 注释，每个导出符号必须有以符号名开头的 godoc；`internal/dto/` 下结构体字段必须有行内中文注释；DDL 字段必须有行尾 `--` 注释 + `COMMENT ON COLUMN`（两份保持一致）。详见 [backend-conventions.md](./docs/agents/backend-conventions.md#注释规范)。
 13. **提交前自检**：`gofmt -w .` + `make lint`（必须 0 issues）+ `make test APP=demo` 三项全过再提交；`%w` 包装错误、blank import 写用途注释、连接池显式配置。详见 [backend-conventions.md](./docs/agents/backend-conventions.md#提交前自检硬性要求)。
 14. **目录命名**：`deploy/` 只放构建与部署资产（不进 `go.work` / `pnpm-workspace` / Nx 图；**不含建表 SQL，DDL 归 `apps/api/db/`**），代码侧基础设施层统一叫 `internal/infra/`（当前预留不建；一旦建，`dao` / `client` / `storage` 必须同 PR 迁完删除）。详见 [backend-conventions.md](./docs/agents/backend-conventions.md#部署目录与基础设施层的命名边界)。
-
-15. **CI 门禁边界**：PR 门禁只做**判定**（gofmt / golangci-lint / typecheck / test / govulncheck），**不产生产物**（`vite build`、`go build`、`docker build`）、**不现装工具**（`go install` / `npx` 必须有缓存或按路径条件跳过）。判定必需的**编译**不可免（`go test`/lint/govulncheck 都要先编译），其重复成本用 `actions/cache` 显式缓存 `~/.cache/go-build` + `~/go/pkg/mod`：**PR 侧只 restore，save 只在 main push**（缓存按分支写入，PR 各写一份会打爆 10GB 配额）。合并后主干仍跑全量验证。落点见 [`.github/workflows/ci.yml`](./.github/workflows/ci.yml) 顶部注释与缓存 key 约定。
+15. **CI 门禁边界**：PR 门禁只做**判定**，且**按变更范围只跑相关 job**（文档/纯 md → 全跳过；前端 → ESLint + Nx affected typecheck；Go → gofmt + golangci-lint + **单元测试**；依赖变更 → 追加 govulncheck；契约面变更 → 追加 contracts-verify）。**不产生产物**（`vite build` / `go build` / `docker build`）、**不现装工具**（`go install` / `npx` 必须有缓存或路径条件）。判定必需的**编译**用 `actions/cache` 显式缓存 `~/.cache/go-build` + `~/go/pkg/mod`：**PR 侧只 restore，save 只在 main push**（缓存按分支写入，PR 各写一份会打爆 10GB 配额）。**集成测试与 `-race` 不在 PR 门禁**，由主干 `Deep test` 与每周 schedule 兜底；主干 push 永远全量。落点见 [`.github/workflows/ci.yml`](./.github/workflows/ci.yml) 顶部注释。
 
 ## 维护本文件
 
