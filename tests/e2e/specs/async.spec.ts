@@ -31,7 +31,7 @@ async function gotoAsync(page: import('@playwright/test').Page) {
   expect(resp.status(), '异步任务列表接口应为 200').toBe(200)
   const body = (await resp.json()) as { code: number; data: { list: unknown[]; total: number } }
   expect(body.code).toBe(0)
-  await expect(page.getByRole('heading', { name: '异步任务', level: 5 })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '异步任务', level: 4 })).toBeVisible()
   return body.data
 }
 

@@ -32,7 +32,7 @@ async function gotoSettings(page: import('@playwright/test').Page) {
     page.getByRole('menuitem', { name: '配置中心' }).click(),
   ])
   expect(resp.status()).toBe(200)
-  await expect(page.getByRole('heading', { name: '配置中心', level: 5 })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '配置中心', level: 4 })).toBeVisible()
 }
 
 /** 按分组名定位表格行（分组在用例内唯一）。 */

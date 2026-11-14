@@ -34,7 +34,7 @@ function sha256Hex(content: string): string {
 async function gotoFiles(page: import('@playwright/test').Page) {
   await page.goto('/')
   await page.getByRole('menuitem', { name: '文件上传' }).click()
-  await expect(page.getByRole('heading', { name: '文件上传', level: 5 })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '文件上传', level: 4 })).toBeVisible()
 }
 
 test.describe('文件服务 · 完整路由能力', () => {

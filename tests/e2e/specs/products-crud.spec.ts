@@ -27,7 +27,7 @@ test.describe('商品管理 · CRUD', () => {
 
     await page.goto('/')
     // 等商品表格首屏加载完成（表头「商品管理」标题可见）
-    await expect(page.getByRole('heading', { name: '商品管理', level: 5 })).toBeVisible()
+    await expect(page.getByRole('heading', { name: '商品管理', level: 4 })).toBeVisible()
 
     // 新建
     await page.getByTestId('product-create-btn').click()
@@ -103,7 +103,7 @@ test.describe('商品管理 · 列表交互', () => {
 
   test('分页：翻到第 2 页、切换每页条数都会重新请求', async ({ page }) => {
     await page.goto('/')
-    await expect(page.getByRole('heading', { name: '商品管理', level: 5 })).toBeVisible()
+    await expect(page.getByRole('heading', { name: '商品管理', level: 4 })).toBeVisible()
 
     const page2 = page.locator('.ant-pagination-item-2')
     await expect(page2).toBeVisible()
@@ -137,7 +137,7 @@ test.describe('商品管理 · 列表交互', () => {
 
   test('刷新：重新拉取列表并保持行可见', async ({ page }) => {
     await page.goto('/')
-    await expect(page.getByRole('heading', { name: '商品管理', level: 5 })).toBeVisible()
+    await expect(page.getByRole('heading', { name: '商品管理', level: 4 })).toBeVisible()
 
     const [refreshResp] = await Promise.all([
       page.waitForResponse(

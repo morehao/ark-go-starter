@@ -40,7 +40,7 @@ async function gotoDicts(page: import('@playwright/test').Page) {
     page.getByRole('menuitem', { name: '数据字典' }).click(),
   ])
   expect(resp.status(), '字典类型列表接口应为 200').toBe(200)
-  await expect(page.getByRole('heading', { name: '数据字典', level: 5 })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '数据字典', level: 4 })).toBeVisible()
 }
 
 /** 取某 code 对应的表格行。 */
