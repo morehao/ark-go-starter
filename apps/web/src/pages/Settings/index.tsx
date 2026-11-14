@@ -8,19 +8,19 @@ import {
   Space,
   Switch,
   Table,
-  Tag,
   Tooltip,
   App,
   type TableProps,
 } from 'antd'
 import { DeleteOutlined, EditOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons'
-import { actionColumn, tableScrollX } from '@morehao/ark-iam-react'
+import { StatusSwitch, actionColumn, tableScrollX } from '@morehao/ark-iam-react'
 import { PageContainer, tokens, StatCard, StatRow } from '@ark-go-starter/ui'
 import {
   createSetting,
   deleteSetting,
   getSettings,
   updateSetting,
+  updateSettingStatus,
 } from '@ark-go-starter/api'
 import type { Setting, SettingCreateReq } from '@ark-go-starter/types'
 import { localizeError } from '../../utils/errorMessage'
@@ -35,15 +35,6 @@ const STATUS_OPTIONS = [
   { label: '启用', value: 'enabled' },
   { label: '禁用', value: 'disabled' },
 ]
-
-/** 状态 Tag 语义色：enabled→success，其余→default */
-function StatusTag({ status }: { status: string }) {
-  return status === 'enabled' ? (
-    <Tag color="success">启用</Tag>
-  ) : (
-    <Tag color="default">禁用</Tag>
-  )
-}
 
 /** 加密模式文案：encrypted→加密，plain→明文；未知值原样展示 */
 function encryptionLabel(mode?: string): string {
@@ -162,6 +153,22 @@ export default function SettingsPage() {
     }
   }
 
+  /**
+   * 状态开关回调：由 `StatusSwitch` 在确认框点「确定」后触发，`nextEnabled` 是目标 on 态。
+   * 走 golib ginsetting 的 `PATCH /settings/{id}/status`（只改 status，不触碰值/描述）。
+   * 失败时**必须抛出**：StatusSwitch 捕获后不更新受控 checked，开关回退原值并抑制成功提示。
+   */
+  const handleStatusChange = async (record: Setting, nextEnabled: boolean) => {
+    try {
+      await updateSettingStatus(record.id, nextEnabled ? 'enabled' : 'disabled')
+      // 等列表刷新完成再返回，开关翻转与成功提示的先后顺序才稳定
+      await load()
+    } catch (e) {
+      message.error(localizeError(e, '状态更新失败'))
+      throw e
+    }
+  }
+
   const handleDelete = async (id: string) => {
     try {
       await deleteSetting(id)
@@ -188,12 +195,28 @@ export default function SettingsPage() {
         </span>
       ),
     },
+    // 可切换状态列走 StatusSwitch（双向确认 + 受控回滚，见 DESIGN §7.2/§8），
+    // 走 golib ginsetting 的 PATCH /settings/{id}/status，只改状态不动值/描述。
     {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
       width: 100,
-      render: (s: string) => <StatusTag status={s} />,
+      render: (_: string, record) => (
+        <StatusSwitch
+          checked={record.status === 'enabled'}
+          checkedChildren="启用"
+          unCheckedChildren="禁用"
+          confirmTitle={record.status === 'enabled' ? '禁用该配置项？' : '启用该配置项？'}
+          confirmContent={
+            record.status === 'enabled'
+              ? '禁用后业务侧读取该配置项时按「未启用」处理，已落库的值不会被删除。'
+              : '启用后业务侧读取该配置项时恢复正常取值。'
+          }
+          okText={record.status === 'enabled' ? '确认禁用' : '确认启用'}
+          onConfirmChange={(next) => handleStatusChange(record, next)}
+        />
+      ),
     },
     // 操作列按 DESIGN §7.3：统一 actionColumn（fixed:'right'），variant:'icon' = 图标 + 文字，
     // 「删除」用 RowAction.confirm 走就地 Popconfirm 二次确认。
@@ -221,7 +244,7 @@ export default function SettingsPage() {
   return (
     <PageContainer
       title="配置中心"
-      description="配置项分页列表，支持分组/状态筛选、新建（可加密存储）、编辑与删除，数据来自 /v1/demo/settings"
+      description="配置项分页列表，支持分组/状态筛选、新建（可加密存储）、编辑、启停与删除，数据来自 /v1/demo/settings"
       extra={
         <Space>
           <Tooltip title="刷新">
