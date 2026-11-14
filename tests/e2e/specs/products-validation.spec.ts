@@ -6,7 +6,7 @@ import { test, expect } from '../fixtures/base'
 test.describe('商品管理 · 表单校验', () => {
   test('名称必填：空名称提交被拦截', async ({ page }) => {
     await page.goto('/')
-    await expect(page.getByRole('heading', { name: '商品管理', level: 5 })).toBeVisible()
+    await expect(page.getByRole('heading', { name: '商品管理', level: 4 })).toBeVisible()
 
     await page.getByTestId('product-create-btn').click()
     const modal = page.getByRole('dialog')

@@ -24,7 +24,7 @@ test.describe('健康检查', () => {
     expect(body.data.postgres).toBe('ok')
     expect(body.data.redis).toBe('ok')
 
-    await expect(page.getByRole('heading', { name: '健康检查', level: 5 })).toBeVisible()
+    await expect(page.getByRole('heading', { name: '健康检查', level: 4 })).toBeVisible()
     await expect(page.getByText('PostgreSQL', { exact: true })).toBeVisible()
     await expect(page.getByText('Redis', { exact: true })).toBeVisible()
     // 两个依赖项的状态标签都应为 ok（真实后端可用时才成立）
@@ -34,7 +34,7 @@ test.describe('健康检查', () => {
   test('刷新：重新请求健康检查接口并保持两依赖 ok', async ({ page }) => {
     await page.goto('/')
     await page.getByRole('menuitem', { name: '健康检查' }).click()
-    await expect(page.getByRole('heading', { name: '健康检查', level: 5 })).toBeVisible()
+    await expect(page.getByRole('heading', { name: '健康检查', level: 4 })).toBeVisible()
     await expect(page.locator('.ant-tag', { hasText: 'ok' })).toHaveCount(2)
 
     const [refreshResp] = await Promise.all([

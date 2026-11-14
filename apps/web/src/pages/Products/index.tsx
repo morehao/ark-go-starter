@@ -5,13 +5,15 @@ import {
   Input,
   InputNumber,
   Modal,
-  Popconfirm,
   Space,
   Table,
   Tag,
+  Tooltip,
   App,
   type TableProps,
 } from 'antd'
+import { DeleteOutlined, EditOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons'
+import { actionColumn, tableScrollX } from '@morehao/ark-iam-react'
 import { PageContainer, StatCard, StatRow, tokens } from '@ark-go-starter/ui'
 import {
   createProduct,
@@ -169,36 +171,27 @@ export default function ProductsPage() {
       width: 200,
       render: (v: number | null | undefined) => fmtTime(v),
     },
-    {
-      title: '操作',
-      key: 'action',
-      width: 160,
-      render: (_, record) => (
-        <Space size="middle">
-          <Button
-            type="link"
-            size="small"
-            data-testid={`product-edit-${record.productID}`}
-            onClick={() => openEdit(record)}
-          >
-            编辑
-          </Button>
-          <Popconfirm
-            title="确认删除该商品？"
-            onConfirm={() => handleDelete(record.productID)}
-          >
-            <Button
-              type="link"
-              size="small"
-              danger
-              data-testid={`product-delete-${record.productID}`}
-            >
-              删除
-            </Button>
-          </Popconfirm>
-        </Space>
-      ),
-    },
+    // 操作列按 DESIGN §7.3：统一 actionColumn（fixed:'right'，列宽由 actionColumnWidth 计算），
+    // variant:'icon' = 图标 + 文字；「删除」用 RowAction.confirm 走就地 Popconfirm 二次确认。
+    actionColumn<ProductPageListItem>({
+      variant: 'icon',
+      actions: (record) => [
+        {
+          key: 'edit',
+          label: '编辑',
+          icon: <EditOutlined />,
+          onClick: () => openEdit(record),
+        },
+        {
+          key: 'delete',
+          label: '删除',
+          danger: true,
+          icon: <DeleteOutlined />,
+          confirm: '确认删除该商品？',
+          onClick: () => void handleDelete(record.productID),
+        },
+      ],
+    }),
   ]
 
   return (
@@ -207,8 +200,15 @@ export default function ProductsPage() {
       description="演示后端分页与增删改接口，数据来自 GET /v1/demo/products"
       extra={
         <Space>
-          <Button onClick={load}>刷新</Button>
-          <Button type="primary" data-testid="product-create-btn" onClick={openCreate}>
+          <Tooltip title="刷新">
+            <Button icon={<ReloadOutlined />} aria-label="刷新" onClick={load} />
+          </Tooltip>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            data-testid="product-create-btn"
+            onClick={openCreate}
+          >
             新建商品
           </Button>
         </Space>
@@ -263,7 +263,7 @@ export default function ProductsPage() {
       <Table<ProductPageListItem>
         rowKey="productID"
         tableLayout="fixed"
-        scroll={{ x: 1020 }}
+        scroll={tableScrollX(columns)}
         columns={columns}
         dataSource={data}
         loading={loading}

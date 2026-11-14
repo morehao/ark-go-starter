@@ -14,7 +14,7 @@
     "@ark-go-starter/api": "workspace:*",
     "@ark-go-starter/types": "workspace:*",
     "@ark-go-starter/ui": "workspace:*",
-    "@morehao/ark-iam-react": "^0.3.2",
+    "@morehao/ark-iam-react": "^0.3.3",
     "antd": "catalog:",
     "js-sha256": "^1.0.0",
     "react": "catalog:",

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Button, Descriptions, Tag, App, type DescriptionsProps } from 'antd'
+import { Button, Descriptions, Tag, Tooltip, App, type DescriptionsProps } from 'antd'
+import { ReloadOutlined } from '@ant-design/icons'
 import { PageContainer } from '@ark-go-starter/ui'
 import { getHealth } from '@ark-go-starter/api'
 import type { DbCheck } from '@ark-go-starter/types'
@@ -54,9 +55,9 @@ export default function HealthPage() {
       title="健康检查"
       description="检查后端依赖连通性，数据来自 GET /v1/demo/health"
       extra={
-        <Button onClick={load} loading={loading}>
-          刷新
-        </Button>
+        <Tooltip title="刷新">
+          <Button icon={<ReloadOutlined />} aria-label="刷新" loading={loading} onClick={load} />
+        </Tooltip>
       }
     >
       <Descriptions bordered size="small" column={1} items={items} />

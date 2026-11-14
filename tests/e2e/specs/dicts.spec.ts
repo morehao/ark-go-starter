@@ -18,9 +18,12 @@ import { descriptionsValue } from '../support/dom'
  * 错误文案在 demo-web 的 utils/errorMessage.ts 统一本地化，因此 UI 断言中文、并断言不出现后端英文原文。
  *
  * 断言稳定性要点：
- * - antd 会在两个汉字间插空格（「删 除」「启 用」），按钮一律用 /删\s*除/ 这类正则；
- * - 状态 Tag 用 .ant-tag 限定，避免和同名按钮文本冲突；
- * - Popconfirm / Drawer 用 .ant-popconfirm、.ant-drawer(-open) 限定作用域，避免 strict mode 命中多个；
+ * - antd 会在两个汉字间插空格（「编 辑」「更多」），按钮一律用 /编\s*辑/ 这类正则；
+ * - 状态列是 StatusSwitch（DESIGN §7.2）：断言 .ant-switch 的 aria-checked（true=启用），
+ *   不再是 Tag；点开关只弹 Modal.confirm，点确定后才发 PATCH；
+ * - 操作列走 actionColumn/RowActions（DESIGN §7.3）：4 个操作超过 max=3，横排只剩
+ *   「查看项 / 编辑」，「完整性检查 / 删除」收进「更多」下拉（菜单项 role=menuitem）；
+ * - Drawer 用 .ant-drawer(-open) 限定作用域，避免 strict mode 命中多个；
  * - 关键写操作都用 waitForResponse 等待真实请求完成，不靠 sleep。
  *
  * 数据：全部 e2e- 前缀 + 时间戳；用例内 UI 删除，afterEach 按 id 级联兜底清理。
@@ -37,12 +40,39 @@ async function gotoDicts(page: import('@playwright/test').Page) {
     page.getByRole('menuitem', { name: '数据字典' }).click(),
   ])
   expect(resp.status(), '字典类型列表接口应为 200').toBe(200)
-  await expect(page.getByRole('heading', { name: '数据字典', level: 5 })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '数据字典', level: 4 })).toBeVisible()
 }
 
 /** 取某 code 对应的表格行。 */
 function rowOf(page: import('@playwright/test').Page, code: string) {
   return page.getByRole('row', { name: new RegExp(code) })
+}
+
+/** 状态列开关（StatusSwitch → antd Switch）；aria-checked=true 即「启用」态。 */
+function statusSwitchOf(row: import('@playwright/test').Locator) {
+  return row.locator('.ant-switch')
+}
+
+/**
+ * 点开「更多」下拉并点击其中某个操作。
+ * RowActions 的溢出项按菜单项（role=menuitem）渲染，与横排按钮选择器不同。
+ */
+async function clickMoreAction(
+  page: import('@playwright/test').Page,
+  row: import('@playwright/test').Locator,
+  name: RegExp,
+) {
+  await row.getByRole('button', { name: /更多/ }).click()
+  const menu = page.locator('.ant-dropdown:visible')
+  await expect(menu).toBeVisible()
+  await menu.getByRole('menuitem', { name }).click()
+}
+
+/** 溢出项里的二次确认走 Modal.confirm（下拉已收起，气泡无法稳定锚定），返回对话框定位器。 */
+async function confirmDialogOf(page: import('@playwright/test').Page) {
+  const dialog = page.locator('.ant-modal-confirm:visible')
+  await expect(dialog).toBeVisible()
+  return dialog
 }
 
 test.describe('数据字典 · 全流程', () => {
@@ -72,43 +102,50 @@ test.describe('数据字典 · 全流程', () => {
     await expect(row).toBeVisible()
     await expect(row).toContainText(name)
     await expect(row).toContainText('e2e 字典说明')
-    // 新建类型默认 enabled → 状态列 Tag 显示「启用」
-    await expect(row.locator('.ant-tag')).toHaveText('启用')
-    // 操作列三个按钮齐全（正则兼容 antd 自动插入的空格）
+    // 新建类型默认 enabled → 状态列开关处于启用态（aria-checked=true）
+    await expect(statusSwitchOf(row)).toHaveAttribute('aria-checked', 'true')
+    // 操作列：横排「查看项 / 编辑」+ 「更多」下拉（删除、完整性检查收在下拉里）
     await expect(row.getByRole('button', { name: /查看\s*项/ })).toBeVisible()
-    await expect(row.getByRole('button', { name: /禁\s*用/ })).toBeVisible()
-    await expect(row.getByRole('button', { name: /删\s*除/ })).toBeVisible()
+    await expect(row.getByRole('button', { name: /编\s*辑/ })).toBeVisible()
+    await expect(row.getByRole('button', { name: /更多/ })).toBeVisible()
   })
 
-  test('启停：禁用 → 状态 Tag 变禁用；再启用 → 恢复', async ({ page }) => {
+  test('启停：状态列开关二次确认 → 禁用 → 再启用 → 恢复', async ({ page }) => {
     const code = uniqueName(PREFIX)
     const type = await createDictType({ code })
     createdTypeIDs.push(type.id)
 
     await gotoDicts(page)
     const row = rowOf(page, code)
-    await expect(row.locator('.ant-tag')).toHaveText('启用')
+    const sw = statusSwitchOf(row)
+    await expect(sw).toHaveAttribute('aria-checked', 'true')
 
-    // 禁用
+    // 禁用：点开关 → 二次确认 → 点「确认禁用」才发 PATCH
+    await sw.click()
+    const disableDialog = await confirmDialogOf(page)
     const [disableResp] = await Promise.all([
       page.waitForResponse(
         (r) => r.url().includes(`/demo/dict-types/${type.id}/status`) && r.request().method() === 'PATCH',
       ),
-      row.getByRole('button', { name: /禁\s*用/ }).click(),
+      disableDialog.getByRole('button', { name: /确\s*认/ }).click(),
     ])
     expect((await disableResp.json()).code, '启停接口业务码应为 0').toBe(0)
-    await expect(page.locator('.ant-message')).toContainText('状态已更新')
-    await expect(row.locator('.ant-tag')).toHaveText('禁用')
+    // 成功提示由 StatusSwitch 统一给出（停用→「已停用」，启用→「已恢复」）
+    await expect(page.locator('.ant-message')).toContainText('已停用')
+    await expect(sw).toHaveAttribute('aria-checked', 'false')
 
-    // 再启用（此时按钮文案变成「启 用」）
+    // 再启用
+    await sw.click()
+    const enableDialog = await confirmDialogOf(page)
     const [enableResp] = await Promise.all([
       page.waitForResponse(
         (r) => r.url().includes(`/demo/dict-types/${type.id}/status`) && r.request().method() === 'PATCH',
       ),
-      row.getByRole('button', { name: /启\s*用/ }).click(),
+      enableDialog.getByRole('button', { name: /确\s*认/ }).click(),
     ])
     expect((await enableResp.json()).code).toBe(0)
-    await expect(row.locator('.ant-tag')).toHaveText('启用')
+    await expect(page.locator('.ant-message')).toContainText('已恢复')
+    await expect(sw).toHaveAttribute('aria-checked', 'true')
 
     // 接口侧复核：状态确实落库为 enabled
     const { list } = await listDictTypes(1, 100)
@@ -179,15 +216,14 @@ test.describe('数据字典 · 全流程', () => {
 
     await gotoDicts(page)
     const row = rowOf(page, code)
-    await row.getByRole('button', { name: /删\s*除/ }).click()
-
-    const popconfirm = page.locator('.ant-popconfirm')
-    await expect(popconfirm).toBeVisible()
+    // 删除收在「更多」下拉；下拉项带 confirm → 走 Modal.confirm
+    await clickMoreAction(page, row, /删\s*除/)
+    const dialog = await confirmDialogOf(page)
     const [delResp] = await Promise.all([
       page.waitForResponse(
         (r) => r.url().includes(`/demo/dict-types/${type.id}`) && r.request().method() === 'DELETE',
       ),
-      popconfirm.getByRole('button', { name: /确\s*定|OK/i }).click(),
+      dialog.getByRole('button', { name: /确\s*定|OK/i }).click(),
     ])
     // 后端约定业务错误也走 HTTP 200 + 非 0 code（golib gincontext.Fail）
     expect(delResp.status()).toBe(200)
@@ -213,14 +249,13 @@ test.describe('数据字典 · 全流程', () => {
 
     await gotoDicts(page)
     const row = rowOf(page, code)
-    await row.getByRole('button', { name: /删\s*除/ }).click()
-
-    const popconfirm = page.locator('.ant-popconfirm')
+    await clickMoreAction(page, row, /删\s*除/)
+    const dialog = await confirmDialogOf(page)
     const [delResp] = await Promise.all([
       page.waitForResponse(
         (r) => r.url().includes(`/demo/dict-types/${type.id}`) && r.request().method() === 'DELETE',
       ),
-      popconfirm.getByRole('button', { name: /确\s*定|OK/i }).click(),
+      dialog.getByRole('button', { name: /确\s*定|OK/i }).click(),
     ])
     expect((await delResp.json()).code).toBe(0)
     await expect(page.locator('.ant-message')).toContainText('删除成功')
@@ -321,7 +356,7 @@ test.describe('数据字典 · 全流程', () => {
     await expect(row).toBeVisible()
     await expect(row).toContainText(name)
     await expect(row).toContainText('e2e 新建说明')
-    await expect(row.locator('.ant-tag')).toHaveText('启用')
+    await expect(statusSwitchOf(row)).toHaveAttribute('aria-checked', 'true')
 
     // 接口侧复核落库
     const { list } = await listDictTypes(1, 100)
@@ -417,7 +452,7 @@ test.describe('数据字典 · 全流程', () => {
           r.url().includes(`/demo/dict-types/${type.id}/integrity-check`) &&
           r.request().method() === 'GET',
       ),
-      row.getByRole('button', { name: /完整性检查/ }).click(),
+      clickMoreAction(page, row, /完整性检查/),
     ])
     const body = (await integrityResp.json()) as {
       code: number

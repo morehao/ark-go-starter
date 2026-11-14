@@ -58,7 +58,7 @@ function isPresignPartResponse(
 async function gotoFiles(page: import('@playwright/test').Page) {
   await page.goto('/')
   await page.getByRole('menuitem', { name: '文件上传' }).click()
-  await expect(page.getByRole('heading', { name: '文件上传', level: 5 })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '文件上传', level: 4 })).toBeVisible()
 }
 
 /** 通过 antd Upload 的隐藏 input 选文件，返回上传接口响应。 */

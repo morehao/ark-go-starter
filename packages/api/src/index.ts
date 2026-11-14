@@ -281,6 +281,15 @@ export function updateSetting(id: string, body: SettingUpdateReq) {
 }
 
 /** 删除配置项 DELETE /demo/settings/{id} */
+/** 启停配置项 PATCH /demo/settings/{id}/status（golib ginsetting，只改状态，不动值/描述） */
+export function updateSettingStatus(id: string, status: string) {
+  return request<unknown>({
+    url: `/demo/settings/${id}/status`,
+    method: 'patch',
+    data: { status } satisfies StatusUpdateReq,
+  })
+}
+
 export function deleteSetting(id: string) {
   return request<unknown>({
     url: `/demo/settings/${id}`,

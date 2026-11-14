@@ -353,7 +353,7 @@ Aperture Dashboard 是企业级中后台（B 端管理系统）的「经营数�
 - **Buttons**: 主按钮 `button-primary` 主色底白字、6px 圆角、高 32px；次按钮 `button-default` 白底 hairline 描边，hover 转主色；按下用 `button-primary-hover` 色阶。
 - **Inputs**: 高 32px、6px 圆角、`#d9d9d9` 描边；hover 主色描边、focus 主色边框 + 聚焦环；占位符 `on-surface-quaternary`。
 - **Nav (Sider / Menu)**: 深色底 `#001529`，菜单项高 40px、文字 `rgba(255,255,255,0.65)`；选中项 `menu-item-active` 主色底白字。
-- **Table**: 固定布局；表头 `#fafafa` 底 + `on-surface-secondary` 文字 + 600 字重；可排序列右侧 sorter 上下箭头（激活主色）；行 hover `#fafafa`；操作列用 `⋯` 触发 Dropdown。
+- **Table**: 固定布局；表头 `#fafafa` 底 + `on-surface-secondary` 文字 + 600 字重；可排序列右侧 sorter 上下箭头（激活主色）；行 hover `#fafafa`。**操作列一律用 `actionColumn()`**（`fixed: 'right'`，列宽由 `actionColumnWidth()` 计算，禁止手写宽度）：`variant: 'icon'` 为「图标 + 文字」链接按钮，操作数超过 `max` 时其余的收进「更多」下拉；页面不再手写 `Space` + `Button type="link"`。
 - **Tag（Chips）**: 状态标签 12px、4px 圆角、行高 20px，四种语义（success/warning/error/default）采用浅底浅边深字。
 - **Pagination**: 页码项 32px 方形、6px 圆角；当前页 `pagination-item-active` 主色底白字；右侧「共 N 条」+ 每页条数选择。
 - **Modal**: 宽 480px、8px 圆角、浮层阴影；标题栏（16px/600 + ✕）+ 垂直表单 + 底栏（取消 / 确定主按钮）。
@@ -365,7 +365,7 @@ Aperture Dashboard 是企业级中后台（B 端管理系统）的「经营数�
 - **Do** 颜色/圆角/间距一律引用本文 token（`{colors.*}` / `{rounded.*}` / `{spacing.*}`），落地时映射到 antd `theme.token`。
 - **Do** 主色只用于可交互态与选中态；页面表面用中性灰阶 + 白卡分层。
 - **Do** 表格用 `table-layout: fixed` + 显式列宽 + `scroll.x`。
-- **Do** 状态一律用语义 Tag（浅底浅边深字），保持 WCAG AA 对比度（正文 ≥ 4.5:1）。
+- **Do** 状态一律用语义 Tag（浅底浅边深字），保持 WCAG AA 对比度（正文 ≥ 4.5:1）；**可切换**的状态列改用 `StatusSwitch`（双向二次确认、受控、失败自动回滚），并从操作列移除对应的「启用/停用」按钮。
 - **Don't** 把主色当大面积背景或正文色。
 - **Don't** 使用大圆角 / 胶囊形按钮（头像、开关除外）。
 - **Don't** 给卡片加默认投影（仅 hover 与浮层允许）。

@@ -22,7 +22,7 @@ test.describe('smoke · 菜单导航', () => {
     for (const m of MENUS) {
       await page.getByRole('menuitem', { name: m.label }).click()
       // 页面标题（Header 里的 Typography.Title）与菜单名一致，用 heading 断言可见。
-      await expect(page.getByRole('heading', { name: m.heading, level: 5 })).toBeVisible()
+      await expect(page.getByRole('heading', { name: m.heading, level: 4 })).toBeVisible()
     }
   })
 })

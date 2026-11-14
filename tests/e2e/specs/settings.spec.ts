@@ -11,11 +11,14 @@ import {
  *
  * UI 实际能力（读 pages/Settings/index.tsx 确认）：分页列表、分组/状态筛选
  * （GET /settings?group=&status=&page=&page_size=，group 为精确匹配）、新建（Modal 表单，可开加密存储）、
- * 编辑（值/描述可改，分组/键名/值类型 disabled）、删除（Popconfirm 二次确认）、刷新；
+ * 编辑（值/描述可改，分组/键名/值类型 disabled）、启停（状态列 StatusSwitch →
+ * PATCH /settings/{id}/status）、删除（Popconfirm 二次确认）、刷新；
  * 列表新增「加密模式」列展示 encryption_mode（plain/encrypted）。
  * 错误文案由 demo-web 的 utils/errorMessage.ts 统一本地化（本页暂无稳定触发后端错误的用例）。
  *
  * 断言稳定性要点：antd 两字按钮会插空格（「确 定」「删 除」）→ 统一用 /确\s*定|OK/i 与 /删\s*除/；
+ * 状态列是 StatusSwitch（Switch 的启用/禁用两段文案同时在 DOM，textContent="启用禁用"）→
+ * 一律断言 .ant-switch 的 aria-checked（true=启用）；启停点开关后还需在 Modal.confirm 点确定；
  * Modal/Popconfirm 用 .ant-modal/.ant-popconfirm 或 getByRole('dialog') 限定作用域，避免 strict mode。
  *
  * 数据：分组/键名统一 e2e- 前缀 + 时间戳，afterEach 走接口按前缀清理（UI 删除的也兜底一遍）。
@@ -32,7 +35,7 @@ async function gotoSettings(page: import('@playwright/test').Page) {
     page.getByRole('menuitem', { name: '配置中心' }).click(),
   ])
   expect(resp.status()).toBe(200)
-  await expect(page.getByRole('heading', { name: '配置中心', level: 5 })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '配置中心', level: 4 })).toBeVisible()
 }
 
 /** 按分组名定位表格行（分组在用例内唯一）。 */
@@ -84,7 +87,8 @@ test.describe('配置中心 · 全流程', () => {
     await expect(row).toContainText(key)
     await expect(row).toContainText('json')
     await expect(row).toContainText('{"enabled":true}')
-    await expect(row.locator('.ant-tag')).toHaveText('启用')
+    // 状态列是开关（aria-checked=true 即启用），不再是 Tag
+    await expect(row.locator('.ant-switch')).toHaveAttribute('aria-checked', 'true')
     // 新增「加密模式」列：默认明文落库 → plain
     await expect(row).toContainText('plain')
     // 注意：表格没有「描述」列，描述只能在接口侧断言（见下）
@@ -288,6 +292,53 @@ test.describe('配置中心 · 全流程', () => {
     await expect(rowOf(page, groupB)).toBeVisible()
   })
 
+  test('启停：状态列开关二次确认 → 停用 → 再启用 → 恢复', async ({ page }) => {
+    const group = uniqueName(PREFIX)
+    const key = `${group}-key`
+    await createSettingAPI({ group, key, value: 'toggle-me', description: '启停用例' })
+
+    await gotoSettings(page)
+    const row = rowOf(page, group)
+    const sw = row.locator('.ant-switch')
+    await expect(sw).toHaveAttribute('aria-checked', 'true')
+
+    // 停用：点开关 → Modal.confirm 二次确认 → 点「确认禁用」才发 PATCH
+    await sw.click()
+    const disableDialog = page.locator('.ant-modal-confirm:visible')
+    await expect(disableDialog).toContainText('禁用该配置项？')
+    const [disableResp] = await Promise.all([
+      page.waitForResponse(
+        (r) => /\/demo\/settings\/[^/]+\/status/.test(r.url()) && r.request().method() === 'PATCH',
+      ),
+      disableDialog.getByRole('button', { name: /确\s*认/ }).click(),
+    ])
+    expect((await disableResp.json()).code, '启停接口业务码应为 0').toBe(0)
+    // 成功提示由 StatusSwitch 统一给出（停用→「已停用」，启用→「已恢复」）
+    await expect(page.locator('.ant-message')).toContainText('已停用')
+    await expect(sw).toHaveAttribute('aria-checked', 'false')
+
+    // 接口侧复核：状态确实落库为 disabled，且值与描述未被启停接口改动
+    const { list } = await listSettings(1, 100)
+    const saved = list.find((s) => s.group === group && s.key === key)
+    expect(saved?.status, '启停应落库为 disabled').toBe('disabled')
+    expect(saved?.value, '启停不应改动配置值').toBe('toggle-me')
+    expect(saved?.description, '启停不应改动描述').toBe('启停用例')
+
+    // 再启用
+    await sw.click()
+    const enableDialog = page.locator('.ant-modal-confirm:visible')
+    await expect(enableDialog).toContainText('启用该配置项？')
+    const [enableResp] = await Promise.all([
+      page.waitForResponse(
+        (r) => /\/demo\/settings\/[^/]+\/status/.test(r.url()) && r.request().method() === 'PATCH',
+      ),
+      enableDialog.getByRole('button', { name: /确\s*认/ }).click(),
+    ])
+    expect((await enableResp.json()).code).toBe(0)
+    await expect(page.locator('.ant-message')).toContainText('已恢复')
+    await expect(sw).toHaveAttribute('aria-checked', 'true')
+  })
+
   test('状态筛选：选择禁用 → 请求带 status=disabled → 只展示禁用项', async ({ page }) => {
     const groupOn = uniqueName(`${PREFIX}-on`)
     const groupOff = uniqueName(`${PREFIX}-off`)
@@ -301,7 +352,10 @@ test.describe('配置中心 · 全流程', () => {
 
     await gotoSettings(page)
     await expect(rowOf(page, groupOn)).toBeVisible()
-    await expect(rowOf(page, groupOff).locator('.ant-tag')).toHaveText('禁用')
+    await expect(rowOf(page, groupOff).locator('.ant-switch')).toHaveAttribute(
+      'aria-checked',
+      'false',
+    )
 
     // 筛选区是页面内容卡里的第一个 Space（含分组搜索框），据此限定状态 Select，避免命中 Modal 内的 Select
     const filterBar = page
