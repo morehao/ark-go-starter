@@ -203,10 +203,16 @@ update-dep:
 # ============================================================
 
 # 生成 Swagger 文档
+#
+# swag CLI 版本必须与 apps/api/go.mod 里的 github.com/swaggo/swag 库版本一致：
+# 原先装 @latest，会让不同机器用不同版本生成 docs，输出格式漂移（曾因此长期没人敢重生成，
+# apps/api/docs 一度落后到连 IAM /install/* 路由都缺）。升级依赖时同步改这里。
+SWAG_VERSION := v1.16.6
+
 swag:
 	$(call validate_app)
 	@echo "📚 正在生成 Swagger 文档..."
-	@which swag > /dev/null 2>&1 || (echo "⚠️  swag 未安装，正在安装..." && go install github.com/swaggo/swag/cmd/swag@latest)
+	@which swag > /dev/null 2>&1 || (echo "⚠️  swag 未安装，正在安装 $(SWAG_VERSION)..." && go install github.com/swaggo/swag/cmd/swag@$(SWAG_VERSION))
 	@swag init \
 		--parseDependency \
 		--parseInternal \
