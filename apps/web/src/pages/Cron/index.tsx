@@ -8,10 +8,13 @@ import {
   Space,
   Table,
   Tag,
+  Tooltip,
   App,
   type DescriptionsProps,
   type TableProps,
 } from 'antd'
+import { EyeOutlined, HistoryOutlined, ReloadOutlined } from '@ant-design/icons'
+import { StatusSwitch, actionColumn, tableScrollX } from '@morehao/ark-iam-react'
 import { PageContainer, tokens, StatCard, StatRow } from '@ark-go-starter/ui'
 import {
   cleanupCronTaskRuns,
@@ -85,14 +88,18 @@ export default function CronPage() {
     load()
   }, [load])
 
-  const toggleStatus = async (record: CronTask) => {
-    const next = record.status === 'enabled' ? 'disabled' : 'enabled'
+  /**
+   * 状态开关回调：由 `StatusSwitch` 在确认框点「确定」后触发，`nextEnabled` 是目标 on 态。
+   * 失败时**必须抛出**：StatusSwitch 捕获后不更新受控 checked，开关回退原值并抑制成功提示。
+   */
+  const handleStatusChange = async (record: CronTask, nextEnabled: boolean) => {
     try {
-      await updateCronTaskStatus(record.id, next)
-      message.success('状态已更新')
-      load()
+      await updateCronTaskStatus(record.id, nextEnabled ? 'enabled' : 'disabled')
+      // 等列表刷新完成再返回，开关翻转与成功提示的先后顺序才稳定
+      await load()
     } catch (e) {
       message.error(localizeError(e, '状态更新失败'))
+      throw e
     }
   }
 
@@ -169,12 +176,28 @@ export default function CronPage() {
     { title: '名称', dataIndex: 'name', key: 'name', width: 180, ellipsis: true },
     { title: '任务类型', dataIndex: 'task_type', key: 'task_type', width: 140, ellipsis: true },
     { title: 'Cron 表达式', dataIndex: 'spec', key: 'spec', width: 160, ellipsis: true },
+    // 可切换状态列走 StatusSwitch（双向确认 + 受控回滚，见 DESIGN §7.2/§8），
+    // 操作列因此不再放「启用/禁用」按钮。
     {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
       width: 100,
-      render: (s: string) => <StatusTag status={s} />,
+      render: (_: string, record) => (
+        <StatusSwitch
+          checked={record.status === 'enabled'}
+          checkedChildren="启用"
+          unCheckedChildren="禁用"
+          confirmTitle={record.status === 'enabled' ? '禁用该定时任务？' : '启用该定时任务？'}
+          confirmContent={
+            record.status === 'enabled'
+              ? '禁用后调度器不再触发该任务，已排队的运行记录不受影响。'
+              : '启用后调度器将按 Cron 表达式继续触发该任务。'
+          }
+          okText={record.status === 'enabled' ? '确认禁用' : '确认启用'}
+          onConfirmChange={(next) => handleStatusChange(record, next)}
+        />
+      ),
     },
     {
       title: '下次运行时间',
@@ -183,24 +206,26 @@ export default function CronPage() {
       width: 190,
       render: (v: number | null | undefined) => fmtTime(v),
     },
-    {
-      title: '操作',
-      key: 'action',
-      width: 220,
-      render: (_, record) => (
-        <span style={{ display: 'flex', gap: 16 }}>
-          <Button type="link" size="small" onClick={() => openDetail(record)}>
-            详情
-          </Button>
-          <Button type="link" size="small" onClick={() => openRuns(record)}>
-            运行记录
-          </Button>
-          <Button type="link" size="small" onClick={() => toggleStatus(record)}>
-            {record.status === 'enabled' ? '禁用' : '启用'}
-          </Button>
-        </span>
-      ),
-    },
+    // 操作列按 DESIGN §7.3：统一 actionColumn（fixed:'right'），variant:'icon' = 图标 + 文字；
+    // 「启用/禁用」已上移为状态列 StatusSwitch，这里只保留两个查看类操作（横排 2 个）。
+    actionColumn<CronTask>({
+      max: 2,
+      variant: 'icon',
+      actions: (record) => [
+        {
+          key: 'detail',
+          label: '详情',
+          icon: <EyeOutlined />,
+          onClick: () => void openDetail(record),
+        },
+        {
+          key: 'runs',
+          label: '运行记录',
+          icon: <HistoryOutlined />,
+          onClick: () => void openRuns(record),
+        },
+      ],
+    }),
   ]
 
   const runColumns: TableProps<CronTaskRun>['columns'] = [
@@ -238,7 +263,11 @@ export default function CronPage() {
     <PageContainer
       title="定时任务"
       description="定时任务列表，支持查看详情、运行记录、启停，以及标记陈旧运行与清理历史运行记录，数据来自 /v1/demo/cron-tasks"
-      extra={<Button onClick={load}>刷新</Button>}
+      extra={
+        <Tooltip title="刷新">
+          <Button icon={<ReloadOutlined />} aria-label="刷新" onClick={load} />
+        </Tooltip>
+      }
       summary={
         <StatRow>
           <StatCard label="任务总数" value={total.toLocaleString()} hint="当前分页接口返回总条数" />
@@ -249,7 +278,7 @@ export default function CronPage() {
       <Table<CronTask>
         rowKey="id"
         tableLayout="fixed"
-        scroll={{ x: 990 }}
+        scroll={tableScrollX(columns)}
         columns={columns}
         dataSource={data}
         loading={loading}

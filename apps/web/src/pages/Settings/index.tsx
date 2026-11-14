@@ -4,15 +4,17 @@ import {
   Form,
   Input,
   Modal,
-  Popconfirm,
   Select,
   Space,
   Switch,
   Table,
   Tag,
+  Tooltip,
   App,
   type TableProps,
 } from 'antd'
+import { DeleteOutlined, EditOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons'
+import { actionColumn, tableScrollX } from '@morehao/ark-iam-react'
 import { PageContainer, tokens, StatCard, StatRow } from '@ark-go-starter/ui'
 import {
   createSetting,
@@ -193,26 +195,27 @@ export default function SettingsPage() {
       width: 100,
       render: (s: string) => <StatusTag status={s} />,
     },
-    {
-      title: '操作',
-      key: 'action',
-      width: 160,
-      render: (_, record) => (
-        <Space size="middle">
-          <Button type="link" size="small" onClick={() => openEdit(record)}>
-            编辑
-          </Button>
-          <Popconfirm
-            title="确认删除该配置项？"
-            onConfirm={() => handleDelete(record.id)}
-          >
-            <Button type="link" size="small" danger>
-              删除
-            </Button>
-          </Popconfirm>
-        </Space>
-      ),
-    },
+    // 操作列按 DESIGN §7.3：统一 actionColumn（fixed:'right'），variant:'icon' = 图标 + 文字，
+    // 「删除」用 RowAction.confirm 走就地 Popconfirm 二次确认。
+    actionColumn<Setting>({
+      variant: 'icon',
+      actions: (record) => [
+        {
+          key: 'edit',
+          label: '编辑',
+          icon: <EditOutlined />,
+          onClick: () => openEdit(record),
+        },
+        {
+          key: 'delete',
+          label: '删除',
+          danger: true,
+          icon: <DeleteOutlined />,
+          confirm: '确认删除该配置项？',
+          onClick: () => void handleDelete(record.id),
+        },
+      ],
+    }),
   ]
 
   return (
@@ -221,8 +224,10 @@ export default function SettingsPage() {
       description="配置项分页列表，支持分组/状态筛选、新建（可加密存储）、编辑与删除，数据来自 /v1/demo/settings"
       extra={
         <Space>
-          <Button onClick={load}>刷新</Button>
-          <Button type="primary" onClick={openCreate}>
+          <Tooltip title="刷新">
+            <Button icon={<ReloadOutlined />} aria-label="刷新" onClick={load} />
+          </Tooltip>
+          <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
             新建配置
           </Button>
         </Space>
@@ -257,7 +262,7 @@ export default function SettingsPage() {
       <Table<Setting>
         rowKey="id"
         tableLayout="fixed"
-        scroll={{ x: 1050 }}
+        scroll={tableScrollX(columns)}
         columns={columns}
         dataSource={data}
         loading={loading}

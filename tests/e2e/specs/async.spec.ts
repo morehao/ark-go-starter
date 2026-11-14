@@ -17,7 +17,8 @@ import { listAsyncTaskRuns } from '../support/api'
  *    并用「清理 10 年前」的边界交叉复核不会减少现有数据。
  * 注意异步任务按 `:type` 维度操作，页面用 record.id 作为 type 传给后端。
  *
- * 断言稳定性：antd 两字按钮插空格 → /禁\s*用/、/启\s*用/、/刷\s*新/；抽屉用 .ant-drawer-open 限定。
+ * 断言稳定性：antd 两字按钮插空格 → /刷\s*新/；状态列是 StatusSwitch，按 .ant-switch 的 aria-checked 断言；
+ * 抽屉用 .ant-drawer-open 限定。
  */
 async function gotoAsync(page: import('@playwright/test').Page) {
   await page.goto('/')
@@ -45,7 +46,8 @@ test.describe('异步任务 · 全流程', () => {
     }
     const firstRow = page.locator('.ant-table-tbody .ant-table-row').first()
     await expect(firstRow).toBeVisible()
-    await expect(firstRow.locator('.ant-tag')).toBeVisible()
+    // 状态列是 StatusSwitch（开关），不再是 Tag
+    await expect(firstRow.locator('.ant-switch')).toBeVisible()
     await expect(firstRow.getByRole('button', { name: /运行\s*记录/ })).toBeVisible()
   })
 
@@ -74,36 +76,41 @@ test.describe('异步任务 · 全流程', () => {
     await expect(page.locator('.ant-drawer-open')).toHaveCount(0)
   })
 
-  test('启停：切换状态 → 提示成功 → Tag 翻转 → 再切回原状态', async ({ page }) => {
+  test('启停：状态列开关二次确认 → 提示成功 → 开关翻转 → 再切回原状态', async ({ page }) => {
     await gotoAsync(page)
     const firstRow = page.locator('.ant-table-tbody .ant-table-row').first()
     await expect(firstRow).toBeVisible()
-    const tag = firstRow.locator('.ant-tag')
-    const before = (await tag.innerText()).trim()
-    expect(['启用', '禁用'], `未知任务状态：${before}`).toContain(before)
+    // 状态列是 StatusSwitch（DESIGN §7.2），不是 Tag。
+    // 注意：Switch 的启用/禁用两段文案同时存在于 DOM（textContent="启用禁用"），
+    // 所以状态一律按 aria-checked 断言（true=启用），不能用可见文案。
+    const sw = firstRow.locator('.ant-switch')
+    const before = (await sw.getAttribute('aria-checked')) === 'true'
 
-    const firstBtn = before === '启用' ? /禁\s*用/ : /启\s*用/
+    // 点开关 → Modal.confirm 二次确认 → 点确定才发 PATCH
+    await sw.click()
+    const dialog = page.locator('.ant-modal-confirm:visible')
+    await expect(dialog).toBeVisible()
     const [patchResp] = await Promise.all([
       page.waitForResponse(
         (r) => /\/demo\/async-tasks\/[^/]+\/status/.test(r.url()) && r.request().method() === 'PATCH',
       ),
-      firstRow.getByRole('button', { name: firstBtn }).click(),
+      dialog.getByRole('button', { name: /确\s*认/ }).click(),
     ])
     expect(((await patchResp.json()) as { code: number }).code).toBe(0)
-    await expect(page.locator('.ant-message')).toContainText('状态已更新')
-    await expect(tag).not.toHaveText(before)
-    const flipped = (await tag.innerText()).trim()
+    // 成功提示由 StatusSwitch 统一给出（停用→「已停用」，启用→「已恢复」）
+    await expect(page.locator('.ant-message')).toContainText(/已停用|已恢复/)
+    await expect(sw).toHaveAttribute('aria-checked', String(!before))
 
     // 恢复初始状态
-    const secondBtn = flipped === '启用' ? /禁\s*用/ : /启\s*用/
+    await sw.click()
     const [restoreResp] = await Promise.all([
       page.waitForResponse(
         (r) => /\/demo\/async-tasks\/[^/]+\/status/.test(r.url()) && r.request().method() === 'PATCH',
       ),
-      firstRow.getByRole('button', { name: secondBtn }).click(),
+      page.locator('.ant-modal-confirm:visible').getByRole('button', { name: /确\s*认/ }).click(),
     ])
     expect(((await restoreResp.json()) as { code: number }).code).toBe(0)
-    await expect(tag).toHaveText(before)
+    await expect(sw).toHaveAttribute('aria-checked', String(before))
   })
 
   test('刷新：重新请求任务列表', async ({ page }) => {

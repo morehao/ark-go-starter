@@ -7,9 +7,12 @@ import {
   Space,
   Table,
   Tag,
+  Tooltip,
   App,
   type TableProps,
 } from 'antd'
+import { HistoryOutlined, ReloadOutlined } from '@ant-design/icons'
+import { StatusSwitch, actionColumn, tableScrollX } from '@morehao/ark-iam-react'
 import { PageContainer, tokens, StatCard, StatRow } from '@ark-go-starter/ui'
 import {
   cleanupAsyncTaskRuns,
@@ -77,14 +80,18 @@ export default function AsyncPage() {
     load()
   }, [load])
 
-  const toggleStatus = async (record: AsyncTask) => {
-    const next = record.status === 'enabled' ? 'disabled' : 'enabled'
+  /**
+   * 状态开关回调：由 `StatusSwitch` 在确认框点「确定」后触发，`nextEnabled` 是目标 on 态。
+   * 失败时**必须抛出**：StatusSwitch 捕获后不更新受控 checked，开关回退原值并抑制成功提示。
+   */
+  const handleStatusChange = async (record: AsyncTask, nextEnabled: boolean) => {
     try {
-      await updateAsyncTaskStatus(record.id, next)
-      message.success('状态已更新')
-      load()
+      await updateAsyncTaskStatus(record.id, nextEnabled ? 'enabled' : 'disabled')
+      // 等列表刷新完成再返回，开关翻转与成功提示的先后顺序才稳定
+      await load()
     } catch (e) {
       message.error(localizeError(e, '状态更新失败'))
+      throw e
     }
   }
 
@@ -145,28 +152,42 @@ export default function AsyncPage() {
   const columns: TableProps<AsyncTask>['columns'] = [
     { title: '名称', dataIndex: 'name', key: 'name', width: 180, ellipsis: true },
     { title: '描述', dataIndex: 'description', key: 'description', width: 260, ellipsis: true },
+    // 可切换状态列走 StatusSwitch（双向确认 + 受控回滚，见 DESIGN §7.2/§8），
+    // 操作列因此不再放「启用/禁用」按钮。
     {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
       width: 100,
-      render: (s: string) => <StatusTag status={s} />,
-    },
-    {
-      title: '操作',
-      key: 'action',
-      width: 220,
-      render: (_, record) => (
-        <span style={{ display: 'flex', gap: 16 }}>
-          <Button type="link" size="small" onClick={() => openRuns(record)}>
-            运行记录
-          </Button>
-          <Button type="link" size="small" onClick={() => toggleStatus(record)}>
-            {record.status === 'enabled' ? '禁用' : '启用'}
-          </Button>
-        </span>
+      render: (_: string, record) => (
+        <StatusSwitch
+          checked={record.status === 'enabled'}
+          checkedChildren="启用"
+          unCheckedChildren="禁用"
+          confirmTitle={record.status === 'enabled' ? '禁用该异步任务？' : '启用该异步任务？'}
+          confirmContent={
+            record.status === 'enabled'
+              ? '禁用后新提交的该类型任务不再入队，已在队列中的任务不受影响。'
+              : '启用后该类型任务将重新接受提交并入队执行。'
+          }
+          okText={record.status === 'enabled' ? '确认禁用' : '确认启用'}
+          onConfirmChange={(next) => handleStatusChange(record, next)}
+        />
       ),
     },
+    // 操作列按 DESIGN §7.3：统一 actionColumn（fixed:'right'），variant:'icon' = 图标 + 文字。
+    actionColumn<AsyncTask>({
+      max: 3,
+      variant: 'icon',
+      actions: (record) => [
+        {
+          key: 'runs',
+          label: '运行记录',
+          icon: <HistoryOutlined />,
+          onClick: () => void openRuns(record),
+        },
+      ],
+    }),
   ]
 
   const runColumns: TableProps<AsyncTaskRun>['columns'] = [
@@ -187,7 +208,11 @@ export default function AsyncPage() {
     <PageContainer
       title="异步任务"
       description="异步任务列表，支持启停、查看运行记录，以及标记陈旧运行与清理历史运行记录，数据来自 /v1/demo/async-tasks"
-      extra={<Button onClick={load}>刷新</Button>}
+      extra={
+        <Tooltip title="刷新">
+          <Button icon={<ReloadOutlined />} aria-label="刷新" onClick={load} />
+        </Tooltip>
+      }
       summary={
         <StatRow>
           <StatCard label="任务总数" value={total.toLocaleString()} hint="当前分页接口返回总条数" />
@@ -198,7 +223,7 @@ export default function AsyncPage() {
       <Table<AsyncTask>
         rowKey="id"
         tableLayout="fixed"
-        scroll={{ x: 760 }}
+        scroll={tableScrollX(columns)}
         columns={columns}
         dataSource={data}
         loading={loading}

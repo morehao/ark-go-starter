@@ -6,17 +6,26 @@ import {
   Form,
   Input,
   Modal,
-  Popconfirm,
   Select,
   Space,
   Spin,
   Table,
   Tag,
+  Tooltip,
   Typography,
   App,
   type DescriptionsProps,
   type TableProps,
 } from 'antd'
+import {
+  DeleteOutlined,
+  EditOutlined,
+  PlusOutlined,
+  ReloadOutlined,
+  SafetyCertificateOutlined,
+  UnorderedListOutlined,
+} from '@ant-design/icons'
+import { StatusSwitch, actionColumn, tableScrollX } from '@morehao/ark-iam-react'
 import { PageContainer, tokens, StatCard, StatRow } from '@ark-go-starter/ui'
 import {
   checkDictTypeIntegrity,
@@ -117,14 +126,19 @@ export default function DictsPage() {
     load()
   }, [load])
 
-  const toggleStatus = async (record: DictType) => {
-    const next = record.status === 'enabled' ? 'disabled' : 'enabled'
+  /**
+   * 状态开关回调：由 `StatusSwitch` 在确认框点「确定」后触发，`nextEnabled` 是目标 on 态。
+   * 成功后重新拉取列表（状态列文案随之翻转）；失败时**必须抛出**——StatusSwitch 内部捕获后
+   * 不更新受控 checked，开关自动回退到原值，同时抑制它自带的成功提示。
+   */
+  const handleStatusChange = async (record: DictType, nextEnabled: boolean) => {
     try {
-      await updateDictTypeStatus(record.id, next)
-      message.success('状态已更新')
-      load()
+      await updateDictTypeStatus(record.id, nextEnabled ? 'enabled' : 'disabled')
+      // 等列表刷新完成再返回，开关翻转与成功提示的先后顺序才稳定
+      await load()
     } catch (e) {
       message.error(localizeError(e, '状态更新失败'))
+      throw e
     }
   }
 
@@ -224,12 +238,28 @@ export default function DictsPage() {
   const columns: TableProps<DictType>['columns'] = [
     { title: '编码', dataIndex: 'code', key: 'code', width: 160, ellipsis: true },
     { title: '名称', dataIndex: 'name', key: 'name', width: 160, ellipsis: true },
+    // 可切换状态列走 StatusSwitch（双向确认 + 受控回滚，见 DESIGN §7.2/§8），
+    // 操作列因此不再放「启用/禁用」按钮。
     {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
       width: 100,
-      render: (s: string) => <StatusTag status={s} />,
+      render: (_: string, record) => (
+        <StatusSwitch
+          checked={record.status === 'enabled'}
+          checkedChildren="启用"
+          unCheckedChildren="禁用"
+          confirmTitle={record.status === 'enabled' ? '禁用该字典类型？' : '启用该字典类型？'}
+          confirmContent={
+            record.status === 'enabled'
+              ? '禁用后该字典类型及其字典项在业务下拉中不再可选，已引用的历史数据不受影响。'
+              : '启用后该字典类型及其字典项将重新在业务下拉中可选。'
+          }
+          okText={record.status === 'enabled' ? '确认禁用' : '确认启用'}
+          onConfirmChange={(next) => handleStatusChange(record, next)}
+        />
+      ),
     },
     { title: '说明', dataIndex: 'description', key: 'description', width: 200, ellipsis: true },
     {
@@ -239,35 +269,40 @@ export default function DictsPage() {
       width: 190,
       render: (v: number) => fmtTime(v),
     },
-    {
-      title: '操作',
-      key: 'action',
-      width: 380,
-      render: (_, record) => (
-        <Space size="middle">
-          <Button type="link" size="small" onClick={() => openItems(record)}>
-            查看项
-          </Button>
-          <Button type="link" size="small" onClick={() => openEdit(record)}>
-            编辑
-          </Button>
-          <Button type="link" size="small" onClick={() => openIntegrity(record)}>
-            完整性检查
-          </Button>
-          <Button type="link" size="small" onClick={() => toggleStatus(record)}>
-            {record.status === 'enabled' ? '禁用' : '启用'}
-          </Button>
-          <Popconfirm
-            title="确认删除该字典类型？"
-            onConfirm={() => handleDelete(record.id)}
-          >
-            <Button type="link" size="small" danger>
-              删除
-            </Button>
-          </Popconfirm>
-        </Space>
-      ),
-    },
+    // 操作列按 DESIGN §7.3：4 个操作超过 max=3，横排保留 2 个高频项，「完整性检查 / 删除」
+    // 收进「更多」下拉（菜单项纵向排列，避免行内按钮挤成一团）；「启用/禁用」已上移为状态列开关。
+    actionColumn<DictType>({
+      max: 3,
+      variant: 'icon',
+      actions: (record) => [
+        {
+          key: 'items',
+          label: '查看项',
+          icon: <UnorderedListOutlined />,
+          onClick: () => void openItems(record),
+        },
+        {
+          key: 'edit',
+          label: '编辑',
+          icon: <EditOutlined />,
+          onClick: () => openEdit(record),
+        },
+        {
+          key: 'integrity',
+          label: '完整性检查',
+          icon: <SafetyCertificateOutlined />,
+          onClick: () => void openIntegrity(record),
+        },
+        {
+          key: 'delete',
+          label: '删除',
+          danger: true,
+          icon: <DeleteOutlined />,
+          confirm: '确认删除该字典类型？',
+          onClick: () => void handleDelete(record.id),
+        },
+      ],
+    }),
   ]
 
   const itemColumns: TableProps<DictItem>['columns'] = [
@@ -333,8 +368,10 @@ export default function DictsPage() {
       description="字典类型分页列表，支持新建/编辑、查看字典项、完整性检查与启停删除，数据来自 /v1/demo/dict-types"
       extra={
         <Space>
-          <Button onClick={load}>刷新</Button>
-          <Button type="primary" onClick={openCreate}>
+          <Tooltip title="刷新">
+            <Button icon={<ReloadOutlined />} aria-label="刷新" onClick={load} />
+          </Tooltip>
+          <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
             新建字典类型
           </Button>
         </Space>
@@ -349,7 +386,7 @@ export default function DictsPage() {
       <Table<DictType>
         rowKey="id"
         tableLayout="fixed"
-        scroll={{ x: 1190 }}
+        scroll={tableScrollX(columns)}
         columns={columns}
         dataSource={data}
         loading={loading}
