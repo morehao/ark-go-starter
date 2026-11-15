@@ -83,7 +83,11 @@ func initComponents() error {
 	config.SetSetting(settingInstance)
 	glog.Infof(context.Background(), "[%s.initComponents] setting initialized", demo.AppName)
 
-	cronInstance, err := gcron.New(db, &config.Conf.Cron, distlock.NewRedisStorage(dbclient.RedisCli))
+	locker, err := distlock.NewRedis(dbclient.RedisCli)
+	if err != nil {
+		return fmt.Errorf("init distlock failed: %w", err)
+	}
+	cronInstance, err := gcron.New(db, &config.Conf.Cron, locker)
 	if err != nil {
 		return fmt.Errorf("init cron failed: %w", err)
 	}

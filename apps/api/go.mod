@@ -16,6 +16,7 @@ require (
 	github.com/elastic/elastic-transport-go/v8 v8.10.0 // indirect
 	github.com/elastic/go-elasticsearch/v8 v8.19.3 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.13 // indirect
+	github.com/gin-contrib/cors v1.7.2 // indirect
 	github.com/gin-contrib/sse v1.1.1 // indirect
 	github.com/go-chi/chi/v5 v5.5.0 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.9 // indirect
@@ -88,12 +89,12 @@ require (
 	go.uber.org/zap v1.27.1 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/arch v0.25.0 // indirect
-	golang.org/x/crypto v0.57.0 // indirect
+	golang.org/x/crypto v0.58.0 // indirect
 	golang.org/x/mod v0.41.0 // indirect
 	golang.org/x/net v0.60.0 // indirect
 	golang.org/x/oauth2 v0.38.0 // indirect
 	golang.org/x/sync v0.24.0 // indirect
-	golang.org/x/sys v0.48.0 // indirect
+	golang.org/x/sys v0.49.0 // indirect
 	golang.org/x/text v0.43.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
 	golang.org/x/tools v0.51.0 // indirect
@@ -116,7 +117,7 @@ require (
 	github.com/morehao/ark-iam/contract v0.1.0
 	github.com/morehao/ark-iam/pkg v0.4.2
 	github.com/morehao/ark-iam/sdk v0.6.0
-	github.com/morehao/golib v1.34.7
+	github.com/morehao/golib v1.36.2
 	github.com/stretchr/testify v1.12.1
 	github.com/swaggo/swag v1.16.6
 	gorm.io/gorm v1.31.2
