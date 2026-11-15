@@ -155,7 +155,7 @@ func initGolibComponents(t *testing.T) {
 
 	redisCfg := config.Conf.RedisConfig
 	locker, err := distlock.New(distlock.Config{
-		Driver: "redis",
+		Driver: distlock.DriverRedis,
 		Redis: &distlock.RedisConfig{
 			Service:  "demo-distlock-e2e",
 			Addr:     redisCfg.Addr,
