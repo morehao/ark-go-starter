@@ -15,7 +15,7 @@ const docTemplatedemo = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/async-runs/{id}": {
+        "/asyncTasks": {
             "get": {
                 "consumes": [
                     "application/json"
@@ -24,57 +24,32 @@ const docTemplatedemo = `{
                     "application/json"
                 ],
                 "tags": [
-                    "异步任务"
+                    "任务中心"
                 ],
-                "summary": "异步任务运行记录详情",
+                "summary": "任务分页列表",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "运行记录ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/gincontext.DtoRender"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/ginasync.runResponse"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/async-tasks": {
-            "get": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "异步任务"
-                ],
-                "summary": "异步任务分页列表",
-                "parameters": [
+                        "description": "任务类型",
+                        "name": "type",
+                        "in": "query"
+                    },
                     {
                         "type": "string",
                         "description": "状态",
                         "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "业务类型",
+                        "name": "biz_type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "业务 ID",
+                        "name": "biz_id",
                         "in": "query"
                     },
                     {
@@ -102,7 +77,7 @@ const docTemplatedemo = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/ginasync.taskListResponse"
+                                            "$ref": "#/definitions/ginasync.asyncTaskListResponse"
                                         }
                                     }
                                 }
@@ -112,7 +87,7 @@ const docTemplatedemo = `{
                 }
             }
         },
-        "/async-tasks/{type}": {
+        "/asyncTasks/-/stats": {
             "get": {
                 "consumes": [
                     "application/json"
@@ -121,14 +96,48 @@ const docTemplatedemo = `{
                     "application/json"
                 ],
                 "tags": [
-                    "异步任务"
+                    "任务中心"
                 ],
-                "summary": "异步任务详情",
+                "summary": "任务统计",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/gincontext.DtoRender"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/ginasync.statsResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/asyncTasks/{id}": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "任务中心"
+                ],
+                "summary": "任务详情",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "任务类型",
-                        "name": "type",
+                        "description": "任务 ID",
+                        "name": "id",
                         "in": "path",
                         "required": true
                     }
@@ -145,7 +154,7 @@ const docTemplatedemo = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/ginasync.taskResponse"
+                                            "$ref": "#/definitions/ginasync.asyncTaskResponse"
                                         }
                                     }
                                 }
@@ -155,7 +164,93 @@ const docTemplatedemo = `{
                 }
             }
         },
-        "/async-tasks/{type}/runs": {
+        "/asyncTasks/{id}/cancel": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "任务中心"
+                ],
+                "summary": "取消任务",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "任务 ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/gincontext.DtoRender"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/ginasync.cancelResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/asyncTasks/{id}/replay": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "任务中心"
+                ],
+                "summary": "重放任务",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "任务 ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/gincontext.DtoRender"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/ginasync.asyncTaskResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/asyncTasks/{id}/runs": {
             "get": {
                 "consumes": [
                     "application/json"
@@ -164,27 +259,33 @@ const docTemplatedemo = `{
                     "application/json"
                 ],
                 "tags": [
-                    "异步任务"
+                    "任务中心"
                 ],
-                "summary": "异步任务运行记录",
+                "summary": "任务尝试记录",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "任务类型",
-                        "name": "type",
+                        "description": "任务 ID",
+                        "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "队列",
-                        "name": "queue",
+                        "description": "状态",
+                        "name": "status",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "状态",
-                        "name": "status",
+                        "description": "失败分类",
+                        "name": "failure",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "重放轮次",
+                        "name": "generation",
                         "in": "query"
                     },
                     {
@@ -217,148 +318,6 @@ const docTemplatedemo = `{
                                     }
                                 }
                             ]
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "异步任务"
-                ],
-                "summary": "清理运行记录",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "任务类型",
-                        "name": "type",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "before unix 秒",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/ginasync.cleanupRunsRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/gincontext.DtoRender"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/ginasync.affectedResponse"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/async-tasks/{type}/runs/mark-stale": {
-            "post": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "异步任务"
-                ],
-                "summary": "标记陈旧运行记录",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "任务类型",
-                        "name": "type",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "cutoff 秒",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/ginasync.markStaleRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/gincontext.DtoRender"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/ginasync.affectedResponse"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/async-tasks/{type}/status": {
-            "patch": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "异步任务"
-                ],
-                "summary": "启停异步任务",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "任务类型",
-                        "name": "type",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "状态",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/ginasync.setStatusRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/gincontext.DtoRender"
                         }
                     }
                 }
@@ -13240,33 +13199,102 @@ const docTemplatedemo = `{
                 }
             }
         },
-        "ginasync.affectedResponse": {
+        "ginasync.asyncTaskListResponse": {
             "type": "object",
             "properties": {
-                "affected": {
+                "list": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ginasync.asyncTaskResponse"
+                    }
+                },
+                "total": {
                     "type": "integer"
                 }
             }
         },
-        "ginasync.cleanupRunsRequest": {
+        "ginasync.asyncTaskResponse": {
             "type": "object",
-            "required": [
-                "before_unix"
-            ],
             "properties": {
-                "before_unix": {
+                "attempt": {
                     "type": "integer"
+                },
+                "biz_id": {
+                    "type": "string"
+                },
+                "biz_type": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "integer"
+                },
+                "duration_ms": {
+                    "type": "integer"
+                },
+                "finished_at": {
+                    "type": "integer"
+                },
+                "generation": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "last_error": {
+                    "type": "string"
+                },
+                "lease_until": {
+                    "type": "integer"
+                },
+                "max_attempts": {
+                    "type": "integer"
+                },
+                "next_run_at": {
+                    "type": "integer"
+                },
+                "priority": {
+                    "type": "integer"
+                },
+                "request_id": {
+                    "type": "string"
+                },
+                "result": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "started_at": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "timeout_ms": {
+                    "type": "integer"
+                },
+                "trace_id": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "uniq_key": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "integer"
+                },
+                "worker_id": {
+                    "type": "string"
                 }
             }
         },
-        "ginasync.markStaleRequest": {
+        "ginasync.cancelResponse": {
             "type": "object",
-            "required": [
-                "cutoff_seconds"
-            ],
             "properties": {
-                "cutoff_seconds": {
-                    "type": "integer"
+                "canceled": {
+                    "type": "boolean"
                 }
             }
         },
@@ -13287,89 +13315,78 @@ const docTemplatedemo = `{
         "ginasync.runResponse": {
             "type": "object",
             "properties": {
+                "async_task_id": {
+                    "type": "string"
+                },
+                "attempt": {
+                    "type": "integer"
+                },
                 "created_at": {
                     "type": "integer"
                 },
                 "duration_ms": {
                     "type": "integer"
                 },
-                "end_at": {
+                "error": {
+                    "type": "string"
+                },
+                "failure": {
+                    "type": "string"
+                },
+                "finished_at": {
                     "type": "integer"
                 },
-                "error_msg": {
-                    "type": "string"
+                "generation": {
+                    "type": "integer"
                 },
                 "id": {
-                    "type": "string"
-                },
-                "max_retry": {
-                    "type": "integer"
-                },
-                "queue": {
                     "type": "string"
                 },
                 "request_id": {
                     "type": "string"
                 },
-                "retried": {
-                    "type": "integer"
-                },
-                "start_at": {
-                    "type": "integer"
-                },
-                "status": {
-                    "type": "string"
-                },
-                "task_type": {
-                    "type": "string"
-                }
-            }
-        },
-        "ginasync.setStatusRequest": {
-            "type": "object",
-            "required": [
-                "status"
-            ],
-            "properties": {
-                "status": {
-                    "description": "enabled/disabled",
-                    "type": "string"
-                }
-            }
-        },
-        "ginasync.taskListResponse": {
-            "type": "object",
-            "properties": {
-                "list": {
+                "result": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/ginasync.taskResponse"
+                        "type": "integer"
                     }
                 },
-                "total": {
+                "started_at": {
                     "type": "integer"
-                }
-            }
-        },
-        "ginasync.taskResponse": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "integer"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
                 },
                 "status": {
                     "type": "string"
                 },
-                "updated_at": {
+                "trace_id": {
+                    "type": "string"
+                },
+                "worker_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "ginasync.statsResponse": {
+            "type": "object",
+            "properties": {
+                "canceled": {
+                    "type": "integer"
+                },
+                "failed": {
+                    "type": "integer"
+                },
+                "pending": {
+                    "type": "integer"
+                },
+                "running": {
+                    "type": "integer"
+                },
+                "skipped": {
+                    "type": "integer"
+                },
+                "succeeded": {
+                    "type": "integer"
+                },
+                "total": {
                     "type": "integer"
                 }
             }

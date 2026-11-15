@@ -253,8 +253,9 @@ export interface CronTaskRunRec {
 
 export interface AsyncTaskRunRec {
   id: string
-  task_type: string
-  queue: string
+  async_task_id: string
+  generation: number
+  attempt: number
   status: string
 }
 
@@ -267,7 +268,7 @@ export interface CronTaskRec {
 
 export interface AsyncTaskRec {
   id: string
-  name: string
+  type: string
   status: string
 }
 
@@ -279,11 +280,11 @@ export async function listCronTasks(): Promise<{ list: CronTaskRec[]; total: num
   )
 }
 
-/** 异步任务分页列表（同上，只读）。 */
+/** 异步任务分页列表（任务中心：只读，取任务实例）。 */
 export async function listAsyncTasks(): Promise<{ list: AsyncTaskRec[]; total: number }> {
   return callOK<{ list: AsyncTaskRec[]; total: number }>(
     'GET',
-    '/v1/demo/async-tasks?page=1&page_size=100',
+    '/v1/demo/asyncTasks?page=1&page_size=100',
   )
 }
 
@@ -299,15 +300,15 @@ export async function listCronTaskRuns(
   )
 }
 
-/** 异步任务运行记录分页列表。 */
+/** 异步任务的尝试记录分页列表。 */
 export async function listAsyncTaskRuns(
-  type: string,
+  taskId: string,
   page = 1,
   pageSize = 100,
 ): Promise<{ list: AsyncTaskRunRec[]; total: number }> {
   return callOK<{ list: AsyncTaskRunRec[]; total: number }>(
     'GET',
-    `/v1/demo/async-tasks/${type}/runs?page=${page}&page_size=${pageSize}`,
+    `/v1/demo/asyncTasks/${taskId}/runs?page=${page}&page_size=${pageSize}`,
   )
 }
 

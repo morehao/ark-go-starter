@@ -38,8 +38,10 @@ import (
 	"github.com/morehao/ark-go-starter/pkg/testsetup"
 	"github.com/morehao/golib/dict"
 	"github.com/morehao/golib/distlock"
+	_ "github.com/morehao/golib/distlock/driver/redis" // 注册 "redis" driver（跨进程互斥）
 	"github.com/morehao/golib/gsetting"
-	"github.com/morehao/golib/task/gasync"
+	"github.com/morehao/golib/task/gasync/manager"
+	"github.com/morehao/golib/task/gasync/worker"
 	"github.com/morehao/golib/task/gcron"
 	"github.com/stretchr/testify/require"
 )
@@ -151,16 +153,27 @@ func initGolibComponents(t *testing.T) {
 	require.NoError(t, err, "init setting failed")
 	config.SetSetting(settingInstance)
 
-	locker, err := distlock.NewRedis(dbclient.RedisCli)
+	redisCfg := config.Conf.RedisConfig
+	locker, err := distlock.New(distlock.Config{
+		Driver: "redis",
+		Redis: &distlock.RedisConfig{
+			Service:  "demo-distlock-e2e",
+			Addr:     redisCfg.Addr,
+			Password: redisCfg.Password,
+			DB:       redisCfg.DB,
+		},
+	})
 	require.NoError(t, err, "init distlock failed")
-	cronInstance, err := gcron.New(db, &config.Conf.Cron, locker)
+	cronInstance, err := gcron.New(db, &config.Conf.Cron, gcron.WithLocker(locker))
 	require.NoError(t, err, "init cron failed")
 	config.SetCron(cronInstance)
 
-	asyncCfg := config.Conf.Async.ToGasync()
-	asyncInstance, err := gasync.NewServer(&asyncCfg, db)
-	require.NoError(t, err, "init async failed")
-	config.SetAsync(asyncInstance)
+	asyncManager, err := manager.New(&manager.Config{}, db)
+	require.NoError(t, err, "init async manager failed")
+	asyncWorker := worker.New(asyncManager.Source(), &worker.WorkerConfig{
+		Concurrency: config.Conf.Async.Concurrency,
+	})
+	config.SetAsync(asyncManager, asyncWorker)
 }
 
 // doJSON 发起 JSON 请求并解析统一响应；要求 HTTP 200。
@@ -356,11 +369,11 @@ func cronScheduler(t *testing.T) *gcron.Scheduler {
 	return instance
 }
 
-// asyncServer 返回当前服务实例使用的异步任务服务端。
-func asyncServer(t *testing.T) *gasync.Server {
+// asyncManager 返回当前服务实例使用的异步任务中心门面。
+func asyncManager(t *testing.T) *manager.Manager {
 	t.Helper()
-	instance := config.GetAsync()
-	require.NotNil(t, instance, "async instance is nil, initGolibComponents 未生效")
+	instance := config.GetAsyncManager()
+	require.NotNil(t, instance, "async manager is nil, initGolibComponents 未生效")
 	return instance
 }
 

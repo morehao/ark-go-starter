@@ -342,48 +342,85 @@ export interface CronTaskRunListResult {
 }
 
 // ============================ 异步任务 Async ============================
-// golib ginasync 路由，响应字段为 snake_case。
+// golib task/gasync 任务中心路由（ginasync），响应字段为 snake_case。
+// v1.36.3 起任务是有状态个体实例（有 ID），不再是「任务类型注册表」。
 
-/** 异步任务 */
+/** 异步任务（任务中心的一条任务实例） */
 export interface AsyncTask {
-  // 任务 ID
+  // 任务 ID（UUID）
   id: string
-  // 任务名称
-  name: string
-  // 描述
-  description: string
-  // 状态：enabled / disabled
+  // 任务类型
+  type: string
+  // 状态：pending / running / succeeded / failed / timeout / canceled / skipped
   status: string
+  // 优先级
+  priority: number
+  // 业务类型
+  biz_type: string
+  // 业务 ID
+  biz_id: string
+  // 幂等键（空串表示无）
+  uniq_key: string
+  // 重放轮次（从 1 开始）
+  generation: number
+  // 本轮已尝试次数
+  attempt: number
+  // 本轮最大尝试次数
+  max_attempts: number
+  // 单次执行超时（毫秒）
+  timeout_ms: number
+  // 最早可认领时间（unix 秒）
+  next_run_at: number
+  // 租约到期时间（unix 秒，可能为空）
+  lease_until?: number | null
+  // 持有租约的执行者
+  worker_id: string
+  // 本轮首次开始时间（unix 秒，可能为空）
+  started_at?: number | null
+  // 进入终态时间（unix 秒，可能为空）
+  finished_at?: number | null
+  // 累计耗时（毫秒）
+  duration_ms: number
+  // 最后一次错误
+  last_error: string
+  // 请求链路 ID
+  request_id: string
+  // TraceID
+  trace_id: string
   // 创建时间（unix 秒）
   created_at: number
   // 更新时间（unix 秒）
   updated_at: number
 }
 
-/** 异步任务运行记录 */
+/** 异步任务一次尝试记录 */
 export interface AsyncTaskRun {
-  // 运行记录 ID
+  // 尝试记录 ID
   id: string
-  // 任务类型
-  task_type: string
-  // 队列
-  queue: string
+  // 所属任务 ID
+  async_task_id: string
+  // 所属重放轮次
+  generation: number
+  // 本轮第几次尝试
+  attempt: number
   // 状态
   status: string
-  // 已重试次数
-  retried: number
-  // 最大重试次数
-  max_retry: number
+  // 失败分类
+  failure: string
+  // 执行该次尝试的执行者
+  worker_id: string
   // 开始时间（unix 秒）
-  start_at?: number | null
-  // 结束时间（unix 秒）
-  end_at?: number | null
-  // 耗时（毫秒）
+  started_at: number
+  // 结束时间（unix 秒，可能为空）
+  finished_at?: number | null
+  // 本次耗时（毫秒）
   duration_ms: number
-  // 错误信息
-  error_msg: string
+  // 本次错误
+  error: string
   // 请求链路 ID
   request_id: string
+  // TraceID
+  trace_id: string
   // 创建时间（unix 秒）
   created_at: number
 }
@@ -396,11 +433,35 @@ export interface AsyncTaskListResult {
   total: number
 }
 
-/** 异步任务运行记录分页结果 */
+/** 异步任务尝试记录分页结果 */
 export interface AsyncTaskRunListResult {
-  // 当前页运行记录
+  // 当前页尝试记录
   list: AsyncTaskRun[]
   // 总条数
+  total: number
+}
+
+/** 取消任务结果 */
+export interface AsyncCancelResult {
+  // 是否成功取消（已终态返回 false，幂等）
+  canceled: boolean
+}
+
+/** 任务统计 */
+export interface AsyncStatsResult {
+  // pending 数
+  pending: number
+  // running 数
+  running: number
+  // succeeded 数
+  succeeded: number
+  // failed 数
+  failed: number
+  // canceled 数
+  canceled: number
+  // skipped 数
+  skipped: number
+  // total 数
   total: number
 }
 

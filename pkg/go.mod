@@ -4,7 +4,7 @@ go 1.27.4
 
 require (
 	github.com/gin-gonic/gin v1.12.0
-	github.com/morehao/golib v1.36.2
+	github.com/morehao/golib v1.36.3
 	github.com/oapi-codegen/runtime v1.6.0
 	github.com/redis/go-redis/v9 v9.23.0
 	github.com/stretchr/testify v1.12.1
