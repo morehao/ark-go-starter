@@ -151,7 +151,9 @@ func initGolibComponents(t *testing.T) {
 	require.NoError(t, err, "init setting failed")
 	config.SetSetting(settingInstance)
 
-	cronInstance, err := gcron.New(db, &config.Conf.Cron, distlock.NewRedisStorage(dbclient.RedisCli))
+	locker, err := distlock.NewRedis(dbclient.RedisCli)
+	require.NoError(t, err, "init distlock failed")
+	cronInstance, err := gcron.New(db, &config.Conf.Cron, locker)
 	require.NoError(t, err, "init cron failed")
 	config.SetCron(cronInstance)
 
