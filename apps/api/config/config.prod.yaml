@@ -60,12 +60,10 @@ redis_config:
   read_timeout: 3s
   write_timeout: 3s
 
-# 异步任务（golib/gasync）配置：必须显式配置 redis_addr，否则启动 initComponents 时
-# gasync 会因 "redis addr is empty" fail-fast panic（生产配置曾遗漏此段）。
+# 异步任务（golib/task/gasync 任务中心）配置：执行 worker 并发度。
+# v1.36.3 起 gasync 改为 DB 认领模型，不再依赖 Redis 队列，故不再需要 redis_addr。
 async:
-  redis_addr: 127.0.0.1:6379   # 与 redis_config.addr 对齐
-  redis_password: 123456       # 与 redis_config.password 对齐
-  redis_db: 0
+  concurrency: 10              # 执行 worker 并发度（<=0 用默认 10）
 
 file_storage:
   driver: local

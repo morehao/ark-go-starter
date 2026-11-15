@@ -49,10 +49,10 @@ func registerGolibModules(groups *ginserver.RouterGroups) {
 		glog.Warnf(context.Background(), "[%s.registerGolibModules] cron instance is nil, skip gincron register", "router")
 	}
 
-	if instance := config.GetAsync(); instance != nil {
+	if instance := config.GetAsyncManager(); instance != nil {
 		ginasync.Register(v1RouterGroup, instance)
 	} else {
-		glog.Warnf(context.Background(), "[%s.registerGolibModules] async instance is nil, skip ginasync register", "router")
+		glog.Warnf(context.Background(), "[%s.registerGolibModules] async manager is nil, skip ginasync register", "router")
 	}
 }
 

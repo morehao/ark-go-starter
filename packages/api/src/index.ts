@@ -2,9 +2,10 @@ import axios, { type AxiosRequestConfig } from 'axios'
 import type {
   AffectedResult,
   ApiResponse,
+  AsyncCancelResult,
+  AsyncStatsResult,
   AsyncTask,
   AsyncTaskListResult,
-  AsyncTaskRun,
   AsyncTaskRunListResult,
   CronTask,
   CronTaskListResult,
@@ -387,70 +388,61 @@ export function cleanupCronTaskRuns(id: string, beforeUnix: number) {
   })
 }
 
-// ============================ 异步任务 Async ============================
+// ============================ 异步任务 Async（任务中心） ============================
+// golib task/gasync 任务中心（ginasync）：任务是有状态个体实例，资源式端点 /asyncTasks。
 
-/** 异步任务分页列表 GET /demo/async-tasks */
-export function getAsyncTasks(params: PageQuery & { status?: string } = {}) {
+/** 任务分页列表 GET /demo/asyncTasks */
+export function getAsyncTasks(
+  params: PageQuery & { type?: string; status?: string; biz_type?: string; biz_id?: string } = {},
+) {
   return request<AsyncTaskListResult>({
-    url: '/demo/async-tasks',
+    url: '/demo/asyncTasks',
     method: 'get',
     params: withPaging(params),
   })
 }
 
-/** 异步任务详情（按类型） GET /demo/async-tasks/{type} */
-export function getAsyncTask(type: string) {
+/** 任务详情 GET /demo/asyncTasks/{id} */
+export function getAsyncTask(id: string) {
   return request<AsyncTask>({
-    url: `/demo/async-tasks/${type}`,
+    url: `/demo/asyncTasks/${id}`,
     method: 'get',
   })
 }
 
-/** 启停异步任务 PATCH /demo/async-tasks/{type}/status */
-export function updateAsyncTaskStatus(type: string, status: string) {
-  return request<unknown>({
-    url: `/demo/async-tasks/${type}/status`,
-    method: 'patch',
-    data: { status } satisfies StatusUpdateReq,
-  })
-}
-
-/** 异步任务运行记录分页列表 GET /demo/async-tasks/{type}/runs */
-export function getAsyncTaskRuns(type: string, params: PageQuery & { queue?: string; status?: string } = {}) {
+/** 任务尝试记录分页列表 GET /demo/asyncTasks/{id}/runs */
+export function getAsyncTaskRuns(
+  id: string,
+  params: PageQuery & { status?: string; failure?: string; generation?: number } = {},
+) {
   return request<AsyncTaskRunListResult>({
-    url: `/demo/async-tasks/${type}/runs`,
+    url: `/demo/asyncTasks/${id}/runs`,
     method: 'get',
     params: withPaging(params),
   })
 }
 
-/** 异步任务运行记录详情 GET /demo/async-runs/{id} */
-export function getAsyncRun(id: string) {
-  return request<AsyncTaskRun>({
-    url: `/demo/async-runs/${id}`,
-    method: 'get',
-  })
-}
-
-/**
- * 标记某任务类型的陈旧 processing 运行记录为 failed POST /demo/async-tasks/{type}/runs/mark-stale。
- *
- * 契约（golib v1.34.1 ginasync）：body 为 `{ cutoff_seconds }`（必填且 > 0）。
- */
-export function markStaleAsyncTaskRuns(type: string, cutoffSeconds: number) {
-  return request<AffectedResult>({
-    url: `/demo/async-tasks/${type}/runs/mark-stale`,
+/** 取消任务 POST /demo/asyncTasks/{id}/cancel（仅 pending/running 可取消，终态幂等返回 false） */
+export function cancelAsyncTask(id: string) {
+  return request<AsyncCancelResult>({
+    url: `/demo/asyncTasks/${id}/cancel`,
     method: 'post',
-    data: { cutoff_seconds: cutoffSeconds } satisfies { cutoff_seconds: number },
   })
 }
 
-/** 清理某任务类型 before 之前的运行记录 DELETE /demo/async-tasks/{type}/runs（body `{ before_unix }`） */
-export function cleanupAsyncTaskRuns(type: string, beforeUnix: number) {
-  return request<AffectedResult>({
-    url: `/demo/async-tasks/${type}/runs`,
-    method: 'delete',
-    data: { before_unix: beforeUnix } satisfies { before_unix: number },
+/** 重放任务 POST /demo/asyncTasks/{id}/replay（仅终态可重放，非终态返回 409） */
+export function replayAsyncTask(id: string) {
+  return request<AsyncTask>({
+    url: `/demo/asyncTasks/${id}/replay`,
+    method: 'post',
+  })
+}
+
+/** 任务统计 GET /demo/asyncTasks/-/stats */
+export function getAsyncStats() {
+  return request<AsyncStatsResult>({
+    url: '/demo/asyncTasks/-/stats',
+    method: 'get',
   })
 }
 

@@ -93,9 +93,7 @@ cron:
   lock_ttl: 60s           # 分布式锁租期
 
 async:
-  redis_addr: 127.0.0.1:6379  # Redis 地址
-  redis_password: ""          # Redis 密码（与 redis_config 保持一致：本机 dev 无密码）
-  redis_db: 0                 # Redis 库号
+  concurrency: 10             # 执行 worker 并发度（<=0 用默认 10）
 
 # 可选接入 ark-iam（三态 mode）。默认 disabled：不初始化 IAM、不建表、不挂 /iam/* 路由，
 # 业务鉴权回落到固定 dev 身份（仅 dev）。

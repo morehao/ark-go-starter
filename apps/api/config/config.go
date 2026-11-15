@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/morehao/golib/dbaccess/dbgorm"
 	"github.com/morehao/golib/dbaccess/dbredis"
@@ -17,19 +16,21 @@ import (
 	"github.com/morehao/golib/gutil"
 	"github.com/morehao/golib/protocol/ghttp"
 	"github.com/morehao/golib/storage"
-	"github.com/morehao/golib/task/gasync"
+	"github.com/morehao/golib/task/gasync/manager"
+	"github.com/morehao/golib/task/gasync/worker"
 	"github.com/morehao/golib/task/gcron"
 )
 
 // Conf 是进程级配置单例，由 LoadConfig/InitConf 填充。
 var Conf *Config
 
-// 进程级组件实例，在启动期初始化一次，供路由注册使用。
+// 进程级组件实例，在启动期初始化一次，供路由注册与后台运行使用。
 var (
 	dictInstance    *dict.Dict        // 字典组件实例
 	settingInstance *gsetting.Setting // 设置组件实例
 	cronInstance    *gcron.Scheduler  // 定时任务调度器实例
-	asyncInstance   *gasync.Server    // 异步任务服务端实例
+	asyncManager    *manager.Manager  // 异步任务中心门面（提交/查询/统计，供 ginasync 挂管理面）
+	asyncWorker     *worker.Worker    // 异步任务执行运行时（消费任务中心里的任务）
 )
 
 // Config 是应用的全部配置项。
@@ -56,30 +57,13 @@ type InstallConfig struct {
 	BootstrapToken string `yaml:"bootstrapToken"` // 引导令牌（env BOOTSTRAP_TOKEN 优先）
 }
 
-// AsyncConfig 是异步任务（golib/gasync）的配置。
+// AsyncConfig 是异步任务（golib/task/gasync 任务中心）的本地配置。
 //
-// golib 的 gasync.Config 未声明 yaml tag，yaml.v3 默认按字段名小写（redisaddr）
-// 匹配，导致 config.yaml 里 snake_case 的 redis_addr 无法生效、启动时报
-// "gasync: redis addr is empty"。这里用带 yaml tag 的本地结构承接配置，
-// 再转换为 gasync.Config，既保持配置文件 snake_case 风格，又避免运行时踩坑。
+// v1.36.3 起 gasync 从「asynq + Redis 队列」模型整体替换为「DB 认领 + 租约 + 管理面/执行
+// 运行时」模型：任务落库（core_async_task*），执行侧从库认领，不再依赖 Redis 队列，因此这里
+// 不再有 redis_addr 等连接项。Concurrency 用于配置本地执行 worker 的并发度。
 type AsyncConfig struct {
-	RedisAddr     string        `yaml:"redis_addr"`     // Redis 地址
-	RedisPassword string        `yaml:"redis_password"` // Redis 密码
-	RedisDB       int           `yaml:"redis_db"`       // Redis 库号
-	Concurrency   int           `yaml:"concurrency"`    // 并发度（<=0 时用 gasync 默认）
-	Timeout       time.Duration `yaml:"timeout"`        // 任务超时（<=0 时用 gasync 默认）
-}
-
-// ToGasync 转换为 golib gasync.Config。
-func (c AsyncConfig) ToGasync() gasync.Config {
-	cfg := gasync.Config{
-		RedisAddr:     c.RedisAddr,
-		RedisPassword: c.RedisPassword,
-		RedisDB:       c.RedisDB,
-		Concurrency:   c.Concurrency,
-		Timeout:       c.Timeout,
-	}
-	return cfg
+	Concurrency int `yaml:"concurrency"` // 执行 worker 并发度（<=0 时用 worker 默认值 10）
 }
 
 // IAM 接入三态取值。Mode 为空时按旧 Enable 字段归一（Enable=true → ModeOP）。
@@ -201,11 +185,17 @@ func SetCron(instance *gcron.Scheduler) { cronInstance = instance }
 // GetCron 返回进程级定时任务调度器实例。
 func GetCron() *gcron.Scheduler { return cronInstance }
 
-// SetAsync 设置进程级异步任务服务端实例。
-func SetAsync(instance *gasync.Server) { asyncInstance = instance }
+// SetAsync 设置进程级异步任务中心门面 + 执行运行时实例。
+func SetAsync(mgr *manager.Manager, w *worker.Worker) {
+	asyncManager = mgr
+	asyncWorker = w
+}
 
-// GetAsync 返回进程级异步任务服务端实例。
-func GetAsync() *gasync.Server { return asyncInstance }
+// GetAsyncManager 返回进程级异步任务中心门面（供 ginasync 挂管理面）。
+func GetAsyncManager() *manager.Manager { return asyncManager }
+
+// GetAsyncWorker 返回进程级异步任务执行运行时（供 start/shutdown）。
+func GetAsyncWorker() *worker.Worker { return asyncWorker }
 
 // InitConf 初始化配置（运行时使用，自动查找配置文件）.
 func InitConf() {
