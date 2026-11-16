@@ -627,3 +627,68 @@ SELECT count(*) FROM "user" WHERE "user"."deleted_at" IS NULL AND "user"."id" = 
 - 新增：`apps/demo/config` 增加 `Cron`/`Async` 配置与组件实例存取，`apps/demo/cmd/init.go` 启动期初始化四个组件实例，`apps/demo/internal/router/router.go` 挂载四个路由模块。
 - **Makefile `swag` 目标补 `--parseDependencyLevel 2`**：组件路由的 `@Router` 注解位于 golib 依赖包内，默认的 `--parseDependency --parseInternal` 不会解析依赖包注解、会丢失全部组件路由；补该参数后 `make swag APP=demo` 可正确生成含 gindict/ginsetting/gincron/ginasync 的 swagger。
 - 文档：更新 [docs/agents/golib.md](agents/golib.md)（组件速查表四个模块标 ✅、版本示例改 v1.34.0）与 [docs/agents/api-conventions.md](agents/api-conventions.md)（补 golib 路由模块注册示例）。
+
+## 十二、v1.37.0 → v1.38.3 升级记录：glog 日志不再按天分目录 + gsetting 读缓存 / 分组列改名
+
+升级目标：`github.com/morehao/golib` v1.37.0 → **v1.38.3**（当前最新 tag）。`gocli` 不涉及。本次升级**含一处破坏性变更**（gsetting 分组列 `group_name` → `group`，需手工迁移 DB），另有 glog 日志路径的行为变更——本仓库 go build / 单测 / 非 workspace 构建均通过。
+
+> 说明：v1.34.0 → v1.37.0 的中间版本本记录未逐条归档，以本仓库实际起跳版本 v1.37.0 为基线。
+
+### 12.1 golib 侧变更（v1.37.0 → v1.38.3）
+
+| 变更 | 说明 |
+|------|------|
+| **glog 文件 writer 去掉「按天分目录」** | zap driver 内 `dailyRotateWriter` → `fileWriter`，日志路径由 `<Dir>/<YYYYMMDD>/<name><suffix>.log` 改为 `<Dir>/<name><suffix>.log`。滚动/清理统一交给 lumberjack（`MaxSize`/`MaxBackups`/`MaxAge`）。 |
+| **lumberjack 仅保证单进程内并发安全** | 多个进程写同一 `<Dir>/<FileName>` 时，滚动会互相 rename/覆盖导致**丢日志**；多实例必须每实例独立文件或独立 Dir（见 12.3）。 |
+| **gsetting 新增可选读缓存 `WithCache(cachePort, ttl)`** | 纯增量、向后兼容：`gsetting.New(db)` 现有签名不变；需要缓存时 `gsetting.New(db, gsetting.WithCache(c, time.Minute))` 即可（memory/redis 均可）。本仓库未启用。 |
+
+### 12.2 对 ark-go-starter 的影响
+
+- **仅调用 glog API 写日志的代码无需改动**：日志调用点（`glog.Infof`/`Errorf`/`Infow` …）全部保持原样，升级依赖即生效。
+- **无任何按旧路径找日志的外部系统**：仓库内无采集器 paths、无告警/巡检/备份脚本依赖日期目录、无 K8s 目录 mount、无可删除的空日期目录清理脚本（原本就没有）。日志落点由 `config/runtime_paths.go` 的 `APP_LOG_DIR` / 缺省 `.local/log` 决定，目录根不变，只是其下不再有日期子目录。
+- **测试里构造日志路径的已同步**：`apps/api/e2e/route_error_e2e_test.go` 的 `findLatestFullLog` 由 `<dir>/*/*_full.log` 改为 `<dir>/*_full.log`。
+
+### 12.3 多实例/多副本保护（行为变更配套）
+
+glog 去日期目录后，多副本共享同一日志目录会写同一个 `demo.log` 而丢日志。本仓库在 `config/runtime_paths.go` 增加**可选的每实例文件名后缀**：
+
+- 环境变量 `APP_LOG_INSTANCE`（缺省回退 `HOSTNAME`，K8s 下即 pod 名）；**二者都为空时不改文件名**，单实例默认行为不变。
+- 设置后每个 file writer 的文件名变为 `<name>-<instance><suffix>.log`（如 `demo-pod-a_full.log`），每实例独立文件，规避跨进程滚动丢日志。
+- 部署多副本时设置 `APP_LOG_INSTANCE`（或依赖 `HOSTNAME`）即可；无需多实例时不用管。
+
+### 12.4 本仓库适配点
+
+- 同步 `apps/api/go.mod`、`pkg/go.mod` 的 golib 版本行，及两个 `go.sum`、`go.work.sum`（golib v1.38.3 + 传递依赖 `golang.org/x/net v0.62.0`）。
+- `apps/api/config/runtime_paths.go`：新增 `EnvAppLogInstance` / `LogInstanceSuffix()` / `ApplyLogInstanceSuffix()`，并在 `applyRuntimePathOverrides` 中调用；新增 `runtime_paths_test.go` 覆盖。
+- `apps/api/e2e/route_error_e2e_test.go`：`findLatestFullLog` glob 去日期目录层。
+- 文档：更新 [docs/agents/golib.md](agents/golib.md) 版本示例为 v1.38.3。
+
+### 12.5 破坏性变更：gsetting 分组列 `group_name` → `group`（v1.38.3 起落地）
+
+v1.38.3 已包含该改名（此前仅在 main）；列与 Go 字段同步改：
+
+| 层 | 旧（≤ v1.38.2） | 新（v1.38.3） |
+|----|----|----|
+| Go 字段 | `SettingEntity.GroupName` / `SettingInfo.GroupName` | `SettingEntity.Group` / `SettingInfo.Group` |
+| SQL 列 | `group_name` | `group` |
+| 唯一索引 | `uk_group_key(group_name, key)` | `uk_group_key(group, key)` |
+
+**必须手工迁移旧库（重要）**：`Migrate` 走 `AutoMigrate`，GORM **不会**重命名列——直接升级只会新增一个 `group`（`DEFAULT 'default'`），旧数据仍留在 `group_name`，非 default 分组的配置会**静默读不到**，且 `uk_group_key` 仍建在 `group_name` 上、新的 `(group,key)` 唯一约束不生效。上线前先执行：
+
+```sql
+-- PostgreSQL（本项目目标库）
+ALTER TABLE core_setting RENAME COLUMN group_name TO "group";
+-- MySQL 8.0+
+ALTER TABLE core_setting RENAME COLUMN group_name TO `group`;
+```
+
+> e2e / 全新库无此问题：表由 gsetting 在空库上 `AutoMigrate` 直接建出 `group` 列。
+
+**保留字注意**：`group` 是三种方言的保留字，库内 SQL 经 `gormdao` 的 `clause.Column` 按方言自动引用，读写无需改；但裸 SQL / `SettingCond.OrderField` / `OrCondGroup.Query` 这类自由片段需自行加引号（PG/SQLite `"group"`、MySQL `` `group` ``）。
+
+### 12.6 本仓库对该改名的适配
+
+- 本仓库不定义 `core_setting` DDL，也无 `SettingInfo`/`GroupName` 引用；唯一直接引用旧列名的是 e2e 裸 SQL。
+- `apps/api/e2e/setting_e2e_test.go`（2 处）：`DELETE FROM core_setting WHERE group_name = ?` → `DELETE FROM core_setting WHERE "group" = ?`（PostgreSQL 保留字，按仓库既有裸 SQL 风格加双引号）。
+- 业务代码全部走 `gsetting` API（`Group` / `SettingCond.Group`），无感；对外 JSON 契约字段本就叫 `group`，不变。
+- **升级已有部署库时**：按 12.5 的 SQL 先做列改名再发布新二进制。

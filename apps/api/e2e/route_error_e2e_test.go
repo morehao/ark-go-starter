@@ -196,10 +196,11 @@ func e2eRepoRoot() string {
 	}
 }
 
-// findLatestFullLog 找到最近被写入的「全量」日志文件（<dir>/<YYYYMMDD>/<service>_full.log）。
+// findLatestFullLog 找到最近被写入的「全量」日志文件（<dir>/<service>_full.log）。
+// glog 升级后不再按天分目录，日志直接落在 <dir> 下。
 func findLatestFullLog(t *testing.T) string {
 	t.Helper()
-	matches, err := filepath.Glob(filepath.Join(e2eLogDir(), "*", "*_full.log"))
+	matches, err := filepath.Glob(filepath.Join(e2eLogDir(), "*_full.log"))
 	require.NoError(t, err)
 	require.NotEmpty(t, matches, "未找到访问日志文件（log.dir=%q），e2e 依赖真实 zap 文件日志", e2eLogDir())
 

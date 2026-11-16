@@ -52,7 +52,7 @@ func TestSettingFlowOverHTTP(t *testing.T) {
 	tag := uniqueTag()
 	group := tag + "-setting-group"
 	key := "e2e.setting.key"
-	t.Cleanup(func() { dbExec(t, `DELETE FROM core_setting WHERE group_name = ?`, group) })
+	t.Cleanup(func() { dbExec(t, `DELETE FROM core_setting WHERE "group" = ?`, group) })
 
 	// 1) 创建（json 值类型）。
 	createResp := doJSON(t, baseURL, http.MethodPost, "/v1/demo/settings", nil, map[string]any{
@@ -144,7 +144,7 @@ func TestSettingNegativeOverHTTP(t *testing.T) {
 
 	tag := uniqueTag()
 	group := tag + "-setting-neg"
-	t.Cleanup(func() { dbExec(t, `DELETE FROM core_setting WHERE group_name = ?`, group) })
+	t.Cleanup(func() { dbExec(t, `DELETE FROM core_setting WHERE "group" = ?`, group) })
 
 	t.Run("unsupported_value_type_rejected", func(t *testing.T) {
 		resp := doError(t, baseURL, http.MethodPost, "/v1/demo/settings", nil, map[string]any{
