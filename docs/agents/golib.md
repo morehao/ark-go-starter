@@ -2,7 +2,7 @@
 
 > 上级入口：[AGENTS.md](../../AGENTS.md)　·　文档中心：[docs/agents/README.md](./README.md)
 
-本项目的通用基础能力（日志、DB 客户端、错误码、上下文、路由分组等）统一复用 [`github.com/morehao/golib`](https://github.com/morehao/golib)，**写新功能前先查本页，能复用的不要自己造轮子**。当前版本以 `pkg/go.mod` 中声明为准（现为 `v1.34.2`）。
+本项目的通用基础能力（日志、DB 客户端、错误码、上下文、路由分组等）统一复用 [`github.com/morehao/golib`](https://github.com/morehao/golib)，**写新功能前先查本页，能复用的不要自己造轮子**。当前版本以 `pkg/go.mod` 中声明为准（现为 `v1.38.3`）。
 
 破坏性变更与升级记录见 [docs/golib-变动汇总.md](../golib-变动汇总.md)（升级 golib 版本时必读，并追加记录）。
 
@@ -33,7 +33,7 @@
 | `dbaccess/gormdao` | ✅ | 泛型 DAO（原 `genericdao`） | `gormdao.NewDao[T,L](table, name, getDB)`，见 [变动汇总](../golib-变动汇总.md) |
 | `dbaccess/dbredis` | ✅ | Redis 客户端 | |
 | `dbaccess/dbes` | ⬜ | Elasticsearch 客户端 | 本项目已移除 ES 集成（无 DDL、无健康检查项），需要时再引入 |
-| `glog` | ✅ | 日志（zap 默认 / slog 双驱动） | 驱动需 blank import `glog/driver/zap`；配置格式见变动汇总 |
+| `glog` | ✅ | 日志（zap 默认 / slog 双驱动） | 驱动需 blank import `glog/driver/zap`；配置格式见变动汇总；v1.38 起日志路径 `<Dir>/<name><suffix>.log`（不再按天分目录），多实例需 `APP_LOG_INSTANCE` 独立文件名 |
 | `gtrace/otel` | ✅ | OpenTelemetry 链路初始化 | OTLP gRPC 导出，`otlptracegrpc` 子包 |
 | `gerror` + `gconstant` | ✅ | 业务错误码封装 | 错误码 Map 已迁至顶层 `gconstant` |
 | `gutil` | ✅ | 常用工具函数（随机、字符串、时间、slice/map） | |
