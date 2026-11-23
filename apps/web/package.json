@@ -16,10 +16,10 @@
     "@ark-go-starter/ui": "workspace:*",
     "@morehao/ark-iam-react": "^0.3.5",
     "antd": "catalog:",
-    "js-sha256": "^1.0.0",
+    "js-sha256": "^1.1.0",
     "react": "catalog:",
     "react-dom": "catalog:",
-    "react-router-dom": "^7.18.5"
+    "react-router-dom": "^7.18.6"
   },
   "devDependencies": {
     "@ark-go-starter/tsconfig": "workspace:*",
