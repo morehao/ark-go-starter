@@ -119,7 +119,7 @@ require (
 	github.com/morehao/ark-iam/contract v0.1.0
 	github.com/morehao/ark-iam/pkg v0.4.4
 	github.com/morehao/ark-iam/sdk v0.6.2
-	github.com/morehao/golib v1.38.3
+	github.com/morehao/golib v1.38.4
 	github.com/stretchr/testify v1.12.1
 	github.com/swaggo/swag v1.16.6
 	gorm.io/gorm v1.31.2
