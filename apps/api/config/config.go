@@ -42,19 +42,9 @@ type Config struct {
 	RedisConfig dbredis.RedisConfig       `yaml:"redis_config"`
 	Client      Client                    `yaml:"client"`
 	FileStorage FileStorage               `yaml:"file_storage"`
-	Cron        gcron.Config              `yaml:"cron"`    // 定时任务配置
-	Async       AsyncConfig               `yaml:"async"`   // 异步任务配置
-	IAM         IAMConfig                 `yaml:"iam"`     // 内嵌 IAM 配置
-	Install     InstallConfig             `yaml:"install"` // 首次初始化引导配置（op）
-}
-
-// InstallConfig 是首次初始化引导（POST /iam/install/initialize）的配置。
-//
-// BootstrapToken 是该写接口的门禁令牌（等价于「创建平台管理员」的权限）。
-// 生效优先级：环境变量 BOOTSTRAP_TOKEN > 本配置项。仅用于 dev，生产必须用环境变量/密钥管理
-// 覆盖并移除；初始化完成后即可作废。见 docs/agents/quickstart.md。
-type InstallConfig struct {
-	BootstrapToken string `yaml:"bootstrapToken"` // 引导令牌（env BOOTSTRAP_TOKEN 优先）
+	Cron        gcron.Config              `yaml:"cron"`  // 定时任务配置
+	Async       AsyncConfig               `yaml:"async"` // 异步任务配置
+	IAM         IAMConfig                 `yaml:"iam"`   // IAM 接入配置（可选，disabled/rp 两态）
 }
 
 // AsyncConfig 是异步任务（golib/task/gasync 任务中心）的本地配置。
@@ -66,86 +56,43 @@ type AsyncConfig struct {
 	Concurrency int `yaml:"concurrency"` // 执行 worker 并发度（<=0 时用 worker 默认值 10）
 }
 
-// IAM 接入三态取值。Mode 为空时按旧 Enable 字段归一（Enable=true → ModeOP）。
+// IAM 接入两态取值。
 const (
 	ModeDisabled = "disabled" // 不接入：零副作用，不初始化 IAM、不建表、不挂 /iam/* 路由
-	ModeOP       = "op"       // 本进程内嵌 OIDC Provider：建库、挂 /iam/* 路由、签发/验签
 	ModeRP       = "rp"       // 对接外部 ark-iam：仅本地验签，不建库、不挂路由
 )
 
 // IAMConfig 是可选接入 ark-iam 的配置。
 //
-// 三态 mode（disabled 默认 / op 本进程内嵌 OP / rp 对接外部 ark-iam 仅本地验签）决定接入形态。
-// 兼容旧字段 Enable：mode 为空且 Enable=true 时按 op 处理，否则 disabled。
+// 两态 mode（disabled 默认 / rp 对接外部 ark-iam 仅本地验签）决定接入形态。
 // 均未接入（disabled）时零副作用：不初始化 IAM、不建表、不挂 /iam/* 路由，业务鉴权回落到
 // 固定 dev 身份（仅 dev 环境，生产禁用）。
 type IAMConfig struct {
-	Mode          string `yaml:"mode"`           // 接入形态：disabled（默认）| op | rp
-	Enable        bool   `yaml:"enable"`         // 旧二态开关（兼容）：mode 为空且为 true 时按 op
-	Prefix        string `yaml:"prefix"`         // IAM 挂载路由前缀，缺省 /iam
-	DSN           string `yaml:"dsn"`            // IAM 数据库 DSN，空则复用主库第一个 db_configs
-	RedisAddr     string `yaml:"redis_addr"`     // IAM Redis 地址，空则复用 redis_config
-	RedisPassword string `yaml:"redis_password"` // IAM Redis 密码，空则复用 redis_config
-	Issuer        string `yaml:"issuer"`         // OIDC issuer，op 空则按端口推导；rp 为外部 ark-iam 的 issuer
-	JWKSURL       string `yaml:"jwks_url"`       // rp 形态的 JWKS 端点，空则按 issuer 推导
-	Audience      string `yaml:"audience"`       // rp 形态需校验的 token aud（防其它应用 token 误接受）
-	SigningKey    string `yaml:"signing_key"`    // 签名私钥（PEM），非 dev 必填（op）
-	EncryptionKey string `yaml:"encryption_key"` // 加密密钥，非 dev 必填（op）
-	CookieSecure  bool   `yaml:"cookie_secure"`  // SSO 会话 cookie 的 Secure 标志，生产（HTTPS）必须 true（op）
-	// RedirectURIs 是内置控制台 platform_admin_web 的 OAuth 回调白名单（完整 URL，可多个），
-	// op 形态下写入该 client 的 redirect_uris（seed 时生效；已初始化的库需手动更新库或清库重建）。
-	// 留空则沿用 ark-iam 内置缺省（本地开发默认 http://localhost:4001/auth/callback）。
-	RedirectURIs []string `yaml:"redirect_uris"`
-	// PostLogoutRedirectURIs 是内置控制台 platform_admin_web 的**登出回跳白名单**（完整 URL，可多个），
-	// op 形态下写入该 client 的 post_logout_redirect_uris（seed 时生效；已初始化的库需手动更新库或清库重建）。
-	// OP 的 /oidc/end_session 对该参数做**精确匹配**，未命中会返回 invalid_request 而非跳回。
-	// 前端「退出登录」回跳地址（如 http://localhost:3000/）必须登记在此。
-	// 留空则沿用 ark-iam 内置缺省（本地开发默认 http://localhost:4001/login）。
-	PostLogoutRedirectURIs []string `yaml:"post_logout_redirect_uris"`
-	// FrontendURL 是前端应用基址（如 http://localhost:3000），op 形态下用于拼内嵌登录页地址
-	// `{frontend_url}{prefix}/login`。前后端分离部署时**必须**配置，否则登录页会被导向 OP
-	// 自身的 host（后端端口），而登录页 SPA 实际由前端提供，导致 /iam/login 404。
-	// 留空则回退用 issuer 的 host（同源部署场景）。
-	FrontendURL string `yaml:"frontend_url"`
+	Mode     string `yaml:"mode"`     // 接入形态：disabled（默认）| rp
+	Issuer   string `yaml:"issuer"`   // rp 形态：外部 ark-iam 的 issuer
+	JWKSURL  string `yaml:"jwks_url"` // rp 形态的 JWKS 端点，空则按 issuer 推导
+	Audience string `yaml:"audience"` // rp 形态需校验的 token aud（防其它应用 token 误接受）
 }
 
 // EffectiveMode 返回归一化（小写、去空白）后的接入形态。
 //
-// 规则：mode 非空 → 校验只接受 disabled/op/rp（非法值原样返回，由调用方经 Validate 报错）；
-// mode 为空且 Enable=true → op；否则 disabled。
+// 规则：mode 非空 → 原样（小写/去空白）返回（含非法值，由调用方经 Validate 报错）；
+// mode 为空 → disabled。
 func (c IAMConfig) EffectiveMode() string {
 	if mode := strings.ToLower(strings.TrimSpace(c.Mode)); mode != "" {
 		return mode
 	}
-	if c.Enable {
-		return ModeOP
-	}
 	return ModeDisabled
 }
 
-// Validate 校验接入形态是否合法（仅接受 disabled/op/rp）。disabled 恒合法。
+// Validate 校验接入形态是否合法（仅接受 disabled/rp）。disabled 恒合法；op 已下线。
 func (c IAMConfig) Validate() error {
 	switch c.EffectiveMode() {
-	case ModeDisabled, ModeOP, ModeRP:
+	case ModeDisabled, ModeRP:
 		return nil
 	default:
-		return fmt.Errorf("invalid iam.mode %q: must be one of %q|%q|%q", c.Mode, ModeDisabled, ModeOP, ModeRP)
+		return fmt.Errorf("invalid iam.mode %q: op 已下线，请使用 disabled 或 rp", c.Mode)
 	}
-}
-
-// GetPrefix 返回归一化后的 IAM 路由前缀（保证以 "/" 开头且不以 "/" 结尾）。
-func (c IAMConfig) GetPrefix() string {
-	prefix := c.Prefix
-	if prefix == "" {
-		return "/iam"
-	}
-	if prefix[0] != '/' {
-		prefix = "/" + prefix
-	}
-	for len(prefix) > 1 && prefix[len(prefix)-1] == '/' {
-		prefix = prefix[:len(prefix)-1]
-	}
-	return prefix
 }
 
 // Server 是 HTTP 服务配置。

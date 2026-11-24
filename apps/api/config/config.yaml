@@ -95,50 +95,14 @@ cron:
 async:
   concurrency: 10             # 执行 worker 并发度（<=0 用默认 10）
 
-# 可选接入 ark-iam（三态 mode）。默认 disabled：不初始化 IAM、不建表、不挂 /iam/* 路由，
+# 可选接入 ark-iam（两态 mode）。默认 disabled：不初始化 IAM、不建表、不挂 /iam/* 路由，
 # 业务鉴权回落到固定 dev 身份（仅 dev）。
 #   mode: disabled  不接入（默认，零副作用）
-#   mode: op        本进程内嵌 OIDC Provider：建库、挂 /iam/*、签发/验签
-#   mode: rp        对接外部 ark-iam：仅本地验签（读 jwks_url/audience），不建库、不挂路由
-# 兼容旧开关：mode 留空且 enable: true 时按 op 处理（enable 已废弃，建议改用 mode）。
+#   mode: rp        对接外部 ark-iam（OIDC 本地验签，读 issuer/jwks_url/audience），不建库、不挂路由
+# 说明：内嵌 OP（mode: op）已下线；需本地自举 IAM 请使用 ark-iam 仓库（github.com/morehao/ark-iam）。
 iam:
-  mode: op                    # 接入形态：disabled（默认）| op | rp
-  enable: false               # 旧二态开关（兼容）：mode 为空且为 true 时按 op
-  prefix: /iam                # IAM 挂载路由前缀（op 须与前端 basePath 一致）
-  dsn: ""                     # IAM 数据库 DSN（op），空则复用 db_configs 第一个库
-  redis_addr: ""              # IAM Redis 地址（op），空则复用 redis_config
-  redis_password: ""          # IAM Redis 密码（op），空则复用 redis_config
-  # OIDC issuer：op 空则按「后端端口」推导成 http://localhost:8099/iam/oidc，会导致登录时
-  # 浏览器被导航到后端端口（8099）的 /iam/login（noRoute），绕不过前端 vite 的 GET bypass，
-  # 登录页渲染不出来。这里显式指向前端 origin(:3000)，让登录页 / SSO / discovery 全部同源到
-  # localhost:3000（经 vite 的 /iam 代理转发到后端）。rp 形态则为外部 ark-iam 的 issuer。
-  issuer: "http://localhost:3000/iam/oidc"
-  jwks_url: ""                # rp 形态的 JWKS 端点，空则按 issuer 推导
-  audience: ""                # rp 形态需校验的 token aud
-  signing_key: ""             # 签名私钥 PEM（op），非 dev 必填
-  encryption_key: ""          # 加密密钥（op），非 dev 必填
-  cookie_secure: false        # SSO cookie Secure（op），生产（HTTPS）必须 true
-  # 内置控制台 platform_admin_web 的 OAuth 回调白名单（完整 URL，可多个）。
-  # 留空则用 ark-iam 内置缺省（仅 http://localhost:4001/auth/callback）。vite 端口被占会自动退到 3001，
-  # 故这里显式列出 3000/3001，避免「redirect_uri is missing in the client configuration」。
-  redirect_uris:
-    - "http://localhost:3000/auth/callback"
-    - "http://localhost:3001/auth/callback"
-    - "http://localhost:4001/auth/callback"
-  # 登出回跳白名单（前端「退出登录」经 /oidc/end_session 回跳，OP 精确匹配）：
-  # 前端登出后跳回首页，AuthGuard 判定未登录 → 自动 signinRedirect 回登录页。
-  # 必须与前端 postLogoutRedirectPath（本模板用 '/'）拼出的完整地址逐字符一致。
-  post_logout_redirect_uris:
-    - "http://localhost:3000/"
-    - "http://localhost:3001/"
-    - "http://localhost:4001/login"
-  # 前端应用基址：op 下用于拼内嵌登录页 `{frontend_url}/iam/login`。
-  # 前后端分离部署（后端 8099、前端 3000）必须配置，否则登录页会被导向 8099 而 404。
-  frontend_url: "http://localhost:3000"
-
-# 首次初始化引导（/iam/install/initialize）相关配置。
-# 该令牌等价于「创建平台管理员」的权限：**仅用于 dev**，生产必须改用环境变量
-# BOOTSTRAP_TOKEN 或密钥管理覆盖，且初始化完成后移除。env BOOTSTRAP_TOKEN 优先于本项。
-# make quickstart 会把它作为 X-Bootstrap-Token 自动初始化；手跑时也可 `BOOTSTRAP_TOKEN=xxx make run`。
-install:
-  bootstrapToken: "dev-bootstrap-token"
+  mode: disabled              # 接入形态：disabled（默认，零副作用）| rp（对接外部 ark-iam 本地验签）
+  # rp 形态：外部 ark-iam 的 issuer（必填，用于校验 token 的 iss）。
+  issuer: ""                  # 例：https://iam.example.com/oidc
+  jwks_url: ""                # rp 形态的 JWKS 端点，空则由 issuer 走 discovery 推导
+  audience: ""                # rp 形态本应用 client_id，用于 aud 校验（建议必填，防其它应用 token 被误接受）

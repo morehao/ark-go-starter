@@ -101,24 +101,37 @@ COMMENT ON COLUMN user_login_log.deleted_by IS '删除人ID';
 -- EnsureLocalUser 映射出 local_uid，再写入 gcontext.KeyUserID 供业务侧按 uint 读取。
 --
 -- local_uid 由独立序列 biz_iam_user_map_local_uid_seq 原子分配，避免并发首次登录撞号；
--- 写入走 INSERT ... ON CONFLICT (iam_user_id) DO UPDATE ... RETURNING local_uid，
+-- 写入走 INSERT ... ON CONFLICT (issuer, iam_user_id) DO UPDATE ... RETURNING local_uid，
 -- 已存在则原样返回其既有 local_uid（幂等）。
+--
+-- 身份映射键 (issuer, iam_user_id) 联合唯一：不同 IDP（issuer）下相同 sub 各自独立映射，
+-- 避免跨 IDP 串号。issuer 取装配层 cfg.issuer（中间件已用它精确校验 token 的 iss）。
+--
+-- 老数据迁移：已有数据的 issuer 需先回填为当前 iam.issuer，再加复合主键（模板阶段数据量小，
+-- 手动执行，勿自动跑）。示例（手动、按实际 issuer 替换）：
+--   ALTER TABLE biz_iam_user_map ADD COLUMN IF NOT EXISTS issuer VARCHAR(255) NOT NULL DEFAULT '';
+--   UPDATE biz_iam_user_map SET issuer = '<当前 iam.issuer>' WHERE issuer = '';
+--   ALTER TABLE biz_iam_user_map DROP CONSTRAINT IF EXISTS biz_iam_user_map_pkey;
+--   ALTER TABLE biz_iam_user_map ADD PRIMARY KEY (issuer, iam_user_id);
 -- ----------------------------------------------------------------------------
 CREATE SEQUENCE IF NOT EXISTS biz_iam_user_map_local_uid_seq
     AS BIGINT START WITH 1 INCREMENT BY 1;         -- local_uid 分配序列（从 1 起）
 
 CREATE TABLE IF NOT EXISTS biz_iam_user_map
 (
-    iam_user_id VARCHAR(128) PRIMARY KEY,                                        -- IAM 侧字符串用户ID（rp.Identity.UserID）
+    issuer      VARCHAR(255) NOT NULL DEFAULT '',                                -- IAM 侧 issuer（多 IDP 区分）
+    iam_user_id VARCHAR(128) NOT NULL,                                           -- IAM 侧字符串用户ID（rp.Identity.UserID）
     local_uid   BIGINT       NOT NULL DEFAULT nextval('biz_iam_user_map_local_uid_seq'), -- 本地BIGINT用户ID（映射目标）
     person_id   VARCHAR(128) NOT NULL DEFAULT '',                                -- IAM 侧自然人ID（rp.Identity.PersonID）
     created_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),                             -- 创建时间
-    updated_at  TIMESTAMPTZ  NOT NULL DEFAULT now()                              -- 更新时间
+    updated_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),                             -- 更新时间
+    PRIMARY KEY (issuer, iam_user_id)
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS uk_biz_iam_user_map_local_uid ON biz_iam_user_map (local_uid);
 
 COMMENT ON TABLE biz_iam_user_map IS 'IAM身份映射表（IAM string 用户ID ↔ 本地 BIGINT 用户ID）';
+COMMENT ON COLUMN biz_iam_user_map.issuer IS 'IAM 侧 issuer（多 IDP 区分）';
 COMMENT ON COLUMN biz_iam_user_map.iam_user_id IS 'IAM 侧字符串用户ID（rp.Identity.UserID）';
 COMMENT ON COLUMN biz_iam_user_map.local_uid IS '本地BIGINT用户ID（映射目标）';
 COMMENT ON COLUMN biz_iam_user_map.person_id IS 'IAM 侧自然人ID（rp.Identity.PersonID）';

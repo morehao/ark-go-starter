@@ -72,13 +72,12 @@ func Routers(engine *gin.Engine) io.Closer {
 
 // buildAuthMiddleware 按 iam.mode 装配业务路由的鉴权中间件。
 //
-//   - op / rp：返回 OIDC 本地验签中间件（白名单 health/docs；/iam/* 不在业务分组内天然放行）。
-//     rp 形态额外校验 token 的 aud（配置了 iam.audience 时），防止接受其它应用的 token；
-//     op 形态为同进程内嵌，无需 aud 校验。
+//   - rp：返回 OIDC 本地验签中间件（白名单 health/docs；/iam/* 不在业务分组内天然放行）。
+//     额外校验 token 的 aud（配置了 iam.audience 时），防止接受其它应用的 token。
 //   - disabled：dev 返回演示身份中间件；非 dev 返回 nil（无身份，业务按未登录处理）。
 func buildAuthMiddleware() gin.HandlerFunc {
 	mode := config.Conf.IAM.EffectiveMode()
-	if mode == config.ModeOP || mode == config.ModeRP {
+	if mode == config.ModeRP {
 		rt := CurrentIAM()
 		if rt == nil {
 			// SetupIAM 已成功但运行时缺失属装配错误，fail-closed：拒绝而非放行。
@@ -91,8 +90,8 @@ func buildAuthMiddleware() gin.HandlerFunc {
 			middleware.WithLocalUserMapper(iamlink.NewSvc()),
 			middleware.WithOIDCSkipPaths("/"+AppName+"/docs", "/v1/"+AppName+"/health"),
 		}
-		// rp 形态才需 aud 校验（内嵌 op 同进程无需）；aud 为空则不追加。
-		if mode == config.ModeRP && config.Conf.IAM.Audience != "" {
+		// rp 形态需 aud 校验；aud 为空则不追加。
+		if config.Conf.IAM.Audience != "" {
 			opts = append(opts, middleware.WithOIDCAudiences(config.Conf.IAM.Audience))
 		}
 		return middleware.OIDCAuth(opts...)
