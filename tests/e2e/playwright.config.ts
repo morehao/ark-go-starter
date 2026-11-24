@@ -24,8 +24,9 @@ export default defineConfig({
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  // 共享真实后端数据库，CI 串行执行避免数据竞争；本地可按需调高。
-  workers: process.env.CI ? 1 : undefined,
+  // 共享真实后端数据库：多个 spec 会互相干扰（如 async 取消 pending 任务会改变 runs 计数、
+  // settings 新建/删除会改列表分页），故本地与 CI 一律单 worker 串行执行，避免数据竞争导致 flaky。
+  workers: 1,
   timeout: 30_000,
   expect: { timeout: 10_000 },
   reporter: process.env.CI
