@@ -8,11 +8,10 @@
 # 设计要点（为什么这样采）：
 #   1. 只记录 (code, message, httpStatus) 三元组；**不记录 requestID / data / 时间戳**，
 #      这些每次都会变，不属契约。三元组才是迁移前后必须等价的用户可见语义。
-#   2. 采集时用一份「派生配置」：iam.mode 由 op 改为 disabled、env 保持 dev。
+#   2. 采集时用一份「派生配置」：iam.mode 由 op/rp 改为 disabled、env 保持 dev。
 #      这样业务路由走 dev 演示身份中间件（无需 token），把 IAM 鉴权这条正交维度剥离，
 #      golden 专注「路由 → 中间件 → controller → service」的接口契约（迁移真正会动的东西）。
-#      （生产配置 iam.mode=op 时这批路由无 token 统一 401，属鉴权层，不在 A4 契约范围内；
-#        详见 .dsh/docs/notes/2026-11-12-a4-golden-baseline-notes.md。）
+#      （op/rp 形态下这批路由无 token 统一 401，属鉴权层，不在 A4 契约范围内；op 已下线，rp 需外部环境。）
 #   3. 端口用 8098（避开可能已被占用的 8099 开发实例），日志/存储目录落到被 .gitignore 忽略的
 #      .dsh/tmp，不污染仓库、不写入仓内 .local/log、.local/storage。
 #   4. 造数（POST products）用随机唯一名，采集后立即清理，保证多次运行库不变、输出不变。
@@ -51,11 +50,14 @@ done
 
 mkdir -p "$TMP_DIR" "$GOCACHE_DIR" "$LOG_DIR" "$STORAGE_DIR"
 
-# ---- 派生配置（iam.mode: op -> disabled；端口/目录指到 tmp）-----------------------
+# ---- 派生配置（iam.mode: op/rp -> disabled；端口/目录指到 tmp）-----------------------
 # sed 匹配按 apps/api/config/config.yaml 的实际当前内容：
 #   - 三个 log writer 的文件目录：`dir: ../../../log`
 #   - 存储目录：`base_dir: ../../../.local/storage`（P2b 已从 ../../../storage 迁到 .local/storage）
+# 说明：op 形态已下线，本仓可能保持 op 或改为 rp；采集一律强制落到 disabled（免登录 + dev 演示身份），
+#       把鉴权这条正交维度剥离出 A4 契约（无 token 时 op/rp 都会 401，不属接口契约）。
 sed -e 's/^  mode: op/  mode: disabled/' \
+    -e 's/^  mode: rp/  mode: disabled/' \
     -e "s#^  port: 8099#  port: ${PORT}#" \
     -e "s#dir: ../../../log#dir: ${LOG_DIR}#" \
     -e "s#base_dir: ../../../.local/storage#base_dir: ${STORAGE_DIR}#" \
