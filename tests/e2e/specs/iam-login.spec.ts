@@ -1,29 +1,23 @@
 import { test, expect } from '../fixtures/base'
 
 /**
- * 内嵌 IAM（形态 2）浏览器级端到端：真浏览器走内嵌登录页 → 账密登录 → 回跳 → 访问业务接口。
+ * 内嵌 IAM（原形态 op）浏览器级端到端——**已随 op 形态下线整体跳过**。
  *
- * 与既有 OFF 免登录用例互斥：本组用例**只在 IAM 开启时**有意义，默认跳过，
- * 需显式 `E2E_IAM=1` 且后端以 `iam.enable: true` 启动才运行。
+ * 该用例依赖本进程内嵌 OP 的产物：`/iam/login` 内嵌登录页、`/iam/config.json`、`/iam/install`
+ * 初始化管理员。op 已下线，本模板不再内嵌 IAM 服务端；rp 形态（对接外部 ark-iam，OIDC 本地验签）
+ * 需要**外部环境**（外部 OP + 已注册的 client + 测试账号），无法在仓库内自举，故整组 `describe.skip`。
  *
- * 前置（由运行方通过脚本/DB 准备，见 .dsh/docs/notes/2026-11-09-flow-test-report.md §9）：
+ * 保留文件（而非删除）以便未来搭建外部 rp 测试环境时按需恢复；如需恢复：移除 `.skip`，并让后端以
+ * `iam.mode: rp` 对接外部 OP、前端配 `VITE_OIDC_ISSUER` / `VITE_OIDC_CLIENT_ID`。
+ *
+ * 原前置（已失效）：
  *   1. 后端 enable=true 启动，且 `/iam/install/initialize` 已初始化管理员；
- *   2. 所用 OIDC 客户端（默认 platform_admin_web）的 redirect_uris 含 http://localhost:3000/auth/callback。
- *
- * 若 `/iam/config.json` 不可达（IAM 关闭）则整组自动跳过，避免污染 OFF 回归。
+ *   2. OIDC 客户端 redirect_uris 含 http://localhost:3000/auth/callback。
  */
-const IAM_ENABLED = process.env.E2E_IAM === '1'
-const ADMIN_USER = process.env.E2E_IAM_ADMIN_USER ?? 'admin'
-const ADMIN_PASS = process.env.E2E_IAM_ADMIN_PASS ?? 'Admin123456'
-
-test.describe('内嵌 IAM 登录（浏览器级）', () => {
-  test.skip(!IAM_ENABLED, '未设置 E2E_IAM=1（默认跳过，仅 IAM ON 时运行）')
-
-  test.beforeAll(async ({ request }) => {
-    // 双保险：确认后端确实挂载了 IAM（config.json 可达），否则跳过而非误判失败。
-    const resp = await request.get(`${process.env.E2E_API_BASE ?? 'http://localhost:8099'}/iam/config.json`)
-    expect(resp.ok(), '后端未挂载 /iam（请以 iam.enable=true 启动）').toBeTruthy()
-  })
+test.describe.skip('内嵌 IAM 登录（浏览器级）——op 已下线，rp 需外部环境', () => {
+  // 保留原凭据常量，便于未来恢复外部 rp 环境时直接使用（当前整组 skip，不会实际执行）。
+  const ADMIN_USER = process.env.E2E_IAM_ADMIN_USER ?? 'admin'
+  const ADMIN_PASS = process.env.E2E_IAM_ADMIN_PASS ?? 'Admin123456'
 
   test('未登录访问 → 跳内嵌登录页 → admin 登录 → 回跳业务页并拿到数据', async ({ page, request }) => {
     // 1. 未登录访问首页：AuthGuard 触发 signinRedirect，最终落到内嵌登录页 /iam/login。

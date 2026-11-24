@@ -217,11 +217,13 @@ func productPath(productID uint) string {
 const ensureMapDDL = `
 CREATE SEQUENCE IF NOT EXISTS biz_iam_user_map_local_uid_seq AS BIGINT START WITH 1 INCREMENT BY 1;
 CREATE TABLE IF NOT EXISTS biz_iam_user_map (
-    iam_user_id VARCHAR(128) PRIMARY KEY,
+    issuer      VARCHAR(255) NOT NULL DEFAULT '',
+    iam_user_id VARCHAR(128) NOT NULL,
     local_uid   BIGINT NOT NULL DEFAULT nextval('biz_iam_user_map_local_uid_seq'),
     person_id   VARCHAR(128) NOT NULL DEFAULT '',
     created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (issuer, iam_user_id)
 );
 CREATE UNIQUE INDEX IF NOT EXISTS uk_biz_iam_user_map_local_uid ON biz_iam_user_map (local_uid);
 `
@@ -236,16 +238,16 @@ func TestProductCRUDWithOIDCToken(t *testing.T) {
 	// 三个 IAM 身份 → 预先映射出各自 local_uid（与中间件同一 EnsureLocalUser）。
 	svc := iamlink.NewSvc()
 	ctx := context.Background()
-	creatorUID, err := svc.EnsureLocalUser(ctx, "itest-prod-creator", "itest-person-c")
+	creatorUID, err := svc.EnsureLocalUser(ctx, issuer.issuer, "itest-prod-creator", "itest-person-c")
 	require.NoError(t, err)
-	updaterUID, err := svc.EnsureLocalUser(ctx, "itest-prod-updater", "itest-person-u")
+	updaterUID, err := svc.EnsureLocalUser(ctx, issuer.issuer, "itest-prod-updater", "itest-person-u")
 	require.NoError(t, err)
-	deleterUID, err := svc.EnsureLocalUser(ctx, "itest-prod-deleter", "itest-person-d")
+	deleterUID, err := svc.EnsureLocalUser(ctx, issuer.issuer, "itest-prod-deleter", "itest-person-d")
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		db := dbclient.DemoDB(ctx)
-		db.Exec(`DELETE FROM biz_iam_user_map WHERE iam_user_id IN (?,?,?)`,
-			"itest-prod-creator", "itest-prod-updater", "itest-prod-deleter")
+		db.Exec(`DELETE FROM biz_iam_user_map WHERE issuer = ? AND iam_user_id IN (?,?,?)`,
+			issuer.issuer, "itest-prod-creator", "itest-prod-updater", "itest-prod-deleter")
 	})
 
 	creatorTok := issuer.sign(t, "itest-prod-creator", "itest-person-c")
@@ -316,7 +318,7 @@ func TestProductDeleteForgedOperatorIgnored(t *testing.T) {
 	productID := createProductWithHeaders(t, engine, bearer(tok))
 	t.Cleanup(func() { cleanupProduct(t, productID) })
 	t.Cleanup(func() {
-		dbclient.DemoDB(context.Background()).Exec(`DELETE FROM biz_iam_user_map WHERE iam_user_id = ?`, "itest-forge-user")
+		dbclient.DemoDB(context.Background()).Exec(`DELETE FROM biz_iam_user_map WHERE issuer = ? AND iam_user_id = ?`, issuer.issuer, "itest-forge-user")
 	})
 
 	del := doJSON(t, engine, http.MethodDelete, productPath(productID), bearer(tok), map[string]any{

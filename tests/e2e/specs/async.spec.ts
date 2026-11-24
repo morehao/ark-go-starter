@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures/base'
-import { listAsyncTaskRuns } from '../support/api'
+import { listAsyncTaskRuns, listAsyncTasks } from '../support/api'
 
 /**
  * 异步任务页 · 全流程（golib v1.36.3 任务中心模型 /asyncTasks）。
@@ -80,12 +80,20 @@ test.describe('异步任务 · 全流程', () => {
   })
 
   test('取消：pending 任务的取消按钮二次确认 → POST cancel 契约正确', async ({ page }) => {
-    await gotoAsync(page)
-    const firstRow = page.locator('.ant-table-tbody .ant-table-row').first()
-    await expect(firstRow).toBeVisible()
+    // 不依赖「第一行是 pending」：列表首条可能是终态（如历史 canceled）。定位一个「待执行」行。
+    const { list } = await listAsyncTasks()
+    const pendingTasks = list.filter((t) => t.status === 'pending' || t.status === 'running')
+    test.skip(pendingTasks.length === 0, '后端当前无 pending/running 任务，跳过取消用例')
 
-    const cancelBtn = firstRow.getByRole('button', { name: /取\s*消/ })
-    // 示例任务为 pending，取消按钮应可见
+    await gotoAsync(page)
+    // 找到状态为「待执行/执行中」的行，取其取消按钮。
+    const pendingRow = page
+      .locator('.ant-table-tbody .ant-table-row')
+      .filter({ hasText: /待执行|执行中/ })
+      .first()
+    await expect(pendingRow).toBeVisible()
+
+    const cancelBtn = pendingRow.getByRole('button', { name: /取\s*消/ })
     await expect(cancelBtn).toBeVisible()
     await cancelBtn.click()
 
@@ -103,10 +111,13 @@ test.describe('异步任务 · 全流程', () => {
   })
 
   test('尝试记录抽屉：runs 接口 total 与后端一致', async ({ page }) => {
-    const listBody = await gotoAsync(page)
-    const taskID = (listBody.list[0] as { id: string }).id
+    // 用直连接口拿 task 列表（避免依赖前端首次加载响应体的时序/结构），再进页面操作。
+    const { list } = await listAsyncTasks()
+    expect(list.length, '后端应存在异步任务实例').toBeGreaterThan(0)
+    const taskID = list[0].id
     const before = await listAsyncTaskRuns(taskID)
 
+    await gotoAsync(page)
     const firstRow = page.locator('.ant-table-tbody .ant-table-row').first()
     await expect(firstRow).toBeVisible()
     const [runsResp] = await Promise.all([

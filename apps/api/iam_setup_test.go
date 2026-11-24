@@ -13,12 +13,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// testIAMPrefix 是测试用 IAM 路由前缀。
-const testIAMPrefix = "/iam"
-
 // newEngineWithMode 以给定 iam.mode 装配一个只挂 IAM 的引擎（不初始化 DB/Redis）。
 //
-// 只用于验证 SetupIAM 的三态契约：disabled 零副作用不挂路由；非法 mode 报错。
+// 只用于验证 SetupIAM 的两态契约：disabled 零副作用不挂路由；非法 mode 报错。
 func newEngineWithMode(t *testing.T, mode string) *gin.Engine {
 	t.Helper()
 	prev := config.Conf
@@ -26,7 +23,7 @@ func newEngineWithMode(t *testing.T, mode string) *gin.Engine {
 
 	config.Conf = &config.Config{
 		Server: config.Server{Name: "demo", Port: "8099", Env: "dev"},
-		IAM:    config.IAMConfig{Mode: mode, Prefix: testIAMPrefix},
+		IAM:    config.IAMConfig{Mode: mode},
 	}
 
 	gin.SetMode(gin.TestMode)
@@ -62,19 +59,4 @@ func TestSetupIAMInvalidModeReturnsError(t *testing.T) {
 	require.Error(t, err, "非法 mode 应报错")
 	assert.Nil(t, closer, "非法 mode 不应返回 closer")
 	assert.Nil(t, demo.CurrentIAM(), "非法 mode 不应有 IAM 运行时")
-}
-
-// TestIAMConfigGetPrefix 验证前缀归一化（保证以 / 开头、不以 / 结尾）。
-func TestIAMConfigGetPrefix(t *testing.T) {
-	cases := map[string]string{
-		"":            testIAMPrefix,
-		testIAMPrefix: testIAMPrefix,
-		"iam":         testIAMPrefix,
-		"/iam/":       testIAMPrefix,
-		"/x/iam":      "/x/iam",
-	}
-	for in, want := range cases {
-		got := config.IAMConfig{Prefix: in}.GetPrefix()
-		assert.Equal(t, want, got, "prefix %q", in)
-	}
 }

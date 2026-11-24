@@ -227,11 +227,13 @@ func modelColumnType(field *schema.Field) string {
 	return typ
 }
 
-// parseDDL 解析建表脚本，返回表名 → 表定义。只认 CREATE TABLE 与 COMMENT ON COLUMN，
-// 忽略注释行、CREATE INDEX / CREATE SEQUENCE 等语句。
+// parseDDL 解析建表脚本，返回表名 → 表定义。只认 CREATE TABLE、COMMENT ON COLUMN
+// 与建表体内的表级 PRIMARY KEY 约束，忽略注释行、CREATE INDEX / CREATE SEQUENCE 等语句。
 func parseDDL(ddl string) map[string]*ddlTable {
 	tables := make(map[string]*ddlTable)
 	var current *ddlTable
+	// 表级 PRIMARY KEY (a, b) 记录「表名 → 主键列名」，建表结束后回填到各列。
+	tablePKCols := make(map[string][]string)
 
 	for raw := range strings.SplitSeq(ddl, "\n") {
 		line := strings.TrimSpace(raw)
@@ -246,18 +248,7 @@ func parseDDL(ddl string) map[string]*ddlTable {
 		}
 
 		if current != nil {
-			if strings.HasPrefix(line, ")") {
-				current = nil
-				continue
-			}
-			if strings.HasPrefix(line, "(") { // 建表语句左括号独占一行
-				continue
-			}
-			if constraintRE.MatchString(line) {
-				continue
-			}
-			name, column := parseColumn(line)
-			current.columns[name] = column
+			current, tablePKCols = handleCreateTableBodyLine(line, current, tables, tablePKCols)
 			continue
 		}
 
@@ -267,7 +258,72 @@ func parseDDL(ddl string) map[string]*ddlTable {
 			}
 		}
 	}
+
+	// 回填表级主键标记到对应列（与 model 的 primaryKey 标记对齐）。
+	for tableName, cols := range tablePKCols {
+		table := tables[tableName]
+		if table == nil {
+			continue
+		}
+		for _, col := range cols {
+			if column, ok := table.columns[col]; ok {
+				column.primaryKey = true
+			}
+		}
+	}
 	return tables
+}
+
+// handleCreateTableBodyLine 处理建表语句体内的一行（列定义 / 表级主键 / 结束括号），
+// 返回更新后的当前表指针与表级主键登记表。抽出以降低 parseDDL 的圈复杂度。
+func handleCreateTableBodyLine(line string, current *ddlTable, tables map[string]*ddlTable, tablePKCols map[string][]string) (*ddlTable, map[string][]string) {
+	if strings.HasPrefix(line, ")") { // 表定义结束
+		return nil, tablePKCols
+	}
+	if strings.HasPrefix(line, "(") { // 建表语句左括号独占一行
+		return current, tablePKCols
+	}
+	// 表级复合主键：PRIMARY KEY (col_a, col_b)。列级单列主键仍由 parseColumn 处理。
+	if cols, ok := parseTablePrimaryKey(line); ok {
+		tablePKCols[currentTableName(tables, current)] = cols
+		return current, tablePKCols
+	}
+	if constraintRE.MatchString(line) {
+		return current, tablePKCols
+	}
+	name, column := parseColumn(line)
+	current.columns[name] = column
+	return current, tablePKCols
+}
+
+// tablePKRE 匹配表级主键约束行：PRIMARY KEY (a, b)。
+var tablePKRE = regexp.MustCompile(`(?i)^PRIMARY\s+KEY\s*\(([^)]*)\)`)
+
+// parseTablePrimaryKey 解析表级 PRIMARY KEY (a, b) 约束行，返回列名列表。
+func parseTablePrimaryKey(line string) ([]string, bool) {
+	match := tablePKRE.FindStringSubmatch(line)
+	if match == nil {
+		return nil, false
+	}
+	parts := strings.Split(match[1], ",")
+	cols := make([]string, 0, len(parts))
+	for _, part := range parts {
+		name := strings.ToLower(strings.TrimSpace(part))
+		if name != "" {
+			cols = append(cols, name)
+		}
+	}
+	return cols, true
+}
+
+// currentTableName 返回当前正在解析的表名（用于登记表级主键）。
+func currentTableName(tables map[string]*ddlTable, current *ddlTable) string {
+	for name, t := range tables {
+		if t == current {
+			return name
+		}
+	}
+	return ""
 }
 
 // parseColumn 解析一行列定义，返回列名与归一化后的属性。

@@ -6,6 +6,10 @@
 // IAM userID 后调用 EnsureLocalUser 得到 local_uid，再写入 gcontext.KeyUserID 供业务侧按
 // uint 读取，从而对现有 operator/业务表/前端零侵入。
 //
+// 身份映射键是 (issuer, iam_user_id) 联合唯一：不同 IDP（issuer）下的 sub 可能相同，
+// 若只按裸 iam_user_id 建键会跨 IDP 串号。issuer 取装配层已知的 cfg.issuer（中间件已用它
+// 精确校验 token 的 iss），不从 token 或 rp.Identity 读取。
+//
 // DDL 见 scripts/sql/table_init.sql（biz_iam_user_map）。
 package iamlink
 
@@ -21,7 +25,11 @@ const (
 //
 // 该表不参与 AutoMigrate，建表只走 scripts/sql/table_init.sql，字段与脚本一一对应。
 // 不设 deleted_at：身份映射一旦建立即长期有效，不支持软删除。
+//
+// 主键为 (Issuer, IAMUserID) 复合键：同一 issuer 内 iam_user_id 唯一，支持多 IDP
+// （不同 issuer 下相同 sub 各自拥有独立的 local_uid）。
 type IAMUserMapEntity struct {
+	Issuer    string    `gorm:"column:issuer;type:varchar(255);not null;default:'';primaryKey;comment:IAM 侧 issuer（多 IDP 区分）"`
 	IAMUserID string    `gorm:"column:iam_user_id;type:varchar(128);primaryKey;comment:IAM 侧字符串用户ID（rp.Identity.UserID）"`
 	LocalUID  uint      `gorm:"column:local_uid;type:bigint;not null;default:nextval('biz_iam_user_map_local_uid_seq');comment:本地BIGINT用户ID（映射目标）"`
 	PersonID  string    `gorm:"column:person_id;type:varchar(128);not null;default:'';comment:IAM 侧自然人ID（rp.Identity.PersonID）"`

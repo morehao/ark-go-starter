@@ -16,7 +16,7 @@
 | API 路由与 Swagger | [docs/agents/api-conventions.md](./docs/agents/api-conventions.md) | **新增或修改接口前必读** |
 | 测试规范 | [docs/agents/testing.md](./docs/agents/testing.md) | 编写测试时 |
 | golib 能力说明 | [docs/agents/golib.md](./docs/agents/golib.md) | **写新功能 / 引入通用组件前必读（能力复用）** |
-| 可选账号认证（ark-iam） | [docs/agents/iam.md](./docs/agents/iam.md) | 三态 disabled/op/rp 接入、排查登录与鉴权 |
+| 可选账号认证（ark-iam） | [docs/agents/iam.md](./docs/agents/iam.md) | 可选接入（disabled/rp 两态）、rp 本地验签、排查鉴权 |
 | 常用工具与选型 | [docs/agents/toolchain.md](./docs/agents/toolchain.md) | 引入或替换组件时 |
 
 ## 项目概述
@@ -75,7 +75,7 @@ ark-go-starter/
 | 契约校验 | `make contracts-verify`（spec 合法 + Go/TS 生成物与 spec 一致；CI 门禁） |
 | 依赖 / 清理 | `make deps` / `make tidy` / `make clean` |
 | 前端开发 | `make dev-frontend` / `make stop-frontend` |
-| 一键跑通 | `make quickstart` / `make quickstart-local` / `make quickstart-verify` |
+| 一键跑通 | `make quickstart` / `make quickstart-local` |
 | Docker | `make docker-build APP=demo` / `make docker-run APP=demo` |
 
 **Nx 任务编排**（`pnpm exec nx …`，monorepo 增量/缓存；详见 `nx.json`）：

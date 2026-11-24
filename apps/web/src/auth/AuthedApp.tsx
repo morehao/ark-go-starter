@@ -10,7 +10,7 @@ import { useGateShell } from './useGateShell'
  * 登录态应用外壳：在 `AuthGuard` 内部把「个人中心 + 登出」注入到页面树。
  *
  * `render` 收到 `headerRight`（页头右侧的用户入口），由页面把它放进 Header；
- * 同时渲染 `profileNode`（个人中心浮层）。这样个人中心/登出只在 op / rp 登录态出现，
+ * 同时渲染 `profileNode`（个人中心浮层）。这样个人中心/登出只在 rp 登录态出现，
  * disabled 模式（免登录现状）不受影响。
  */
 export function AuthedApp({ render }: { render: (chrome: AuthedChrome) => ReactNode }) {

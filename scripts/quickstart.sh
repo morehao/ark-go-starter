@@ -2,9 +2,10 @@
 # ============================================================================
 # ark-go-starter 一键跑通脚本（仅 dev）
 #
-# 目标：clone 之后一条命令，把「依赖 → 建库建表 → IAM 初始化 → 起前后端」全部搞定，
-# 浏览器打开 http://localhost:3000 即可走完「登录 → 商品 CRUD → 字典 → 文件上传 →
-# 异步 → 定时任务」全流程。全程幂等，重复执行不报错、不重置已初始化的数据。
+# 目标：clone 之后一条命令，把「依赖 → 建库建表 → 起前后端」全部搞定，
+# 浏览器打开 http://localhost:3000 即可走完「商品 CRUD → 字典 → 文件上传 → 异步 → 定时任务」
+# 全流程。默认 iam.mode=disabled，开箱免登录；如需对接外部 ark-iam 请自行配置 rp 形态
+# （见 docs/agents/iam.md）。全程幂等，重复执行不报错、不重置已初始化的数据。
 #
 # 用法：
 #   make quickstart          # 有 Docker：自动起 PG/Redis（端口被占则自动降级复用外部）
@@ -14,18 +15,13 @@
 # 可用环境变量（都有合理缺省，通常无需设置）：
 #   SKIP_DEPS=1            跳过依赖编排（不起容器），直接复用 127.0.0.1:5432/6379
 #   PG_CONTAINER=<name>    指定用于执行 SQL 的 PG 容器名（默认自动探测）
-#   IAM_ADMIN_USER         管理员用户名（默认 admin）
-#   IAM_ADMIN_PASS         管理员密码（默认见下，仅 dev；支持任意强口令）
-#   IAM_ADMIN_EMAIL        管理员邮箱（默认 admin@example.com，与 phone 至少一项）
-#   BOOTSTRAP_TOKEN        引导令牌（默认取 config.yaml 的 install.bootstrapToken）
 #   FRONTEND_PORT/HOST     打印用（默认 3000 / localhost）
 #   DB_USER/DB_PASS/DB_NAME  连接本机 PG 执行建库建表用的账号（默认 postgres / 123456 / demo）。
 #                          走 quickstart-local 复用本机 PG 时，若密码不是 123456，用这三个变量覆盖即可：
 #                          脚本会自动生成一份改写 DSN 的配置并通过 APP_CONFIG_PATH 注入后端，无需手改 config.yaml。
 #                          （若你已自行指定 APP_CONFIG_PATH，则原样透传、不生成覆盖。）
 #
-# 安全边界：本脚本只在 dev 使用。BOOTSTRAP_TOKEN 与管理员口令均来自环境变量或 dev 缺省，
-# 不写死进 config；config 里的 dev-bootstrap-token 仅为本地便捷，生产必须覆盖。
+# 安全边界：本脚本只在 dev 使用。
 # ============================================================================
 set -euo pipefail
 
@@ -49,21 +45,6 @@ API_BASE="http://127.0.0.1:${BACKEND_PORT}"
 TABLE_INIT_SQL="$REPO_ROOT/scripts/sql/table_init.sql"
 COMPOSE_FILE="$REPO_ROOT/deploy/compose/dev.yml"
 COMPOSE_PROJECT_TAG="ark-go-starter"
-
-# 管理员账号：dev 缺省口令必须是满足强度校验的强口令（8~128 位，含大写/小写/数字），可被环境变量覆盖
-IAM_ADMIN_USER="${IAM_ADMIN_USER:-admin}"
-IAM_ADMIN_PASS="${IAM_ADMIN_PASS:-Admin123456}"
-IAM_ADMIN_EMAIL="${IAM_ADMIN_EMAIL:-admin@example.com}"
-IAM_ADMIN_NAME="${IAM_ADMIN_NAME:-平台管理员}"
-IAM_TENANT_NAME="${IAM_TENANT_NAME:-Acme}"
-
-# 引导令牌：优先环境变量；否则读 config.yaml 的 install.bootstrapToken；再不行用 dev 缺省
-BOOTSTRAP_TOKEN="${BOOTSTRAP_TOKEN:-}"
-if [ -z "$BOOTSTRAP_TOKEN" ]; then
-  BOOTSTRAP_TOKEN="$(grep -E '^[[:space:]]*bootstrapToken:' "apps/${APPDIR}/config/config.yaml" 2>/dev/null \
-    | head -1 | sed -E 's/^[^:]*:[[:space:]]*"?([^"#]*)"?.*/\1/' | xargs)"
-fi
-BOOTSTRAP_TOKEN="${BOOTSTRAP_TOKEN:-dev-bootstrap-token}"
 
 PG_CONTAINER="${PG_CONTAINER:-}"
 
@@ -211,21 +192,21 @@ prepare_config_override() {
   say "已生成 DB 账号覆盖配置：$out（user=$DB_USER db=$DB_NAME）"
 }
 
-# ---- 起后端（后台）并等待 /iam/install/status ----------------------------
+# ---- 起后端（后台）并等待业务健康检查 -------------------------------------
 start_backend() {
   say "启动后端（8099）…"
   mkdir -p "$REPO_ROOT/.local/log"
   # 复用 make dev-all 的清理，避免端口残留
   make -s stop-dev >/dev/null 2>&1 || true
-  # 后台起后端；BOOTSTRAP_TOKEN 通过环境变量注入（env 优先于 config 文件）。
-  # APP_CONFIG_PATH 若外部已指定则透传（便于隔离测试/自定义配置），否则用默认 config.yaml。
+  # 后台起后端；APP_CONFIG_PATH 若外部已指定则透传（便于隔离测试/自定义配置），否则用默认 config.yaml。
   (
     cd "apps/${APPDIR}/cmd"
-    APP_CONFIG_PATH="${APP_CONFIG_PATH:-}" BOOTSTRAP_TOKEN="$BOOTSTRAP_TOKEN" go run . > "$REPO_ROOT/.local/log/quickstart-backend.log" 2>&1 &
+    APP_CONFIG_PATH="${APP_CONFIG_PATH:-}" go run . > "$REPO_ROOT/.local/log/quickstart-backend.log" 2>&1 &
     echo $! > "$REPO_ROOT/.local/log/quickstart-backend.pid"
   )
   local elapsed=0
-  until curl -sf "${API_BASE}/iam/install/status" >/dev/null 2>&1; do
+  # 业务健康检查：/v1/demo/health 免鉴权（在 OIDC skipPaths 白名单内），默认 disabled 也恒可达。
+  until curl -sf "${API_BASE}/v1/${APP}/health" >/dev/null 2>&1; do
     if [ "$elapsed" -ge 120 ]; then
       warn "后端 8099 未在 120s 内就绪，最后 40 行日志："
       tail -n 40 "$REPO_ROOT/.local/log/quickstart-backend.log" >&2 || true
@@ -234,51 +215,6 @@ start_backend() {
     sleep 1; elapsed=$((elapsed + 1))
   done
   ok "后端已就绪：${API_BASE}（日志 .local/log/quickstart-backend.log）"
-}
-
-# ---- IAM 初始化（幂等）----------------------------------------------------
-init_iam() {
-  say "检查 IAM 初始化状态…"
-  local status_json initialized token_required schema_ready
-  status_json="$(curl -sf "${API_BASE}/iam/install/status")"
-  # 极简解析（不依赖 jq，且兼容 macOS/BSD 与 GNU 工具链）：grep -o 提取 "key":value 再截值。
-  json_bool() { printf '%s' "$1" | grep -o "\"$2\":[a-z]*" | head -1 | sed 's/.*://'; }
-  initialized="$(json_bool "$status_json" initialized)"
-  token_required="$(json_bool "$status_json" tokenRequired)"
-  schema_ready="$(json_bool "$status_json" schemaReady)"
-
-  if [ "$schema_ready" = "false" ]; then
-    die "/iam/install/status 报告 schemaReady=false，表结构未就绪（请确认 table_init.sql 已执行）"
-  fi
-
-  if [ "$initialized" = "true" ]; then
-    ok "IAM 已初始化，跳过（不重置既有账号与数据）"
-    return 0
-  fi
-
-  say "首次初始化 IAM（创建管理员 ${IAM_ADMIN_USER}）…"
-  if [ "$token_required" = "true" ] && [ -z "$BOOTSTRAP_TOKEN" ]; then
-    die "服务端要求引导令牌，但未提供 BOOTSTRAP_TOKEN"
-  fi
-  local body resp code
-  body="$(printf '{"adminUsername":"%s","adminPassword":"%s","adminEmail":"%s","adminName":"%s","tenantName":"%s"}' \
-    "$IAM_ADMIN_USER" "$IAM_ADMIN_PASS" "$IAM_ADMIN_EMAIL" "$IAM_ADMIN_NAME" "$IAM_TENANT_NAME")"
-  resp="$(curl -s -w '\n%{http_code}' -X POST "${API_BASE}/iam/install/initialize" \
-    -H 'Content-Type: application/json' \
-    -H "X-Bootstrap-Token: ${BOOTSTRAP_TOKEN}" \
-    -d "$body")"
-  code="$(printf '%s' "$resp" | tail -n1)"
-  if [ "$code" = "200" ]; then
-    ok "IAM 初始化成功（管理员：${IAM_ADMIN_USER}）"
-    return 0
-  fi
-  if [ "$code" = "409" ]; then
-    # 409 = 系统已完成初始化（并发/竞态或状态查询竞态）：视为幂等成功，不报错。
-    ok "IAM 已完成初始化（409，跳过）"
-    return 0
-  fi
-  warn "初始化响应（HTTP ${code}）：$(printf '%s' "$resp" | sed '$d')"
-  die "IAM 初始化失败（HTTP ${code}）。请检查 BOOTSTRAP_TOKEN 是否与后端一致"
 }
 
 # ---- 起前端 ----------------------------------------------------------------
@@ -298,15 +234,13 @@ main() {
   run_sql
   prepare_config_override
   start_backend
-  init_iam
 
   echo ""
   ok "后端与依赖已就绪，准备启动前端。"
   echo "=============================================="
   echo "  前端访问地址: http://${FRONTEND_HOST}:${FRONTEND_PORT}"
   echo "  后端接口:     ${API_BASE}"
-  echo "  登录账号:     ${IAM_ADMIN_USER}"
-  echo "  登录密码:     ${IAM_ADMIN_PASS}   (仅 dev 缺省，可用 IAM_ADMIN_PASS 覆盖)"
+  echo "  认证模式:     disabled（默认免登录；如需 rp 见 docs/agents/iam.md）"
   echo "  后端日志:     .local/log/quickstart-backend.log"
   echo "  停止:         Ctrl+C（仅停前端）；后端: make stop-dev"
   echo "=============================================="

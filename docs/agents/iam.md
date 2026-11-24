@@ -1,151 +1,104 @@
-# 可选账号认证（ark-iam 三态：disabled / op / rp）
+# 可选账号认证（ark-iam · RP 接入方，两态 disabled / rp）
 
 > 上级入口：[AGENTS.md](../../AGENTS.md)　·　文档中心：[docs/agents/README.md](./README.md)
 >
-> 反映 ark-iam（`sdk/server` 门面 + 独立 `contract` module）的**三态**接入方式；
-> 依赖版本：`sdk v0.6.0` / `contract v0.1.0` / `pkg v0.4.1`（均已发布到 Go proxy）。
-
-本模板支持**可选接入** [ark-iam](https://github.com/morehao/ark-iam) 账号认证体系。是否接入、以什么形态接入，
-完全由 `config.yaml` 的 `iam.mode` 决定（`mode` 留空时回落为 `disabled`，对业务零副作用）。接入形态有三种：
-
-- **disabled**：不接入，dev 演示身份。
-- **op**：本进程内嵌 OIDC Provider——**本项目自己就是 IAM**。
-- **rp**：对接外部 ark-iam 服务，本进程只做本地验签（Relying Party）。
-
-> ⚠️ **注意区分「选项默认」与「仓库自带配置」**：`mode` 留空时的回落值是 `disabled`，但
-> **仓库自带的 dev 配置 `apps/api/config/config.yaml` 显式写的是 `mode: op`（登录强制）**，
-> 自带的 prod 配置 `config.prod.yaml` 才是 `disabled`。所以按 quickstart 跑起来时，浏览器会强制
-> 跳 `/iam/login`（用 quickstart 打印的账号密码登录），而不是免登录。
+> 本模板接入 [ark-iam](https://github.com/morehao/ark-iam) 的**唯一可选形态是 rp（Relying Party）**：
+> 对接**外部** ark-iam 服务做 OIDC 本地验签。默认 `disabled`（开箱免登录）。
 
 ---
 
-## 0. 术语表（先读这一段）
+## 1. 概述
 
-采用 ark-iam 官方术语 **OP / RP**，而不是 `embedded` / `remote`——因为 `embedded` 有歧义（既可指「内嵌了 OP 服务端」，也可被误读成「内嵌了某个 SDK 依赖」），而 rp 模式**同样引 SDK 依赖、只是不跑 OP**，用 `embedded` 点不出「跑不跑 OP」这个本质区别。
+本模板支持**可选接入** [ark-iam](https://github.com/morehao/ark-iam) 账号认证体系。是否接入由
+`config.yaml` 的 `iam.mode` 决定（留空回落 `disabled`，对业务零副作用）。接入形态只有两种：
 
-| 术语 | 全称 | 含义 |
-|------|------|------|
-| **OP** | OpenID Provider | OIDC 服务端（签发/验签 token 的那一方），ark-iam 服务本身 |
-| **RP** | Relying Party | 依赖方（业务应用），用 OP 的公钥做本地验签 |
+- **disabled**（默认）：不接入，dev 下用固定演示身份，开箱免登录。
+- **rp**（可选）：作为**依赖方（Relying Party）**对接**外部 ark-iam 服务**，仅在本地用其公钥做 OIDC 验签。
 
-| `iam.mode` | 谁跑 OP | 是否引 SDK | 是否建库 / 挂 `/iam/*` | 前端登录页来自 | 一句话 |
-|---|---|---|---|---|---|
-| `disabled` | 无 | 否（可完全不引） | 否 | 无（dev 演示身份） | 不接入认证 |
-| `op` | **本项目进程（内嵌）** | 是（`sdk/server` + `sdk/rp`） | **是**（建 `iam_` 表、挂 `/iam/*`） | 本项目前端（npm 门面包） | 本项目自身就是 IAM |
-| `rp` | **外部 ark-iam 服务** | 是（仅 `sdk/rp`） | **否**（不建库、不挂路由） | 外部 ark-iam 控制台 | 只对接别人的 IAM，本地验签 |
+> **op（内嵌 OIDC Provider）已下线**：早期版本支持在本进程内嵌整台 ark-iam 服务端（建 `iam_` 表、
+> 挂 `/iam/*` 路由、`/iam/install` 初始化管理员、前端跳 `/iam/login`）。该形态已整体移除，本模板
+> **不再作为 IAM 服务端**。需要本地自举一套 IAM 请移步 ark-iam 仓库：
+> <https://github.com/morehao/ark-iam>。
 
-> op 与 rp 都「引 SDK、都 OIDC 登录、都本地验签、鉴权中间件完全相同」，唯一区别是 **OP 在谁那里**（本进程 vs 外部服务）以及**是否建表挂路由**。这也是后端装配只有两套 `setupOP` / `setupRP` 的原因。
+术语：**OP** = OpenID Provider（签发/验签 token 的服务端，即外部 ark-iam）；
+**RP** = Relying Party（业务应用，用 OP 的公钥验签）。本模板只扮演 RP。
 
----
-
-## 1. 相关源码（均在 `apps/api`）
-
-| 文件 | 职责 |
-|------|------|
-| `config/config.go`（`IAMConfig`） | iam 配置结构、`EffectiveMode()` 归一、`GetPrefix()` 前缀归一 |
-| `iam_setup.go`（`SetupIAM`） | 单一装配入口：按 `mode` 分派 disabled / op / rp，返回 `io.Closer` |
-| `app.go`（`Routers` / `buildAuthMiddleware`） | 按 `mode` 装配鉴权中间件（op/rp 共用 `OIDCAuth`） |
-| `internal/middleware/oidc_auth.go` | 业务接口 OIDC 本地验签中间件（依赖 `contract.KeySource`） |
-| `pkg/iamlink/*` | IAM string 身份 ↔ 本地 BIGINT 用户 ID 的映射层（与形态无关，三态通用） |
-| `apps/web/src/auth/{index,useGateShell,useGateShellBridge,AuthedApp}.tsx` | 前端登录态外壳：AuthProvider + 守卫 + 个人中心/登出（复用门面包 `ProfileCenter`/`useLogout`） |
-| `scripts/sql/table_init.sql` | 业务表 DDL（含 `biz_iam_user_map`）；不含 `iam_` 表 |
+| `iam.mode` | 是否引 SDK | 是否建库 / 挂 `/iam/*` | 登录页来自 | 一句话 |
+|---|---|---|---|---|
+| `disabled` | 否（可完全不引） | 否 | 无（dev 演示身份） | 不接入认证，免登录 |
+| `rp` | 是（仅 `sdk/rp` + `contract`） | **否** | 外部 ark-iam 控制台 | 对接外部 IAM，本地验签 |
 
 ---
 
-## 2. 三态配置（`config.yaml` 的 `iam` 段）
+## 2. 两态配置（`config.yaml` 的 `iam` 段）
 
 ```yaml
 iam:
-  mode: disabled          # disabled | op | rp（默认 disabled，等价旧 enable:false）
-  # —— op（本进程内嵌 OP）专有 ——
-  prefix: /iam            # 挂载前缀（op 必填，须与前端 basePath 一致）
-  dsn: ""                 # 空则复用 db_configs 第一个库
-  redis_addr: ""          # 空则复用 redis_config
-  redis_password: ""      # 空则复用 redis_config
-  signing_key: ""         # OIDC 签名私钥 PEM（非 dev 必填）
-  encryption_key: ""      # 会话/令牌加密密钥（非 dev 必填）
-  cookie_secure: false    # SSO 会话 cookie Secure 标志（生产 HTTPS 必须 true）
-  # —— 通用 / rp 专有 ——
-  issuer: ""              # op: 空则按端口推导；rp: 远端 OP issuer（必填）
-  jwks_url: ""            # rp: 空则由 issuer 走 discovery 推导
-  audience: ""            # rp: 本应用 client_id，用于 aud 校验（建议必填）
-  # —— 兼容字段 ——
-  # enable: false         # 旧字段，保留解析：enable:true 且 mode 为空 → 视为 op
+  mode: disabled     # disabled | rp（默认 disabled；留空回落到 disabled）
+  issuer: ""         # rp：外部 OP 的 issuer（必填，用于 iss 校验）
+  jwks_url: ""       # rp：JWKS 端点；留空则由 issuer 走 discovery/`/keys`/`.well-known/jwks.json` 推导
+  audience: ""       # rp：本应用 client_id，用于 aud 校验（建议必填）
 ```
 
-- **字段归一**：`IAMConfig.EffectiveMode()` 决定实际形态——
-  `mode` 非空则以之归一（只接受 `disabled`/`op`/`rp`，非法值报错）；
-  `mode` 空且 `enable:true` → `op`；否则 `disabled`。
-- **兼容旧配置**：`enable:true` 自动映射到 `op`，平滑升级、无需立即改配置。
-- **切换形态只改 `config.yaml` + 前端环境变量**，不改任何 `app.go` 分支逻辑（分支收敛在 `SetupIAM` / `buildAuthMiddleware` 两处装配点）。
+字段说明（仅 rp 相关四个字段）：
 
-### 各态要点
+| 字段 | 必填 | 说明 |
+|------|------|------|
+| `mode` | 否 | `disabled`（默认）/ `rp`。留空回落 `disabled`；非法值 `Validate()` 报错。 |
+| `issuer` | rp 必填 | 外部 OP 的 issuer，用于 `iss` 校验；`jwks_url` 留空时也用于推导 JWKS 地址。 |
+| `jwks_url` | 否 | JWKS 端点。留空则由外部 OP 按标准 discovery 推导。 |
+| `audience` | 建议必填 | 本应用 client_id，用于 `aud` 校验。 |
 
-| | `disabled` | `op` | `rp` |
-|---|---|---|---|
-| `SetupIAM` 返回 | `(nil, nil)`，零副作用 | `io.Closer`（内嵌 OP 实例） | `io.Closer`（远端 keys 句柄） |
-| 是否建库/迁移 | 否 | 是（`RunMigrations` 建 `iam_` 表） | **否** |
-| 是否挂 `/iam/*` | 否（404） | 是（`Mount` + `MountConfig`） | **否** |
-| KeySource 来源 | 无 | `app.KeySource()`（进程内公钥） | `rp.NewKeys(...)`（远端 JWKS） |
-| 业务鉴权 | dev 演示身份 / 非 dev 无身份 | OIDC 本地验签 | OIDC 本地验签（与 op 相同） |
-| 必填项 | 无 | `prefix`、非 dev 安全项 | `issuer`（必填）、`audience`（建议） |
+> 旧的 op 专有字段（`prefix` / `dsn` / `redis_addr` / `redis_password` / `signing_key` /
+> `encryption_key` / `cookie_secure` / `redirect_uris` / `post_logout_redirect_uris` /
+> `frontend_url` / `install.bootstrapToken` 等）已随 op 下线，**不再使用**。切换形态只改
+> `config.yaml` + 前端环境变量，不改任何后端分支逻辑。
 
 ---
 
-## 3. 后端装配：单一入口 `SetupIAM`（`iam_setup.go`）
+## 3. 后端接入（复用的是验签引擎，不是框架）
 
-`SetupIAM` 收敛为唯一装配点，按 `EffectiveMode()` 分派：
+相关源码（均在 `apps/api`）：
+
+| 文件 | 职责 |
+|------|------|
+| `config/config.go`（`IAMConfig`） | iam 配置结构、`Validate()`、`EffectiveMode()` 归一（`disabled`/`rp`） |
+| `iam_setup.go`（`SetupIAM`） | 单一装配入口：按 `mode` 分派 disabled / rp，返回 `io.Closer` |
+| `app.go`（`buildAuthMiddleware`） | rp 时装配 `OIDCAuth` 中间件；disabled 回落 dev 演示身份 |
+| `internal/middleware/oidc_auth.go` | 业务接口 OIDC 本地验签中间件（依赖 `contract.KeySource`） |
+| `pkg/iamlink/*` | IAM string 身份 ↔ 本地 BIGINT 用户 ID 的映射层 |
+
+**`SetupIAM`（`iam_setup.go`）两态分派**：
 
 ```go
-type iamRuntime struct {
-    mode      string              // op | rp
-    app       *server.App         // op 时非 nil
-    keySource contract.KeySource  // op: app.KeySource()；rp: rp.NewKeys(远端)
-    issuer    string
-    closer    io.Closer
+switch cfg.EffectiveMode() {
+case config.ModeDisabled:
+    currentIAM = nil
+    return nil, nil                       // 零副作用
+case config.ModeRP:
+    return setupRP()                      // 仅构造远端 JWKS 密钥来源
+default:
+    return nil, fmt.Errorf(...)           // Validate 已拦截，兜底
 }
-
-// disabled 返回 (nil, nil)，零副作用；未知 mode 报错。
-func SetupIAM(engine *gin.Engine) (io.Closer, error) {
-    switch cfg.EffectiveMode() {
-    case "disabled": currentIAM = nil; return nil, nil
-    case "op":       return setupOP(engine)   // 见下
-    case "rp":       return setupRP()         // 见下
-    default:         return nil, fmt.Errorf("unknown iam.mode: %q", cfg.Mode)
-    }
-}
 ```
 
-**`setupOP`（本进程内嵌 OP）**——顺序为 `server.New` → `RunMigrations` → `Mount` → `MountConfig`：
+**`setupRP`**：不建库、不 `Mount`、不 `RunMigrations`，只 `rp.NewKeys` 预取一次 JWKS（fail-fast）：
 
 ```go
-app, err := server.New(server.Config{
-    Env:          config.Conf.Server.Env,
-    DB:           server.DBConfig{DSN: dsn, Service: "iam"},
-    Redis:        resolveIAMRedis(cfg),
-    Domains:      server.DefaultConsoleDomains, // core-auth/install/person/user/department/role/menu
-    SameDatabase: true,
-    Raw:          buildRawConfig(issuer, cfg),  // issuer/signing_key/encryption_key/cookie_secure 等
-})
-app.RunMigrations(ctx)                        // 建 iam_ 前缀表
-app.Mount(engine.Group(prefix))               // 挂 /oidc、/install、/v1/{platform,tenant,auth}
-app.MountConfig(engine, prefix)               // 仅提供 {prefix}/config.json（不再托管前端 SPA）
-rt.keySource = app.KeySource()                // 类型即 contract.KeySource
+keys, err := rp.NewKeys(ctx, jwksURL)      // jwksURL = jwks_url 或 issuer（discovery 推导）
+rt := &iamRuntime{keySource: keys, issuer: cfg.Issuer, closer: rpKeysCloser{keys}}
+currentIAM = rt
 ```
 
-**`setupRP`（对接外部 ark-iam，仅验签）**——不建库、不 `Mount`、不 `RunMigrations`：
+> **重点**：本模板复用的是 ark-iam 的**验签引擎**（`sdk/rp` 的 `rp.NewKeys` + `rp.NewVerifier`、
+> `contract.KeySource` 契约接口），**而不是 ark-iam 的框架/路由**。鉴权中间件 `OIDCAuth` 是**本仓自研**的
+> （`apps/api/internal/middleware/oidc_auth.go`），只依赖框架无关的 `contract.KeySource` 接口，从而斩断对
+> `sdk/server` 的依赖。
+
+**中间件装配（`app.go` 的 `buildAuthMiddleware`）**：
 
 ```go
-ks, err := rp.NewKeys(ctx, resolveJWKSURL(cfg))  // jwks_url 为空则由 issuer 走 discovery
-rt.keySource = ks
-rt.issuer    = cfg.Issuer
-```
-
-**鉴权中间件装配（`app.go` 的 `buildAuthMiddleware`）**：op / rp 共用同一套 `OIDCAuth`，差异只在 KeySource 来源：
-
-```go
-switch config.Conf.IAM.EffectiveMode() {
-case "op", "rp":
+case config.ModeRP:
     rt := CurrentIAM()
     if rt == nil { panic("iam enabled but runtime nil") }   // fail-closed
     return middleware.OIDCAuth(
@@ -157,225 +110,90 @@ case "op", "rp":
 default: // disabled
     if config.Conf.Server.Env == "dev" { return middleware.DemoIdentity() }
     return nil
-}
 ```
 
-> 这是本设计的核心收敛点：op 与 rp 的业务鉴权**完全相同**（都本地验签 + `iamlink` 映射 uint），**差异只在 KeySource 来源**。
+**验签流程**（挂在 `/{AppName}/v1` 业务路由组）：
+
+1. 取 `Authorization: Bearer <access_token>`；缺失 → **401**（fail-closed）。
+2. 用 `contract.KeySource`（远端 JWKS 缓存）**本地验签**，校验 `iss == issuer`；失败/过期/`aud` 不匹配 → 401。
+3. 得到 `rp.Identity`（string UserID）→ 经 `iamlink.EnsureLocalUser` 映射出 `local_uid`（uint）→ 写
+   `gcontext.KeyUserID`、`KeyPersonID`、`KeyAuthToken`；映射失败 → 401。
+4. 业务侧 `ginhelper.FillOperator` 照旧按 uint 解析，**审计列非 0**。
 
 ---
 
-## 4. 依赖：直接 `go get` 已发布的 ark-iam 模块
+## 4. 身份映射 `biz_iam_user_map`
 
-ark-iam 的三态能力已发布到 Go proxy，本项目**直接 `go get` 真实版本，无 `replace`、无本地 `go.work` 罩**：
+**为什么需要**：ark-iam 的 `rp.Identity.UserID` 是 **string**，而本站 `operator.UserID` 与业务审计列
+（`created_by/updated_by/deleted_by`）均为 **uint（BIGINT）**，`gincontext.GetUserID()` 按 uint 解析（库函数不可改）。
+直接把 string 写进 `gcontext.KeyUserID` 会让审计列全解析成 0。
+
+**解决**：一张映射表把「外部 string 身份」与「本地 uint 主体」解耦（DDL 见 `scripts/sql/table_init.sql`）。
+
+> **复合键（另一任务升级）**：映射表主键正由单一 `iam_user_id` 升级为 **(issuer, iam_user_id) 复合键**，
+> 以支持**多 IDP**（同一 string user id 在不同 issuer 下是不同主体）。届时 upsert 冲突键改为
+> `(issuer, iam_user_id)`，`pkg/iamlink` 的缓存 key 也需带上 issuer。本文档描述以升级后口径为准。
+
+- 写入走**幂等 JIT upsert**（首次登录即插即映射，`ON CONFLICT ... DO UPDATE ... RETURNING local_uid`），单语句原子、并发安全。
+- 首次登录自动分配 `local_uid`，已存在则原样返回；`pkg/iamlink.Svc.EnsureLocalUser` 是唯一入口（带**可选** Redis 缓存，无 Redis 时自动回源 DB，见 §6「Redis 依赖边界」）。
+- **边界**：本地 `local_uid` 与业务表主键是两套 ID 空间——映射表只负责把「谁」投影成本地 uint，业务侧对 IAM 零感知。
+- **不建任何 `iam_` 表**：rp 形态下 IAM 域表在外部 ark-iam 那边；本仓 `table_init.sql` 只管业务表与 `biz_iam_user_map`。
+
+---
+
+## 5. 前端接入（rp）
+
+前端 `@morehao/ark-iam-react`（门面包）只作为 OIDC client 端，直连**外部 ark-iam** 的 issuer：
+
+- 用 **`VITE_OIDC_ISSUER`** + **`VITE_OIDC_CLIENT_ID`** 指定远端 issuer 与 client_id。
+- `createAuthProvider(useRuntimeConfig: false)`：**不从本进程探测 `/iam/config.json`**（op 已下线，无该端点），
+  配置全部来自上面的环境变量。
+- 登录页来自**外部 ark-iam 控制台**（不是本仓库前端）。
+- **个人中心 / 登出**复用门面包组件（`ProfileCenter` / `useLogout`），`main.tsx` 用 `IAMAuthProvider` +
+  `AuthedApp`（内含 `AuthGuard`）包裹，令牌经 `setTokenProvider` 注入 `@ark-go-starter/api`，401 时
+  `removeUser` + `signinRedirect`。
+
+---
+
+## 6. 依赖
 
 ```go
 require (
-    github.com/morehao/ark-iam/sdk      v0.6.0   // 门面 sdk/server + RP sdk/rp
-    github.com/morehao/ark-iam/contract v0.1.0   // 契约 module
-    github.com/morehao/ark-iam/pkg      v0.4.1   // 公共层（随 sdk 传递引入，通常无需直接 require）
+    github.com/morehao/ark-iam/sdk/rp   // 常驻（rp 验签引擎）
+    github.com/morehao/ark-iam/contract // 常驻（KeySource / Identity 契约，独立 module）
 )
 ```
 
-- `go.work` 只 `use ./apps/api` 与 `./pkg`（本仓自己的模块），不涉及外部源码。
-- 下游模板用户：`go mod download` 即可，无需任何本地源码准备。
-- `sdk` 会传递引入 `apps/{auth,platformadmin,tenantadmin}`（v0.1.0）作为 indirect 依赖——这是 ark-iam 内部分层，消费者无需感知。旧路径 `backend/apps/*` 已迁移至 `apps/*`，历史 tag 仍可拉取但不再推荐。
+- **不再依赖 `sdk/server`**（op 服务端随下线移除）。
+- 版本号以后续 ark-iam 发布为准；`make test` 与 `make lint` 均基于已发布版本，CI 无需特殊处理。
 
-> 版本号如有更新，以后续 ark-iam 发布为准；`make test` 与 `make lint` 均基于已发布版本，CI 无需特殊处理。
+### Redis 依赖边界（重要）
 
----
-
-## 5. 身份映射表 `biz_iam_user_map`（三态通用）
-
-**为什么需要**：ark-iam 的 `rp.Identity.UserID` 是 **string**（如 `"user-2222"`），而本站 `operator.Operator.UserID` 与业务表审计列（`created_by/updated_by/deleted_by`）均为 **BIGINT（uint）**，golib 的 `gincontext.GetUserID()` 按 uint 解析（库函数不可改）。直接把 string 写进 `gcontext.KeyUserID` 会让审计列全解析成 0。
-
-**解决**：一张映射表把「外部 string 身份」与「本地 uint 主体」解耦：
-
-```
-biz_iam_user_map
-  iam_user_id VARCHAR(128) PRIMARY KEY   -- IAM 侧 rp.Identity.UserID
-  local_uid   BIGINT NOT NULL DEFAULT nextval('biz_iam_user_map_local_uid_seq')
-  person_id   VARCHAR(128) NOT NULL DEFAULT ''
-  created_at / updated_at TIMESTAMPTZ
-  UNIQUE INDEX uk_biz_iam_user_map_local_uid(local_uid)
-```
-
-- 写入走幂等 upsert（`ON CONFLICT (iam_user_id) DO UPDATE ... RETURNING local_uid`），单语句原子、并发安全。
-- 首次登录自动分配 `local_uid`，已存在则原样返回；`pkg/iamlink.Svc.EnsureLocalUser` 是唯一入口，带 30 分钟 Redis 缓存。
-- 该映射层**与 iam.mode 无关**（op/rp 都用它），op/rp 切形态不触碰 `iamlink`、业务表、审计列。
-
-> 边界：本地 `local_uid` 与业务表主键是**两套 ID 空间**——映射表只负责把「谁」投影成本地 uint，业务侧对 IAM 零感知。
+- **rp 接入 ark-iam 不需要 ark-iam 的 Redis**：`rp.NewKeys` / `rp.NewVerifier` 是**无状态本地验签**
+  （JWKS 缓存在进程内存，按 TTL 后台刷新），源码不引用任何 Redis。ark-iam 的 Redis 只属于已下线的
+  op（服务端）本身——那是另一套、与 rp 无关的基础设施。
+- **本仓 `iamlink` 的 Redis 缓存是可选的、fail-open**：它缓存 `(issuer, iam_user_id) → local_uid` 映射
+  以提速，`dbclient.RedisCli == nil`（未配置 Redis）时自动**回源 DB**，功能不受影响，仅每次鉴权多一次
+  查询。属于本仓库自己的 Redis，非 ark-iam 的。
+- 一句话：**作为 RP，两个 Redis 都不是硬依赖**——ark-iam 的 Redis 完全不涉及，本仓 iamlink 缓存缺省
+  也能正常工作。
 
 ---
 
-## 6. 表前缀与迁移边界（仅 op 相关）
+## 7. 常见坑 / 验收口径
 
-- **IAM 域表**（`iam_` 前缀，如 `iam_person`/`iam_user`/`iam_tenant`/`iam_application_client`）：由 op 模式的 `RunMigrations`（AutoMigrate）在启用时**自动创建**——宿主项目**不要**把它们写进 `table_init.sql`。
-- **业务表 + 映射表**（无 `iam_` 前缀）：由 `table_init.sql` 管。`biz_iam_user_map` 特意**不设为 AutoMigrate**（含独立序列与唯一索引，交由 DDL 精确控制）。
-- **rp 模式**：**不建任何表**（`iam_` 表在外部 ark-iam 那边），本项目只需已存在的业务表 + `biz_iam_user_map`。
-- 同库共存：op 用 `SameDatabase: true`，IAM 表与业务表在同一 PG 库；ark-iam 有同库撞名检测，届时按提示显式配置。
+**验收口径**（rp 形态）：
+- 无 token 调 `/v1/demo/products` → **401**（fail-closed）。
+- 有效 token → **200**，且审计列 = 该用户映射出的 `local_uid`（非 0）。
 
-> op 首次在空库启用：先执行 `table_init.sql`（建业务表 + `biz_iam_user_map`），再以 `mode: op` 启动（`RunMigrations` 建 `iam_` 表）。
+**坑**：
+1. **白名单**：`/demo/docs`（swag）与 `/v1/demo/health`（健康检查）免鉴权；rp 无 `/iam/*` 路由，不要再找它。
+2. **`issuer` 必须等于外部 OP 公布的 issuer**，否则验签因 `iss` 不匹配失败。
+3. **`audience` 建议必填**：不配则 `aud` 校验放空，有安全风险。
+4. **`jwks_url` 留空**依赖外部 OP 的标准 discovery / `/keys` / `.well-known/jwks.json` 端点可达。
+5. **redirect_uri 白名单**：在**外部 ark-iam 的该 client**上登记本应用回调（门面包默认 `/auth/callback`）。
+6. **本地验签、不回调外部**：每个请求都只用本地缓存的 JWKS 验签，外部 OP 短暂不可用不影响已签发的 token。
 
-### 6.1 各类「数据」分别怎么初始化（速查）
-
-IAM 相关的表与数据分三层，初始化入口各不相同，**不要混用**：
-
-| 层面 | 具体内容 | 初始化方式 | 是否可写进 `scripts/sql/table_init.sql` |
-|------|----------|-----------|----------------------------------------|
-| **建表 · IAM 域表** | `iam_person`/`iam_user`/`iam_tenant`/`iam_application_client` 等 `iam_` 前缀表 | op 模式启动时 `RunMigrations`（AutoMigrate）**自动创建** | **否**（写了会与 AutoMigrate 冲突，宿主项目不要写） |
-| **建表 · 业务表 + 映射表** | `product` 等业务表、`biz_iam_user_map`（含独立序列 `biz_iam_user_map_local_uid_seq` 与唯一索引） | 手动执行 `psql -f scripts/sql/table_init.sql`（幂等，quickstart 与 CI 建表均执行这一份） | **是**（唯一存放处） |
-| **数据 · 管理员 / 租户 / client** | 平台管理员账号、租户、OIDC 客户端等**运行期数据** | op 模式调 `POST /iam/install/initialize`（见第 9 节）；`make quickstart` 首次运行自动完成 | **否**（ark-iam 不内置默认账号/口令，密码 bcrypt 库内生成；SQL 直插既不合规也过不了强度校验） |
-
-一句话顺序（空库 → 能登录）：`psql -f scripts/sql/table_init.sql`（业务表+映射表）→ `iam.mode=op` 启动（`RunMigrations` 建 `iam_` 表）→ `POST /iam/install/initialize`（建管理员/租户/client）。`make quickstart` 会把这三步一次跑完且幂等。
-
-> 数据库里**没有**「IAM 域表/管理员」的初始化 SQL 文件——这是设计如此：建表交给 AutoMigrate、数据交给 install 接口。`scripts/sql/` 下只有 `table_init.sql` 这一份，管的是业务表与映射表。
-
----
-
-## 7. OIDC 鉴权中间件如何保护业务接口（op / rp 相同）
-
-`mode` 为 `op` 或 `rp` 时，`app.go` 的 `buildAuthMiddleware` 返回 `middleware.OIDCAuth(...)`，挂在 `/{AppName}/v1` 路由组上（即所有 `/v1/demo/*` 业务接口）。流程：
-
-1. 取 `Authorization: Bearer <access_token>`；缺失 → **401**（fail-closed）。
-2. 用 `contract.KeySource` **本地验签**（op 是进程内公钥；rp 是远端 JWKS 缓存），并校验 `iss == issuer`；失败/过期/`aud` 不匹配 → 401。
-3. 得到 `rp.Identity`（string UserID）→ 经 `iamlink.EnsureLocalUser` 映射出 `local_uid`（uint）→ 写 `gcontext.KeyUserID`（uint 可解析）、`KeyPersonID`、`KeyAuthToken`；映射失败 → 401。
-4. 业务侧 `ginhelper.FillOperator` 照旧读这些 gin Keys 并按 uint 解析，**审计列非 0**。
-
-**白名单**（免鉴权）：`/demo/docs`（swag）、`/v1/demo/health`（健康检查）。`/iam/*`（仅 op 有）不在业务路由组内，天然放行。
-
-**验收口径**：无 token 调 `/v1/demo/products` → 401；有效 token → 200 且审计列 = 该用户 `local_uid`。
-
----
-
-## 8. 前端接入（demo-web）
-
-前端 `@morehao/ark-iam-react`（门面包）`createAuthProvider` / `useAuthGuard` 契约不变，op/rp 都走 OIDC 登录，差异只在**配置来源**。`src/auth/config.ts` 的 `detectIAMMode()`：
-
-```ts
-export type IAMMode = 'disabled' | 'op' | 'rp'
-// 判定顺序：VITE_IAM_MODE 显式优先 → VITE_IAM_ENABLE 兼容（op/disabled）→ 设了 VITE_OIDC_ISSUER 则 rp → 探测 /iam/config.json 可达则 op → disabled
-```
-
-### op 路径（本进程内嵌 OP）
-
-- 后端 `MountConfig` 挂出 `{prefix}/config.json`（默认 `/iam/config.json`），下发 `issuer` / `clientId` / `callbackPath` 等。
-- 前端 `createAuthProvider` 用 **`runtimeConfigBase=/iam`** 探测并读取 `config.json`。
-- `main.tsx` 用 `IAMAuthProvider` + `AuthedApp` 包裹（`AuthedApp` 内含 `AuthGuard`）；令牌经 `AuthGuard` 注入 `@ark-go-starter/api`（`setTokenProvider`），401 时 `removeUser` + `signinRedirect`。
-- 登录页 / 控制台 UI 由 npm 包 `@morehao/ark-iam-react` 提供，**Go 不再托管前端静态资源**。
-
-### rp 路径（对接外部 ark-iam）
-
-- 不再从本进程探测 `config.json`；前端用 **`VITE_OIDC_ISSUER`** + **`VITE_OIDC_CLIENT_ID`** 直连**远端 ark-iam** 的 issuer。
-- 登录页来自**外部 ark-iam 控制台**（不是本仓库前端），本仓库前端只是 OIDC client 端。
-- `vite.config.ts` 里 `/iam` 代理**仅 op 需要**；rp 不需要（前端直连远端 issuer），保留也无害。
-
-### 个人中心 + 登出（op / rp 登录态，disabled 不出现）
-
-登录态下页头右侧出现「头像 + 下拉（个人中心 / 退出登录）」，**复用门面包组件、不重造轮子**：
-
-| 能力 | 来源（`@morehao/ark-iam-react`） | 实现位置 |
-|------|------|------|
-| 页头用户入口 | `getUserinfo`（取显示名）+ antd `Dropdown` | `apps/web/src/auth/AuthedApp.tsx` |
-| 个人中心（信息 / 改密 / 会话管理） | `ProfileCenter` | `apps/web/src/auth/useGateShell.tsx` |
-| 登出 | `useLogout()`（撤销会话 → 跳 OP `end_session` → 清本地态） | 同上 |
-
-三个**必须**注意的点（都已在代码里处理，勿删）：
-
-1. **API 路径桥接（vite proxy rewrite）**：门面包 `ProfileCenter` 用**它自己的 axios 单例**，`baseURL=/v1`，请求 `/v1/auth/*`；而 op 模式下这些接口挂在 `{prefix}/v1/auth/*`（= `/iam/v1/auth`）。因此 `vite.config.ts` 必须在宽泛 `/v1` 之前加一条 `/v1/auth → rewrite /iam/v1/auth` 的代理（按 key 插入顺序先中先止）。缺了它，个人中心一律 404/401。
-2. **令牌桥接（`setUserProvider`）**：`ProfileCenter` 的 `Authorization` 头来自包内全局 `userProvider`；`ProfileTokenBridge`（`apps/web/src/auth/useGateShellBridge.tsx`）在副作用里 `setUserProvider(() => ({ access_token }))`，否则 `/auth/me` 全 401。
-3. **登出回跳地址**：门面包 `postLogoutRedirectPath` 默认 `/login`，本模板 SPA 无此路由 → 在 `getIAMAuthProvider` 统一传 `/`（登出回首页，`AuthGuard` 判定未登录再 `signinRedirect` 回登录页）。且该地址必须逐字符命中客户端 `post_logout_redirect_uris` 白名单（见下）。
-
-**后端配套（已随本方案加入）**：`apps/api/config/config.go` 的 `IAMConfig` 新增 `post_logout_redirect_uris []string`（op 下写入内置控制台 `platform_admin_web` 的登出回跳白名单，seed 时生效），`iam_setup.go` 的 `buildRawConfig` 透传到 `raw.OIDC.Consoles.PlatformAdminWeb.PostLogoutRedirectURIs`。`config.yaml` 默认登记 `http://localhost:3000/`（及 3001）。**已初始化的库不会因改 yaml 生效**，需手动 `UPDATE iam_application_client SET post_logout_redirect_uris=...` 或清库重走 `/iam/install`。
-
-### 通用
-
-- **redirect_uri 白名单**：门面包默认回调路径是 **`/auth/callback`**（`redirectPath=/auth/callback`，**不是** `/callback`）。demo-web 即 `http://localhost:3000/auth/callback`，必须登记到所用 OIDC 客户端 `redirect_uris` 白名单。
-- **post_logout_redirect_uri 白名单**：登出回跳默认 `/`，即 `http://localhost:3000/`，必须登记到客户端 `post_logout_redirect_uris`（OP `end_session` 精确匹配，未命中返回 `400 invalid_request`，不会回跳）。
-- **clientID**：op 下建议用门面包 `useRuntimeConfig: true` 从 `/iam/config.json` 下发，`VITE_OIDC_CLIENT_ID` 兜底；rp 下由 `VITE_OIDC_CLIENT_ID` 指定。
-- op 内嵌客户端建议建 **public client（PKCE，`tokenEndpointAuthMethod=none`）**，把其 `code` 配到 clientId。
-
----
-
-## 9. 生产安全项（非 dev fail-closed）
-
-`mode` 为 `op` 且 `server.env != dev` 时，ark-iam SDK 在 `server.New` 内自动 `validateNonDevSecurityConfig`（**fail-closed**，宿主不再重复实现），必须显式配置，否则进程起不来：
-
-| 配置 | 要求 |
-|------|------|
-| `iam.signing_key` | OIDC 签名私钥 PEM（RSA/EC），签发/验签 id_token |
-| `iam.encryption_key` | 会话/令牌加密密钥（≥32 字节随机） |
-| `iam.cookie_secure` | 必须 `true`（HTTPS 生产） |
-| `iam.issuer` | 显式设为对外域名（`https://.../iam/oidc` 或反代后公网地址），须与 `Mount` 前缀一致 |
-
-- **dev**：`signing_key` / `encryption_key` 可留空（IAM 自动生成/放行），`cookie_secure` 可为 false。
-- **rp**：不跑 OP，无需 `signing_key` / `encryption_key`；但必须配 `issuer`（远端 OP 的 issuer，用于 `iss` 校验），建议配 `audience`（本应用 client_id，用于 `aud` 校验）。
-- `config.prod.yaml` 的 `iam` 段用**占位值**，请用密钥管理 / 环境变量注入真实密钥，**勿把真实私钥提交入库**。
-
----
-
-## 10. 常见坑（踩坑必读）
-
-1. **`MountFrontend` 已删除**：v0.4 起 Go 侧不再托管任何前端静态资源，只保留 `MountConfig`（出 `/config.json`）。登录/控制台 UI 由 npm 包 `@morehao/ark-iam-react` 提供。不要再找 `MountFrontend`，也不要指望 `{prefix}/login` 由 Go 提供 SPA。
-2. **`contract` 是独立 module**：import 路径从 `github.com/morehao/ark-iam/sdk/contract` 改为 **`github.com/morehao/ark-iam/contract`**。中间件、KeySource 类型都依赖这个独立路径。
-3. **`iam` 模块已删除**：入口从 `iam.New` 改为 **`sdk/server.New`**。`New`/`Mount`/`RunMigrations`/`KeySource`/`Close` 名字基本 1:1 保留，只是包名变了。
-4. **redirect_uri 白名单**：回调必须是 `/auth/callback`（不是 `/callback`），且登记在客户端 `redirect_uris`。内置种子客户端 `platform_admin_web` 默认只登记了控制台回调（如 `http://localhost:4001/auth/callback`），拿它跑 demo-web 会卡在回调对齐——需补登 `http://localhost:3000/auth/callback` 或另建 public client。
-5. **issuer 必须与挂载前缀一致**：op 下 issuer 形如 `{scheme}://{host}{prefix}/oidc`，否则 OP 公布的 issuer 与端点不符，验签因 `iss` 不匹配失败。rp 下 `issuer` 必须等于远端 OP 的 issuer。
-6. **依赖**：`sdk`/`contract`/`pkg` 已发布到 proxy，直接 `go get`（`sdk v0.6.0` / `contract v0.1.0` / `pkg v0.4.1`）；无需 `replace`，`go.work` 只 `use` 本仓模块。
-
----
-
-## 11. 从 v0.3.0（`iam` 模块）迁移的 old → new 映射表
-
-| 维度 | 旧（v0.3.0，`iam` 模块） | 新（v0.4，三态 `sdk`） |
-|------|--------------------------|------------------------|
-| 开关 | `iam.enable: bool`（内嵌/关闭二态） | `iam.mode: disabled\|op\|rp`（三态；`enable:true` 兼容映射 `op`） |
-| 内嵌服务端入口 | `import ".../ark-iam/iam"`；`iam.New(iam.Config{...})` | `import ".../ark-iam/sdk/server"`；`server.New(server.Config{...})` |
-| 建表 | `app.RunMigrations(ctx)` | 不变（同名方法） |
-| 挂路由 | `app.Mount(engine.Group(prefix))` | 不变（同名方法） |
-| 前端托管 | `app.MountFrontend(engine, prefix)`（Go embed 托管 SPA） | **删除**；改 `app.MountConfig(engine, prefix)`（仅 `/config.json`），登录 UI 由 npm `@morehao/ark-iam-react` 提供 |
-| 默认域集 | `iam.DefaultConsoleDomains` | `server.DefaultConsoleDomains`（值相同） |
-| KeySource | `app.KeySource()`（类型 `rp.KeySource`） | `app.KeySource()`（类型 `contract.KeySource`） |
-| 契约类型 import | `.../ark-iam/sdk/contract` | `.../ark-iam/contract`（独立 module） |
-| 中间件 KeySource 字段 | `rp.KeySource` | `contract.KeySource`（中间件只依赖契约） |
-| rp 验签 | `sdk/rp.NewKeys`/`NewVerifier` | 不变（`sdk/rp` 接口稳定） |
-| rp 形态 | 不支持（只有内嵌/关闭） | 新增 `setupRP()`：仅 `rp.NewKeys`，不建库不挂路由 |
-| 生产安全校验 | 宿主/`iam.New` 内 `validateNonDevSecurityConfig` | SDK 在 `server.New` 内自动 fail-closed，宿主不再重复 |
-| Go 依赖模块 | `ark-iam/iam` + `ark-iam/pkg` + `ark-iam/sdk` v0.3.0 | `ark-iam/sdk` v0.6.0 + `ark-iam/contract` v0.1.0 + `ark-iam/pkg` v0.4.1（均已发布，直接 go get；域库在 `ark-iam/apps/*`） |
-| 鉴权中间件 import | `.../ark-iam/sdk/contract` | `.../ark-iam/contract` |
-
-**后端调用面 80% 可平移**（`New/Mount/RunMigrations/KeySource/Close` 名字不变，仅包名 `iam` → `sdk/server`）；真正的破坏点是：① `MountFrontend` 删除、② `contract` 独立 module 的 import 路径、③ `go.mod` 模块集合变化。
-
----
-
-## 12. 常用操作
-
-**op 本地联调**：`config.yaml` 设 `iam.mode: op`（或旧 `iam.enable: true`），`BOOTSTRAP_TOKEN=xxx make run APP=demo`，走 `/iam/install` 初始化管理员 → 建 client → 前端登录。联调完还原 `mode: disabled`。
-
-**本地默认账号（仅本机 dev 库，非项目内置）**：
-
-> ark-iam **不内置任何默认口令**。`make quickstart` 首次运行会通过 `/iam/install/initialize` 创建 `admin` 账号，密码取 `IAM_ADMIN_PASS`（**dev 缺省 `Admin123456`**，满足 ark-iam 强度校验：含大写/小写/数字，可用环境变量覆盖，见 [quickstart.md](./quickstart.md)）。该账号存在于数据库 `iam_person` 表，**不随代码发布**，换库/清库/重建后即失效。生产环境绝不可沿用。
-
-| 用户名 | 密码（quickstart dev 缺省） | 邮箱 | 手机 |
-|--------|------|------|------|
-| `admin` | `Admin123456` | admin@example.com | 13800000000 |
-
-- 前端登录地址：`http://localhost:3000`（op 模式下自动跳 `/iam/login` 账密页）。
-- 忘记密码：无法从库反查（bcrypt 存储），需重置 `iam_person.password_encrypted`（bcrypt cost 10）或清库重走 `/iam/install`。
-- 若库中尚无任何账号：先走 `/iam/install` 初始化（见下一节），初始密码由初始化者自设。
-
-**/install 初始化**（op，需引导令牌，头 `X-Bootstrap-Token`，值取环境变量 `BOOTSTRAP_TOKEN` 或配置 `install.bootstrapToken`）：
-
-```bash
-# 状态（公开只读）
-curl -s http://localhost:8099/iam/install/status
-# 初始化平台管理员（口令有强度校验；adminEmail/adminPhone 至少一项）
-curl -s -X POST http://localhost:8099/iam/install/initialize \
-  -H 'Content-Type: application/json' -H "X-Bootstrap-Token: $BOOTSTRAP_TOKEN" \
-  -d '{"adminUsername":"admin","adminPassword":"Admin123456","adminEmail":"admin@example.com","tenantName":"Acme"}'
-```
-
-**rp 联调**：`config.yaml` 设 `iam.mode: rp` + `issuer`（远端 ark-iam），前端设 `VITE_IAM_MODE=rp` + `VITE_OIDC_ISSUER` + `VITE_OIDC_CLIENT_ID`；不建库、不挂 `/iam/*`，登录跳远端 ark-iam。
-
-**校验三态装配**（单测覆盖）：disabled 无中间件/零副作用；op 有 KeySource；rp 用 `rp.NewKeys`（mock JWKS）；非法 `mode` 报错。
-
-> 验证矩阵与端到端实际结果见 [.dsh/docs/notes/2026-11-09-acceptance-report.md](../../.dsh/docs/notes/2026-11-09-acceptance-report.md)。
+> **rp 联调**：`config.yaml` 设 `iam.mode: rp` + `issuer`（远端 ark-iam）+ `audience`；前端设
+> `VITE_OIDC_ISSUER` + `VITE_OIDC_CLIENT_ID`。不建库、不挂 `/iam/*`，登录跳外部 ark-iam。
+> 需要本地自举 IAM（op 能力）请移步 ark-iam 仓库：<https://github.com/morehao/ark-iam>。

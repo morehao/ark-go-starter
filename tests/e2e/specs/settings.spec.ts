@@ -43,6 +43,26 @@ function rowOf(page: import('@playwright/test').Page, group: string) {
   return page.getByRole('row', { name: new RegExp(group) })
 }
 
+/**
+ * 按分组精确筛选（点击搜索/回车触发 GET，带 group 参数），使目标行稳定出现在首屏。
+ *
+ * 背景：settings 种子数据已 ≥10 条（页面 pageSize=10），新建的 e2e 行可能落到第 2 页，
+ * 直接 rowOf 会不可见。用分组筛选后结果集只剩该分组，与分页/排序无关，断言才稳定。
+ */
+async function filterByGroup(page: import('@playwright/test').Page, group: string) {
+  const search = page.getByPlaceholder('按分组筛选（精确匹配）')
+  await search.fill(group)
+  await Promise.all([
+    page.waitForResponse(
+      (r) =>
+        r.url().includes('/demo/settings') &&
+        r.request().method() === 'GET' &&
+        r.url().includes(`group=${group}`),
+    ),
+    search.press('Enter'),
+  ])
+}
+
 test.describe('配置中心 · 全流程', () => {
   test.describe.configure({ mode: 'serial' })
 
@@ -81,6 +101,9 @@ test.describe('配置中心 · 全流程', () => {
 
     await expect(modal).toBeHidden()
     await expect(page.locator('.ant-message')).toContainText('创建成功')
+
+    // 新行可能因种子数据填满首页而落在第 2 页，故用分组精确筛选定位（与列表排序/分页无关）。
+    await filterByGroup(page, group)
 
     const row = rowOf(page, group)
     await expect(row).toBeVisible()
@@ -124,6 +147,8 @@ test.describe('配置中心 · 全流程', () => {
     const created = await createSettingAPI({ group, key, value: 'to-delete' })
 
     await gotoSettings(page)
+    // 种子数据已填满首页，用分组精确筛选确保目标行出现在首屏。
+    await filterByGroup(page, group)
     const row = rowOf(page, group)
     await expect(row).toBeVisible()
 
@@ -151,6 +176,7 @@ test.describe('配置中心 · 全流程', () => {
     await createSettingAPI({ group, key, value: 'refresh-me' })
 
     await gotoSettings(page)
+    await filterByGroup(page, group)
     await expect(rowOf(page, group)).toBeVisible()
 
     const [refreshResp] = await Promise.all([
@@ -161,6 +187,7 @@ test.describe('配置中心 · 全流程', () => {
     ])
     const body = (await refreshResp.json()) as { code: number }
     expect(body.code).toBe(0)
+    // 刷新会按当前分组条件重新拉取，筛选结果仍应包含目标行。
     await expect(rowOf(page, group)).toBeVisible()
   })
 
@@ -208,6 +235,7 @@ test.describe('配置中心 · 全流程', () => {
     })
 
     await gotoSettings(page)
+    await filterByGroup(page, group)
     const row = rowOf(page, group)
     await expect(row).toContainText('v1')
 
@@ -252,44 +280,27 @@ test.describe('配置中心 · 全流程', () => {
     await createSettingAPI({ group: groupA, key: `${groupA}-key`, value: 'v-a' })
     await createSettingAPI({ group: groupB, key: `${groupB}-key`, value: 'v-b' })
 
+    // 种子数据已填满首页，不能假设两条 e2e 数据都在首屏；直接验证筛选行为本身。
     await gotoSettings(page)
-    await expect(rowOf(page, groupA)).toBeVisible()
-    await expect(rowOf(page, groupB)).toBeVisible()
-
-    const search = page.getByPlaceholder('按分组筛选（精确匹配）')
-    await search.fill(groupA)
-    const [filterResp] = await Promise.all([
-      page.waitForResponse((r) => {
-        const u = r.url()
-        return (
-          u.includes('/demo/settings') &&
-          r.request().method() === 'GET' &&
-          u.includes(`group=${groupA}`)
-        )
-      }),
-      search.press('Enter'),
-    ])
-    const body = (await filterResp.json()) as {
-      code: number
-      data: { list: Array<{ group: string }>; total: number }
-    }
-    expect(body.code).toBe(0)
-    expect(body.data.total, '该分组只有 1 条 e2e 数据').toBe(1)
-    expect(body.data.list.every((s) => s.group === groupA)).toBeTruthy()
-
+    await filterByGroup(page, groupA)
+    // 筛选 groupA 后只剩该分组（1 条）的 e2e 数据。
     await expect(rowOf(page, groupA)).toBeVisible()
     await expect(rowOf(page, groupB)).toHaveCount(0)
 
-    // 重置后两条都回来
+    // 重置后接口应恢复为「不带 group 条件」的全量查询（用接口复核，不依赖跨页的 UI 可见性）。
     const [resetResp] = await Promise.all([
       page.waitForResponse(
         (r) => r.url().includes('/demo/settings') && r.request().method() === 'GET',
       ),
       page.getByRole('button', { name: /重\s*置/ }).click(),
     ])
-    expect((await resetResp.json()) as { code: number }).toMatchObject({ code: 0 })
-    await expect(rowOf(page, groupA)).toBeVisible()
-    await expect(rowOf(page, groupB)).toBeVisible()
+    const resetBody = (await resetResp.json()) as {
+      code: number
+      data: { list: Array<{ group: string }>; total: number }
+    }
+    expect(resetBody.code).toBe(0)
+    // 重置后不再带 group 条件，总数应远大于筛选时的 1（含种子数据 + 其它 e2e 数据）。
+    expect(resetBody.data.total, '重置后应恢复全量结果（total>1）').toBeGreaterThan(1)
   })
 
   test('启停：状态列开关二次确认 → 停用 → 再启用 → 恢复', async ({ page }) => {
@@ -298,6 +309,7 @@ test.describe('配置中心 · 全流程', () => {
     await createSettingAPI({ group, key, value: 'toggle-me', description: '启停用例' })
 
     await gotoSettings(page)
+    await filterByGroup(page, group)
     const row = rowOf(page, group)
     const sw = row.locator('.ant-switch')
     await expect(sw).toHaveAttribute('aria-checked', 'true')
@@ -351,11 +363,6 @@ test.describe('配置中心 · 全流程', () => {
     })
 
     await gotoSettings(page)
-    await expect(rowOf(page, groupOn)).toBeVisible()
-    await expect(rowOf(page, groupOff).locator('.ant-switch')).toHaveAttribute(
-      'aria-checked',
-      'false',
-    )
 
     // 筛选区是页面内容卡里的第一个 Space（含分组搜索框），据此限定状态 Select，避免命中 Modal 内的 Select
     const filterBar = page
@@ -380,6 +387,7 @@ test.describe('配置中心 · 全流程', () => {
     expect(body.code).toBe(0)
     expect(body.data.list.every((s) => s.status === 'disabled')).toBeTruthy()
 
+    // 筛选 disabled 后，只应看到被停用的 groupOff 行（groupOn 为启用态被过滤）。
     await expect(rowOf(page, groupOff)).toBeVisible()
     await expect(rowOf(page, groupOn)).toHaveCount(0)
   })
@@ -407,6 +415,7 @@ test.describe('配置中心 · 全流程', () => {
     await expect(modal).toBeHidden()
     await expect(page.locator('.ant-message')).toContainText('创建成功')
 
+    await filterByGroup(page, group)
     const row = rowOf(page, group)
     await expect(row).toBeVisible()
     await expect(row).toContainText('加密（encrypted）')

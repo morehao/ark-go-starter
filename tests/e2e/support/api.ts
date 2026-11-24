@@ -76,6 +76,18 @@ export async function listProducts(page = 1, pageSize = 50): Promise<{ list: Pro
   return res.data
 }
 
+/** 商品详情 GET /v1/demo/products/{id}。 */
+export async function getProduct(id: number): Promise<ProductItem & Record<string, unknown>> {
+  return callOK<ProductItem & Record<string, unknown>>('GET', `/v1/demo/products/${id}`)
+}
+
+/** 事务创建商品 POST /v1/demo/products/tx（同一事务内创建两条，firstName/secondName 均必填），返回两条商品 ID。 */
+export async function createProductInTx(firstName: string, secondName: string): Promise<number[]> {
+  const res = await call<{ productIDs: number[] }>('POST', '/v1/demo/products/tx', { firstName, secondName })
+  if (res.code !== 0) throw new Error(`create product(tx) failed: ${res.msg}`)
+  return res.data.productIDs
+}
+
 /** 清理所有名称以 e2e- 开头的商品（软删），用于 globalTeardown。 */
 export async function cleanupE2EProducts(): Promise<void> {
   const { list } = await listProducts(1, 100)

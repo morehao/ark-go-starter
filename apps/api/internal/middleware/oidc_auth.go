@@ -28,7 +28,7 @@ const (
 //
 // 抽象为接口便于在无 DB 环境下单测中间件；生产实现为 *iamlink.Svc。
 type LocalUserEnsurer interface {
-	EnsureLocalUser(ctx context.Context, iamUserID, personID string) (uint, error)
+	EnsureLocalUser(ctx context.Context, issuer, iamUserID, personID string) (uint, error)
 }
 
 // OIDCAuthOption 配置 OIDC 鉴权中间件。
@@ -36,7 +36,7 @@ type OIDCAuthOption func(*oidcAuthConfig)
 
 type oidcAuthConfig struct {
 	// keySource 是验签公钥来源；用 contract.KeySource（框架无关接口）斩断对 sdk 的依赖。
-	// 具体实现（op 形态的 sdk/server、rp 形态的 sdk/rp *Keys）由装配层注入。
+	// 具体实现（rp 形态的 sdk/rp *Keys）由装配层注入。
 	keySource contract.KeySource
 	issuer    string
 	// audiences 是本应用认可的 aud 集合；非空时验签强制校验 aud（rp 形态安全必需）。
@@ -123,7 +123,7 @@ func OIDCAuth(opts ...OIDCAuthOption) gin.HandlerFunc {
 			return
 		}
 
-		if err := injectIdentity(ctx, ident, tokenStr, cfg.localUsers); err != nil {
+		if err := injectIdentity(ctx, cfg.issuer, ident, tokenStr, cfg.localUsers); err != nil {
 			glog.Errorf(ctx, "[oidcauth] inject identity fail, err:%v, iamUserID:%s", err, ident.UserID)
 			abortUnauthorized(ctx, "resolve local user failed")
 			return
@@ -137,7 +137,8 @@ func buildVerifier(cfg *oidcAuthConfig) *rp.Verifier {
 	if cfg.keySource == nil {
 		return nil
 	}
-	opts := []rp.VerifierOption{}
+	// sdk/rp 默认已仅 RS256，这里显式固化意图（白名单只留 RS256）。
+	opts := []rp.VerifierOption{rp.WithAlgorithms("RS256")}
 	if cfg.issuer != "" {
 		opts = append(opts, rp.WithIssuer(cfg.issuer))
 	}
@@ -153,11 +154,14 @@ func buildVerifier(cfg *oidcAuthConfig) *rp.Verifier {
 // 关键：IAM 的 UserID 是 string，而业务侧 operator.Operator.UserID 与业务表审计列均为
 // BIGINT（uint）。这里经 iamlink.EnsureLocalUser 映射出 local_uid，写入可被
 // gincontext.GetUserID 按 uint 解析的字符串，避免审计列全 0。
-func injectIdentity(ctx *gin.Context, ident *rp.Identity, tokenStr string, localUsers LocalUserEnsurer) error {
+//
+// issuer 来自装配层配置（cfg.issuer，已用于精确校验 token 的 iss），作为映射联合键的一部分：
+// 不同 IDP 下相同的 sub 必须映射到不同的本地用户，避免跨 IDP 串号。
+func injectIdentity(ctx *gin.Context, issuer string, ident *rp.Identity, tokenStr string, localUsers LocalUserEnsurer) error {
 	if ident.UserID == "" {
 		return errors.New("token missing user_id")
 	}
-	localUID, err := localUsers.EnsureLocalUser(ctx.Request.Context(), ident.UserID, ident.PersonID)
+	localUID, err := localUsers.EnsureLocalUser(ctx.Request.Context(), issuer, ident.UserID, ident.PersonID)
 	if err != nil {
 		return err
 	}

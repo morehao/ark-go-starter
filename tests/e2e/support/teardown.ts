@@ -9,8 +9,8 @@ import { cleanupE2EDicts, cleanupE2EProducts, cleanupE2ESettings } from './api'
  * - cron/async 任务由后端代码注册、不由 e2e 创建，这里不需要清理。
  */
 export default async function globalTeardown(): Promise<void> {
-  // IAM 开启时业务接口走 OIDC fail-closed（免登录会 401），此免登录清理无意义且会产生噪音，
-  // 且 IAM 场景不通过免登录接口造 e2e- 数据，故直接跳过。
+  // 旧 op 形态下 IAM=ON 时业务接口走 OIDC fail-closed（免登录会 401），此免登录清理无意义，保留跳过。
+  // 注：op 已下线，iam-login.spec.ts 现整组 skip；默认 disabled 免登录下 E2E_IAM 恒不为 1，正常清理。
   if (process.env.E2E_IAM === '1') return
 
   for (const [name, fn] of [

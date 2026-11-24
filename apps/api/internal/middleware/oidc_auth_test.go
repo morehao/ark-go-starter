@@ -40,7 +40,7 @@ type fakeMapper struct {
 }
 
 // EnsureLocalUser 实现 middleware.LocalUserEnsurer。
-func (m *fakeMapper) EnsureLocalUser(_ context.Context, iamUserID, personID string) (uint, error) {
+func (m *fakeMapper) EnsureLocalUser(_ context.Context, _, iamUserID, personID string) (uint, error) {
 	m.gotPersonID = personID
 	if m.err != nil {
 		return 0, m.err

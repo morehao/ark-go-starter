@@ -75,27 +75,14 @@ file_storage:
     base_url: http://127.0.0.1:8099/v1/demo/objects
     sign_secret: demo-sign-secret
 
-# 可选接入 ark-iam（三态 mode）。
+# 可选接入 ark-iam（两态 mode）。
 #   mode: disabled  不接入（默认，零副作用）
-#   mode: op        本进程内嵌 OIDC Provider：建库、挂 /iam/*、签发/验签
-#   mode: rp        对接外部 ark-iam：仅本地验签（读 jwks_url/audience），不建库、不挂路由
-# 生产环境（env: prod）当 mode: op 时务必显式配置以下安全项，否则会 fail-closed 启动失败：
-#   - signing_key：OIDC 签名私钥 PEM（RSA/EC），用于签发 id_token / 验签；
-#   - encryption_key：会话/令牌加密密钥（≥32 字节随机串）；
-#   - cookie_secure：SSO 会话 cookie 的 Secure 标志，HTTPS 生产必须 true；
-#   - issuer：建议显式设为对外域名（https）。
-# 下方占位值务必替换为真实密钥，切勿把真实私钥提交入库（建议改用环境变量/密钥管理注入）。
-# 兼容旧开关：mode 留空且 enable: true 时按 op 处理（enable 已废弃，建议改用 mode）。
+#   mode: rp        对接外部 ark-iam（OIDC 本地验签，读 issuer/jwks_url/audience），不建库、不挂路由
+# 生产建议：issuer 显式设为外部 OP 的 https 域名；audience 填本应用 client_id。
+# 说明：内嵌 OP（mode: op）已下线；需本地自举 IAM 请使用 ark-iam 仓库（github.com/morehao/ark-iam）。
 iam:
-  mode: disabled              # 接入形态：disabled（默认）| op | rp
-  enable: false               # 旧二态开关（兼容）：mode 为空且为 true 时按 op
-  prefix: /iam                # IAM 挂载路由前缀（op 须与前端 basePath 一致）
-  dsn: ""                     # IAM 数据库 DSN（op），空则复用 db_configs 第一个库
-  redis_addr: ""              # IAM Redis 地址（op），空则复用 redis_config
-  redis_password: ""          # IAM Redis 密码（op），空则复用 redis_config
-  issuer: ""                  # OIDC issuer：op 空则按端口推导；rp 为外部 ark-iam 的 issuer；生产建议显式 https 域名
-  jwks_url: ""                # rp 形态的 JWKS 端点，空则按 issuer 推导
-  audience: ""                # rp 形态需校验的 token aud
-  signing_key: "REPLACE_WITH_PEM_PRIVATE_KEY"   # 签名私钥 PEM（op），非 dev 必填
-  encryption_key: "REPLACE_WITH_32_BYTE_RANDOM_SECRET"  # 加密密钥（op），非 dev 必填
-  cookie_secure: true         # 生产（HTTPS）必须 true（op）
+  mode: disabled              # 接入形态：disabled（默认，零副作用）| rp（对接外部 ark-iam 本地验签）
+  # rp 形态：外部 ark-iam 的 issuer（必填，用于校验 token 的 iss）。
+  issuer: ""                  # 例：https://iam.example.com/oidc
+  jwks_url: ""                # rp 形态的 JWKS 端点，空则由 issuer 走 discovery 推导
+  audience: ""                # rp 形态本应用 client_id，用于 aud 校验（建议必填，防其它应用 token 被误接受）

@@ -26,59 +26,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// setupIAMIntegrationEnv 初始化 DB/Redis 并写入一份启用内嵌 IAM（op 形态）的配置。
-func setupIAMIntegrationEnv(t *testing.T) *gin.Engine {
-	t.Helper()
-	testsetup.Initialize(testsetup.AppNameDemo)
-	t.Cleanup(func() { testsetup.Close(testsetup.AppNameDemo) })
-
-	prev := config.Conf
-	t.Cleanup(func() { config.Conf = prev })
-	// 加载真实配置（拿到 DBConfigs/RedisConfig），再打开 iam op 形态。
-	config.LoadConfig(integrationConfigPath(t))
-	config.Conf.IAM = config.IAMConfig{Mode: config.ModeOP, Prefix: "/iam"}
-
-	gin.SetMode(gin.TestMode)
-	return gin.New()
-}
-
-// integrationConfigPath 定位 app 配置文件：优先 config.test.yaml（仅提供 DB/Redis 等资源，
-// iam.mode 会在 setupIAMIntegrationEnv 里显式覆盖为 op）；无测试配置时回退生产 config.yaml。
-func integrationConfigPath(t *testing.T) string {
-	t.Helper()
-	return testsetup.TestConfigPath(testsetup.AppNameDemo)
-}
-
-// TestSetupIAMOPMountsRoutes op 形态：/iam/install 可达、/iam/config.json 可达、建表、KeySource 非空。
-func TestSetupIAMOPMountsRoutes(t *testing.T) {
-	engine := setupIAMIntegrationEnv(t)
-
-	closer, err := demo.SetupIAM(engine)
-	require.NoError(t, err, "op SetupIAM 应成功")
-	require.NotNil(t, closer, "op 应返回非 nil closer")
-	t.Cleanup(func() { _ = closer.Close() })
-	rt := demo.CurrentIAM()
-	require.NotNil(t, rt, "op 应设置 IAM 运行时")
-	assert.NotNil(t, rt.KeySource(), "op 形态必须产出非空 KeySource（供本地验签）")
-
-	// /install 域的公开只读入口是 /install/status（v0.5.0 起不再有裸 /install 路由）；
-	// /config.json 由 MountConfig 提供。二者都应可达（非 404）。
-	for _, path := range []string{"/iam/install/status", "/iam/config.json"} {
-		rec := httptest.NewRecorder()
-		engine.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
-		assert.NotEqual(t, http.StatusNotFound, rec.Code, "%s 应可达（非 404）", path)
-	}
-
-	// 建表校验：iam_ 前缀表应存在。
-	var cnt int64
-	err = dbclient.DemoDB(context.Background()).
-		Raw(`SELECT count(*) FROM information_schema.tables WHERE table_name LIKE 'iam_%'`).
-		Scan(&cnt).Error
-	require.NoError(t, err)
-	assert.Positive(t, cnt, "RunMigrations 应建出 iam_ 前缀表")
-	_ = rt
-}
-
 // mockJWKS 启动一个返回单条 RSA 公钥 JWKS 的假 OIDC 端点（/keys），并返回其 URL 与清理函数。
 func mockJWKS(t *testing.T) string {
 	t.Helper()
@@ -120,7 +67,7 @@ func TestSetupIAMRPMockJWKS(t *testing.T) {
 	jwksURL := mockJWKS(t)
 	config.Conf = &config.Config{
 		Server: config.Server{Name: "demo", Port: "8099", Env: "dev"},
-		IAM:    config.IAMConfig{Mode: config.ModeRP, Prefix: "/iam", JWKSURL: jwksURL, Issuer: "http://op.example/oidc"},
+		IAM:    config.IAMConfig{Mode: config.ModeRP, JWKSURL: jwksURL, Issuer: "http://op.example/oidc"},
 	}
 
 	gin.SetMode(gin.TestMode)
@@ -152,16 +99,18 @@ func TestSetupIAMRPMockJWKS(t *testing.T) {
 const ensureMapDDL = `
 CREATE SEQUENCE IF NOT EXISTS biz_iam_user_map_local_uid_seq AS BIGINT START WITH 1 INCREMENT BY 1;
 CREATE TABLE IF NOT EXISTS biz_iam_user_map (
-    iam_user_id VARCHAR(128) PRIMARY KEY,
+    issuer      VARCHAR(255) NOT NULL DEFAULT '',
+    iam_user_id VARCHAR(128) NOT NULL,
     local_uid   BIGINT NOT NULL DEFAULT nextval('biz_iam_user_map_local_uid_seq'),
     person_id   VARCHAR(128) NOT NULL DEFAULT '',
     created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (issuer, iam_user_id)
 );
 CREATE UNIQUE INDEX IF NOT EXISTS uk_biz_iam_user_map_local_uid ON biz_iam_user_map (local_uid);
 `
 
-// TestEnsureLocalUserIdempotent EnsureLocalUser 幂等：同一 IAM user 反复调用得到同一 local_uid。
+// TestEnsureLocalUserIdempotent EnsureLocalUser 幂等：同一 (issuer, user) 反复调用得到同一 local_uid。
 func TestEnsureLocalUserIdempotent(t *testing.T) {
 	testsetup.Initialize(testsetup.AppNameDemo)
 	t.Cleanup(func() { testsetup.Close(testsetup.AppNameDemo) })
@@ -169,25 +118,61 @@ func TestEnsureLocalUserIdempotent(t *testing.T) {
 	db := dbclient.DemoDB(context.Background())
 	require.NoError(t, db.Exec(ensureMapDDL).Error, "准备 biz_iam_user_map 失败")
 	t.Cleanup(func() {
-		db.Exec(`DELETE FROM biz_iam_user_map WHERE iam_user_id = ?`, "itest-user-X")
+		db.Exec(`DELETE FROM biz_iam_user_map WHERE issuer = ? AND iam_user_id = ?`, "https://idp-a.example", "itest-user-X")
+		db.Exec(`DELETE FROM biz_iam_user_map WHERE issuer = ? AND iam_user_id = ?`, "https://idp-a.example", "itest-user-Y")
+	})
+
+	svc := iamlink.NewSvc()
+	ctx := context.Background()
+	const issuer = "https://idp-a.example"
+
+	uid1, err := svc.EnsureLocalUser(ctx, issuer, "itest-user-X", "itest-person-X")
+	require.NoError(t, err)
+	require.NotZero(t, uid1, "local_uid 不应为 0")
+
+	uid2, err := svc.EnsureLocalUser(ctx, issuer, "itest-user-X", "itest-person-X")
+	require.NoError(t, err)
+	assert.Equal(t, uid1, uid2, "同一 (issuer, user) 应幂等返回同一 local_uid")
+
+	// 同一 issuer 下不同 IAM user 应得到不同 local_uid。
+	uid3, err := svc.EnsureLocalUser(ctx, issuer, "itest-user-Y", "itest-person-Y")
+	require.NoError(t, err)
+	assert.NotEqual(t, uid1, uid3, "不同 IAM user 应分配不同 local_uid")
+}
+
+// TestEnsureLocalUserIssuerIsolation 同一 sub 在不同 issuer 下应映射到不同的 local_uid
+// （(issuer, iam_user_id) 复合键防跨 IDP 串号）。
+func TestEnsureLocalUserIssuerIsolation(t *testing.T) {
+	testsetup.Initialize(testsetup.AppNameDemo)
+	t.Cleanup(func() { testsetup.Close(testsetup.AppNameDemo) })
+
+	db := dbclient.DemoDB(context.Background())
+	require.NoError(t, db.Exec(ensureMapDDL).Error, "准备 biz_iam_user_map 失败")
+	const issuerA = "https://idp-a.example"
+	const issuerB = "https://idp-b.example"
+	const sub = "itest-shared-sub"
+	t.Cleanup(func() {
+		db.Exec(`DELETE FROM biz_iam_user_map WHERE iam_user_id = ?`, sub)
 	})
 
 	svc := iamlink.NewSvc()
 	ctx := context.Background()
 
-	uid1, err := svc.EnsureLocalUser(ctx, "itest-user-X", "itest-person-X")
+	uidA, err := svc.EnsureLocalUser(ctx, issuerA, sub, "person-a")
 	require.NoError(t, err)
-	require.NotZero(t, uid1, "local_uid 不应为 0")
+	require.NotZero(t, uidA)
 
-	uid2, err := svc.EnsureLocalUser(ctx, "itest-user-X", "itest-person-X")
+	uidB, err := svc.EnsureLocalUser(ctx, issuerB, sub, "person-b")
 	require.NoError(t, err)
-	assert.Equal(t, uid1, uid2, "同一 IAM user 应幂等返回同一 local_uid")
+	require.NotZero(t, uidB)
 
-	// 不同 IAM user 应得到不同 local_uid。
-	uid3, err := svc.EnsureLocalUser(ctx, "itest-user-Y", "itest-person-Y")
+	assert.NotEqual(t, uidA, uidB, "同一 sub 在不同 issuer 下必须映射到不同 local_uid（防串号）")
+
+	// 再次调用各自应幂等命中（缓存/DB 都按 (issuer, sub) 定位）。
+	againA, err := svc.EnsureLocalUser(ctx, issuerA, sub, "person-a")
 	require.NoError(t, err)
-	assert.NotEqual(t, uid1, uid3, "不同 IAM user 应分配不同 local_uid")
-	t.Cleanup(func() {
-		db.Exec(`DELETE FROM biz_iam_user_map WHERE iam_user_id = ?`, "itest-user-Y")
-	})
+	assert.Equal(t, uidA, againA)
+	againB, err := svc.EnsureLocalUser(ctx, issuerB, sub, "person-b")
+	require.NoError(t, err)
+	assert.Equal(t, uidB, againB)
 }
