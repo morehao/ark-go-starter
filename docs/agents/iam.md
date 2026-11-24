@@ -135,7 +135,7 @@ default: // disabled
 > `(issuer, iam_user_id)`，`pkg/iamlink` 的缓存 key 也需带上 issuer。本文档描述以升级后口径为准。
 
 - 写入走**幂等 JIT upsert**（首次登录即插即映射，`ON CONFLICT ... DO UPDATE ... RETURNING local_uid`），单语句原子、并发安全。
-- 首次登录自动分配 `local_uid`，已存在则原样返回；`pkg/iamlink.Svc.EnsureLocalUser` 是唯一入口（带 Redis 缓存）。
+- 首次登录自动分配 `local_uid`，已存在则原样返回；`pkg/iamlink.Svc.EnsureLocalUser` 是唯一入口（带**可选** Redis 缓存，无 Redis 时自动回源 DB，见 §6「Redis 依赖边界」）。
 - **边界**：本地 `local_uid` 与业务表主键是两套 ID 空间——映射表只负责把「谁」投影成本地 uint，业务侧对 IAM 零感知。
 - **不建任何 `iam_` 表**：rp 形态下 IAM 域表在外部 ark-iam 那边；本仓 `table_init.sql` 只管业务表与 `biz_iam_user_map`。
 
@@ -166,6 +166,17 @@ require (
 
 - **不再依赖 `sdk/server`**（op 服务端随下线移除）。
 - 版本号以后续 ark-iam 发布为准；`make test` 与 `make lint` 均基于已发布版本，CI 无需特殊处理。
+
+### Redis 依赖边界（重要）
+
+- **rp 接入 ark-iam 不需要 ark-iam 的 Redis**：`rp.NewKeys` / `rp.NewVerifier` 是**无状态本地验签**
+  （JWKS 缓存在进程内存，按 TTL 后台刷新），源码不引用任何 Redis。ark-iam 的 Redis 只属于已下线的
+  op（服务端）本身——那是另一套、与 rp 无关的基础设施。
+- **本仓 `iamlink` 的 Redis 缓存是可选的、fail-open**：它缓存 `(issuer, iam_user_id) → local_uid` 映射
+  以提速，`dbclient.RedisCli == nil`（未配置 Redis）时自动**回源 DB**，功能不受影响，仅每次鉴权多一次
+  查询。属于本仓库自己的 Redis，非 ark-iam 的。
+- 一句话：**作为 RP，两个 Redis 都不是硬依赖**——ark-iam 的 Redis 完全不涉及，本仓 iamlink 缓存缺省
+  也能正常工作。
 
 ---
 
