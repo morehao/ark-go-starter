@@ -34,6 +34,8 @@ const MENU_GROUPS: { title: string; items: { key: string; label: string }[] }[] 
       { key: 'products', label: '商品管理' },
       { key: 'dicts', label: '数据字典' },
       { key: 'settings', label: '配置中心' },
+      // <codegen:menu>
+      // ↑ 由 gocli 代码生成器维护（在此插入 `{ key, label }` 菜单项，归属上方分组），请勿删除本注释。
     ],
   },
   {
@@ -48,8 +50,6 @@ const MENU_GROUPS: { title: string; items: { key: string; label: string }[] }[] 
     title: '系统',
     items: [{ key: 'files', label: '文件上传' }],
   },
-  // <codegen:menu>
-  // ↑ 由 gocli 代码生成器维护（在此插入 `{ key, label }` 菜单项），请勿删除本注释。
 ]
 
 const MENU_LABELS: Record<string, string> = Object.fromEntries(
