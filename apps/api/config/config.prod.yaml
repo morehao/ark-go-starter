@@ -79,7 +79,6 @@ file_storage:
 #   mode: disabled  不接入（默认，零副作用）
 #   mode: rp        对接外部 ark-iam（OIDC 本地验签，读 issuer/jwks_url/audience），不建库、不挂路由
 # 生产建议：issuer 显式设为外部 OP 的 https 域名；audience 填本应用 client_id。
-# 说明：内嵌 OP（mode: op）已下线；需本地自举 IAM 请使用 ark-iam 仓库（github.com/morehao/ark-iam）。
 iam:
   mode: disabled              # 接入形态：disabled（默认，零副作用）| rp（对接外部 ark-iam 本地验签）
   # rp 形态：外部 ark-iam 的 issuer（必填，用于校验 token 的 iss）。

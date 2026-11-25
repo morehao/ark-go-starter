@@ -85,13 +85,13 @@ func (c IAMConfig) EffectiveMode() string {
 	return ModeDisabled
 }
 
-// Validate 校验接入形态是否合法（仅接受 disabled/rp）。disabled 恒合法；op 已下线。
+// Validate 校验接入形态是否合法（仅接受 disabled/rp）。
 func (c IAMConfig) Validate() error {
 	switch c.EffectiveMode() {
 	case ModeDisabled, ModeRP:
 		return nil
 	default:
-		return fmt.Errorf("invalid iam.mode %q: op 已下线，请使用 disabled 或 rp", c.Mode)
+		return fmt.Errorf("invalid iam.mode %q: only disabled/rp supported", c.Mode)
 	}
 }
 

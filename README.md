@@ -45,7 +45,7 @@ make quickstart-verify IAM_ADMIN_USER=admin IAM_ADMIN_PASS='<your password>'
 * **Docker Support**: Includes a basic `Dockerfile` for containerized deployment.
 * **Makefile Toolchain**: Provides a rich set of make commands to simplify code build, run, generation, Swagger docs, Docker deployment, and frontend startup.
 * **Growing Golib Library**: Common utility components are abstracted and reusable via the [golib](https://github.com/morehao/golib) package.
-* **Optional Account Auth (ark-iam, three modes)**: Choose via `iam.mode` — `disabled` (no auth), `op` (embed an OIDC Provider in this process — this project *is* the IAM), or `rp` (delegate to an external ark-iam, local verify only). **The shipped dev config (`apps/api/config/config.yaml`) uses `op`, so login is enforced** (quickstart prints the admin credentials); the shipped prod config uses `disabled`, and an empty `mode` also falls back to `disabled`. See [docs/agents/iam.md](./docs/agents/iam.md).
+* **Optional Account Auth (ark-iam, two modes)**: Choose via `iam.mode` — `disabled` (no auth, the default) or `rp` (delegate to an external ark-iam, local OIDC verify only). The auth middleware is split into a generic gin adapter (`pkg/oidcmw`, Bearer → `rp.Verifier.Verify` → `rp.WithIdentity`) and a local identity mapping layer (`pkg/iamlink/middleware.go`, IAM string → BIGINT). **The shipped dev and prod configs both use `disabled`**, and an empty `mode` also falls back to `disabled`. See [docs/agents/iam.md](./docs/agents/iam.md).
 
 ---
 
@@ -68,7 +68,7 @@ Follows [project-layout](https://github.com/golang-standards/project-layout). Cu
 │   │   └── object              # Base objects
 │   └── web                     # React frontend app (Vite + React + AntD, :3000)
 ├── packages                    # Shared frontend packages (api / api-client / types / ui / tsconfig)
-├── pkg                         # Shared Go layer (code / dbclient / testsetup / token / ginhelper / iamlink / operator)
+├── pkg                         # Shared Go layer (code / dbclient / testsetup / token / ginhelper / oidcmw / iamlink / operator)
 ├── tests
 │   └── e2e                     # E2E tests (Playwright specs + A4 golden)
 ├── scripts                     # Repo-level scripts (quickstart.sh)

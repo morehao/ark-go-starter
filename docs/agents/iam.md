@@ -64,8 +64,9 @@ iam:
 |------|------|
 | `config/config.go`（`IAMConfig`） | iam 配置结构、`Validate()`、`EffectiveMode()` 归一（`disabled`/`rp`） |
 | `iam_setup.go`（`SetupIAM`） | 单一装配入口：按 `mode` 分派 disabled / rp，返回 `io.Closer` |
-| `app.go`（`buildAuthMiddleware`） | rp 时装配 `OIDCAuth` 中间件；disabled 回落 dev 演示身份 |
-| `internal/middleware/oidc_auth.go` | 业务接口 OIDC 本地验签中间件（依赖 `contract.KeySource`） |
+| `app.go`（`buildAuthMiddlewares`） | rp 时返回两层鉴权链 `oidcmw.OIDCAuth` + `iamlink.Middleware`；disabled 回落 dev 演示身份 |
+| `pkg/oidcmw/*` | 通用 gin+OIDC 薄适配（取 Bearer → `rp.Verifier.Verify` → `rp.WithIdentity` 注入身份），只依赖 `sdk/rp`+`contract`，不含业务语义 |
+| `pkg/iamlink/middleware.go` | 从 `rp.IdentityFrom` 取 identity → `EnsureLocalUser` → 写 `gcontext.Key*`（IAM string → 本地 BIGINT 映射） |
 | `pkg/iamlink/*` | IAM string 身份 ↔ 本地 BIGINT 用户 ID 的映射层 |
 
 **`SetupIAM`（`iam_setup.go`）两态分派**：
@@ -91,33 +92,49 @@ currentIAM = rt
 ```
 
 > **重点**：本模板复用的是 ark-iam 的**验签引擎**（`sdk/rp` 的 `rp.NewKeys` + `rp.NewVerifier`、
-> `contract.KeySource` 契约接口），**而不是 ark-iam 的框架/路由**。鉴权中间件 `OIDCAuth` 是**本仓自研**的
-> （`apps/api/internal/middleware/oidc_auth.go`），只依赖框架无关的 `contract.KeySource` 接口，从而斩断对
-> `sdk/server` 的依赖。
+> `contract.KeySource` 契约接口），**而不是 ark-iam 的框架/路由**。鉴权拆成两层、均为**本仓自研**：
+> `pkg/oidcmw`（通用 gin 适配，取 token → `rp.Verifier.Verify` → `rp.WithIdentity` 注入身份 → fail-closed 401）
+> 与 `pkg/iamlink/middleware.go`（从 `rp.IdentityFrom` 取 identity → `EnsureLocalUser` → 写 `gcontext.Key*`，
+> 完成 string→BIGINT 映射）。前者只依赖框架无关的 `contract.KeySource` 接口，从而斩断对 `sdk/server` 的依赖。
 
-**中间件装配（`app.go` 的 `buildAuthMiddleware`）**：
+**中间件装配（`app.go` 的 `buildAuthMiddlewares`）**：返回 `[]gin.HandlerFunc`，rp 时拼接「验签 + 映射」两层：
 
 ```go
-case config.ModeRP:
-    rt := CurrentIAM()
-    if rt == nil { panic("iam enabled but runtime nil") }   // fail-closed
-    return middleware.OIDCAuth(
-        middleware.WithOIDCKeySource(rt.keySource),
-        middleware.WithOIDCIssuer(rt.issuer),
-        middleware.WithLocalUserMapper(iamlink.NewSvc()),
-        middleware.WithOIDCSkipPaths("/"+AppName+"/docs", "/v1/"+AppName+"/health"),
-    )
-default: // disabled
-    if config.Conf.Server.Env == "dev" { return middleware.DemoIdentity() }
+func buildAuthMiddlewares() []gin.HandlerFunc {
+    if config.Conf.IAM.EffectiveMode() == config.ModeRP {
+        rt := CurrentIAM()
+        if rt == nil { panic("iam enabled but runtime is nil") }   // fail-closed
+
+        // 验签器在装配层构造一次（RS256 + iss + aud）；中间件只负责取 token + 调 SDK。
+        verifierOpts := []rp.VerifierOption{rp.WithAlgorithms("RS256")}
+        if rt.issuer != "" {
+            verifierOpts = append(verifierOpts, rp.WithIssuer(rt.issuer))
+        }
+        if config.Conf.IAM.Audience != "" {
+            verifierOpts = append(verifierOpts, rp.WithAudiences(config.Conf.IAM.Audience))
+        }
+        verifier := rp.NewVerifier(rt.KeySource(), verifierOpts...)
+
+        oidcMW := oidcmw.OIDCAuth(verifier,
+            oidcmw.WithSkipPaths("/"+AppName+"/docs", "/v1/"+AppName+"/health"),
+        )
+        iamMW := iamlink.Middleware(rt.issuer)                     // 从 rp.IdentityFrom 取 identity 映射并写 gcontext.Key*
+        return []gin.HandlerFunc{oidcMW, iamMW}
+    }
+    // disabled：dev 回落演示身份；非 dev 返回 nil（无身份）
+    if config.Conf.Server.Env == "dev" {
+        return []gin.HandlerFunc{middleware.DemoIdentity()}
+    }
     return nil
+}
 ```
 
 **验签流程**（挂在 `/{AppName}/v1` 业务路由组）：
 
-1. 取 `Authorization: Bearer <access_token>`；缺失 → **401**（fail-closed）。
-2. 用 `contract.KeySource`（远端 JWKS 缓存）**本地验签**，校验 `iss == issuer`；失败/过期/`aud` 不匹配 → 401。
-3. 得到 `rp.Identity`（string UserID）→ 经 `iamlink.EnsureLocalUser` 映射出 `local_uid`（uint）→ 写
-   `gcontext.KeyUserID`、`KeyPersonID`、`KeyAuthToken`；映射失败 → 401。
+1. 取 `Authorization: Bearer <access_token>`；缺失 → **401**（fail-closed）。（`pkg/oidcmw`）
+2. 用 `contract.KeySource`（远端 JWKS 缓存）**本地验签**，校验 `iss == issuer`；失败/过期/`aud` 不匹配 → 401，成功后 `rp.WithIdentity` 把 `rp.Identity` 注入 request context。（`pkg/oidcmw`）
+3. 从 `rp.IdentityFrom(ctx)` 取回 `rp.Identity`（string UserID）→ 经 `iamlink.EnsureLocalUser` 映射出 `local_uid`（uint）→ 写
+   `gcontext.KeyUserID`、`KeyPersonID`、`KeyAuthToken`；映射失败 → 401。（`pkg/iamlink/middleware.go`）
 4. 业务侧 `ginhelper.FillOperator` 照旧按 uint 解析，**审计列非 0**。
 
 ---
