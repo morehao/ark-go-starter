@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/gin-gonic/gin"
 	"github.com/morehao/ark-go-starter/apps/api/config"
 	"github.com/morehao/ark-iam/contract"
 	"github.com/morehao/ark-iam/sdk/rp"
@@ -65,9 +64,8 @@ type IAMRuntime = iamRuntime
 // 非法 mode（如 Mode:"bogus"，或已下线的 op）经 Validate 报错返回。返回的 io.Closer 供
 // cmd/main.go defer 关闭；disabled 时为 nil。
 //
-// 注意：op 下线后 disabled/rp 两态均不再向 engine 挂载任何路由，故 engine 参数当前未被使用；
-// 保留该参数以维持装配点签名稳定（未来若 rp 需挂载 /config.json 等运行期配置可直接复用）。
-func SetupIAM(_ *gin.Engine) (io.Closer, error) {
+// 注意：disabled/rp 两态均不向 engine 挂载任何路由，故不再接收 engine 参数。
+func SetupIAM() (io.Closer, error) {
 	cfg := config.Conf.IAM
 	// 先校验再分派：非法 mode 明确报错，避免静默回落成 disabled。
 	if err := cfg.Validate(); err != nil {

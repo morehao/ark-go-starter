@@ -4,6 +4,9 @@ go 1.27.4
 
 require (
 	github.com/gin-gonic/gin v1.12.0
+	github.com/golang-jwt/jwt/v5 v5.3.1
+	github.com/morehao/ark-iam/contract v0.1.0
+	github.com/morehao/ark-iam/sdk v0.7.0
 	github.com/morehao/golib v1.39.2
 	github.com/oapi-codegen/runtime v1.6.0
 	github.com/redis/go-redis/v9 v9.23.0

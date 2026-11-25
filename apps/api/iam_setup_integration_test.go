@@ -73,7 +73,7 @@ func TestSetupIAMRPMockJWKS(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	engine := gin.New()
 
-	closer, err := demo.SetupIAM(engine)
+	closer, err := demo.SetupIAM()
 	require.NoError(t, err, "rp SetupIAM 应成功（JWKS 预取成功）")
 	require.NotNil(t, closer, "rp 应返回非 nil closer")
 	t.Cleanup(func() { _ = closer.Close() })
@@ -88,11 +88,9 @@ func TestSetupIAMRPMockJWKS(t *testing.T) {
 	assert.NotNil(t, pub)
 
 	// rp 不挂任何 /iam/* 路由（不建库、不 Mount）。
-	for _, path := range []string{"/iam/install/status", "/iam/config.json", "/iam/oidc"} {
-		rec := httptest.NewRecorder()
-		engine.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
-		assert.Equal(t, http.StatusNotFound, rec.Code, "rp 时 %s 不应挂载", path)
-	}
+	rec := httptest.NewRecorder()
+	engine.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/iam/install/status", nil))
+	assert.Equal(t, http.StatusNotFound, rec.Code, "rp 时不应挂载任何 IAM 路由")
 }
 
 // ensureMapDDL 幂等地创建 biz_iam_user_map（与 scripts/sql/table_init.sql 一致）。

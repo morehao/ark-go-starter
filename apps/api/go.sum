@@ -150,6 +150,8 @@ github.com/morehao/ark-iam/contract v0.1.0 h1:O6Uokvt7T3hcR7sNF1fszwzQsd/NSNeLuk
 github.com/morehao/ark-iam/contract v0.1.0/go.mod h1:Bhg5Qbszltjymv2KkXFKEBLxY44znGQFJobRuyV8Zio=
 github.com/morehao/ark-iam/sdk v0.6.2 h1:tA/QtZ+sm3rhw2T7w4GQw7KmXuzMU0XOG+YgC9aqggM=
 github.com/morehao/ark-iam/sdk v0.6.2/go.mod h1:Rok1sRMFzm0WXNdWOJN9DBds5KqBQTv+MnmthSUpiRE=
+github.com/morehao/ark-iam/sdk v0.7.0 h1:fkp6vQ1Vx5DNuTDui/9iYs1w0fPrwrdmiW8KQyw9WdU=
+github.com/morehao/ark-iam/sdk v0.7.0/go.mod h1:Fu8OpCwvOcQYMJRMOxYOSpLl1dEeomI2W7DNk3pe+PI=
 github.com/morehao/golib v1.39.2 h1:cc4EMWoXh6tjzq7k4bStV7cgVhegBalBVFF0yk9OoQQ=
 github.com/morehao/golib v1.39.2/go.mod h1:zwBhE1Uq7tBjLrlBNqbpsc8dA9RV67jiIF+Du03UHho=
 github.com/ncruces/go-sqlite3 v0.38.0 h1:FSy3sxWTaGPzTZgE9mkM+bo6b4Kj0iTvsDjJz2IfB84=

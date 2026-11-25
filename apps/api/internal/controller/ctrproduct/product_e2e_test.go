@@ -29,6 +29,7 @@ import (
 	"github.com/morehao/ark-go-starter/apps/api/model"
 	"github.com/morehao/ark-go-starter/pkg/dbclient"
 	"github.com/morehao/ark-go-starter/pkg/iamlink"
+	"github.com/morehao/ark-go-starter/pkg/oidcmw"
 	"github.com/morehao/ark-go-starter/pkg/testsetup"
 	"github.com/morehao/ark-iam/contract"
 	"github.com/morehao/ark-iam/sdk/rp"
@@ -89,18 +90,15 @@ func newTokenEngine(t *testing.T) (*gin.Engine, *tokenIssuer) {
 	t.Cleanup(ks.Close)
 
 	const issuer = "http://localhost:8099/iam/oidc"
-	authMW := middleware.OIDCAuth(
-		middleware.WithOIDCKeySource(ks),
-		middleware.WithOIDCIssuer(issuer),
-		middleware.WithOIDCSkipPaths("/v1/demo/health"),
-		middleware.WithLocalUserMapper(iamlink.NewSvc()),
-	)
+	verifier := rp.NewVerifier(ks, rp.WithAlgorithms("RS256"), rp.WithIssuer(issuer))
+	oidcMW := oidcmw.OIDCAuth(verifier, oidcmw.WithSkipPaths("/v1/demo/health"))
+	iamMW := iamlink.Middleware(issuer, iamlink.WithLocalUserEnsurer(iamlink.NewSvc()))
 
 	gin.SetMode(gin.TestMode)
 	engine := gin.New()
 	engine.Use(gin.Recovery())
 	grp := engine.Group("/v1/demo")
-	grp.Use(authMW)
+	grp.Use(oidcMW, iamMW)
 	productCtr := ctrproduct.NewProductCtr()
 	grp.POST("/products", productCtr.Create)
 	grp.POST("/products/tx", productCtr.CreateInTx)
