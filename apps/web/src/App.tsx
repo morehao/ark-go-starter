@@ -8,6 +8,8 @@ import CronPage from './pages/Cron'
 import AsyncPage from './pages/Async'
 import HealthPage from './pages/Health'
 import FilesPage from './pages/Files'
+// <codegen:imports>
+// ↑ 由 gocli 代码生成器维护（generate frontend page / fullstack 会在此下方插入页面 import），请勿删除本注释。
 
 const { Sider, Header, Content } = Layout
 
@@ -20,6 +22,8 @@ const PAGES: Record<string, () => React.JSX.Element> = {
   async: AsyncPage,
   health: HealthPage,
   files: FilesPage,
+  // <codegen:pages>
+  // ↑ 由 gocli 代码生成器维护（在此插入 `key: XxxPage` 映射），请勿删除本注释。
 }
 
 /** 侧栏分组：组名 + 组内菜单项（key / 标签 / 所属分组） */
@@ -30,6 +34,8 @@ const MENU_GROUPS: { title: string; items: { key: string; label: string }[] }[] 
       { key: 'products', label: '商品管理' },
       { key: 'dicts', label: '数据字典' },
       { key: 'settings', label: '配置中心' },
+      // <codegen:menu>
+      // ↑ 由 gocli 代码生成器维护（在此插入 `{ key, label }` 菜单项，归属上方分组），请勿删除本注释。
     ],
   },
   {
