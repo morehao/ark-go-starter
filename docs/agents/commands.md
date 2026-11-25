@@ -97,7 +97,13 @@ make codegen APP=demo COMMAND=module
 
 # 生成模型代码
 make codegen APP=demo COMMAND=model
+
+# 一次性生成后端模块 + 前端页面（gocli 新能力）
+make codegen APP=demo COMMAND=fullstack
 ```
+
+> gocli 自 v1.32.10 起命令重组为 `generate backend {module|model|endpoint}` / `frontend page` / `fullstack`；
+> `make codegen` 保留了 `api|module|model` 对用户的用法，内部自动映射（`api`→`endpoint`）。
 
 ## Swagger 文档
 

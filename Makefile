@@ -225,16 +225,33 @@ swag:
 	@echo "✅ Swagger 文档已生成：apps/$(APP_DIR)/docs"
 
 # gocli 版本：模板已切换为 RESTful kebab-case 复数资源路由风格
-CLI_VERSION := v1.32.6
+CLI_VERSION := v1.32.10
 CLI_PKG     := github.com/morehao/gocli
 
+# gocli 命令映射：对外保留 COMMAND=api|module|model，内部映射到新命令树
+# （gocli v1.32.9 起：generate module|model|api 已重组为 generate backend {module|model|endpoint}）
+#   module   -> generate backend module
+#   model    -> generate backend model
+#   api      -> generate backend endpoint   （单接口，新命令名 endpoint）
+#   endpoint -> generate backend endpoint   （也接受新名）
+#   fullstack / frontend-page -> 直接透传（可选新能力）
+define run_codegen
+	@case "$(1)" in \
+		module)   gocli generate backend module   -a $(2) ;; \
+		model)    gocli generate backend model    -a $(2) ;; \
+		api|endpoint) gocli generate backend endpoint -a $(2) ;; \
+		fullstack) gocli generate fullstack -a $(2) ;; \
+		*) echo "❌ 未知 COMMAND=$(1)；支持：api|module|model|endpoint|fullstack" && exit 1 ;; \
+	esac
+endef
+
 # 代码生成（API / module / model 等）
-# 用法：make codegen APP=demoapp COMMAND=api
+# 用法：make codegen APP=demoapp COMMAND=api|module|model
 codegen:
 	$(call validate_app)
 	@if [ -z "$(COMMAND)" ]; then \
 		echo "❌ 请使用 COMMAND 参数指定生成命令，例如：make codegen APP=$(APP) COMMAND=api"; \
-		echo "   支持的命令：api, module, model"; \
+		echo "   支持的命令：api(=endpoint), module, model, fullstack（内部映射到 gocli 新命令树）"; \
 		exit 1; \
 		fi
 	@if ! command -v gocli >/dev/null 2>&1; then \
@@ -251,7 +268,7 @@ codegen:
 		fi; \
 	fi
 	@echo "🔧 开始生成代码：APP=$(APP)，COMMAND=$(COMMAND)"
-	@gocli generate $(COMMAND) -a $(APP)
+	@$(call run_codegen,$(COMMAND),$(APP))
 
 # ============================================================
 # Docker

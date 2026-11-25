@@ -70,7 +70,7 @@ ark-go-starter/
 | 集成测试（需 PG/Redis） | `make test-integration APP=demo` |
 | 端到端测试 | `make e2e APP=demo`（后端真端口 + 前端 Playwright，需 PG/Redis；首次 `make e2e-install`） |
 | Lint | `make lint`（Go golangci-lint）/ `make lint-frontend`（前端 ESLint） |
-| 代码生成 | `make codegen APP=demo COMMAND=api\|module\|model` |
+| 代码生成 | `make codegen APP=demo COMMAND=api\|module\|model\|fullstack`（内部映射到 gocli 新命令树） |
 | Swagger | `make swag APP=demo` |
 | 契约校验 | `make contracts-verify`（spec 合法 + Go/TS 生成物与 spec 一致；CI 门禁） |
 | 依赖 / 清理 | `make deps` / `make tidy` / `make clean` |

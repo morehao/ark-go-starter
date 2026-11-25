@@ -90,6 +90,8 @@ make codegen APP=demo COMMAND=module
 make codegen APP=demo COMMAND=model
 # 生成单个接口代码
 make codegen APP=demo COMMAND=api
+# 后端模块 + 前端页面一体生成
+make codegen APP=demo COMMAND=fullstack
 ```
 代码生成详细说明文档见[generate](https://github.com/morehao/gocli?tab=readme-ov-file#generate)。
 
